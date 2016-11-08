@@ -2,8 +2,6 @@
 
 Enhances the Steam Inventory and Steam Market.
 
-Requires Greasemonkey or Tampermonkey to install.
-
 This script adds the following features to the Steam Market:
 
 *    Detect overpriced and underpriced items.
@@ -25,3 +23,5 @@ All pricing is based on the lowest listing, price history and your own minimum a
 *    [Inventory buttons](http://i.imgur.com/i3xQ6gl.png)
 *    [Inventory item details](http://i.imgur.com/9qrrcTP.png)
 *    [Inventory multiple items](http://i.imgur.com/FzNN8Q8.png)
+
+**This script requires Greasemonkey or Tampermonkey to install.**
