@@ -16,6 +16,12 @@ This script adds the following features to the Steam Inventory:
 
 All pricing is based on the lowest listing, price history and your own minimum and maximum prices.
 
+**Download**
+
+[Install Steam Economy Enhancer](https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js)
+
+*Greasemonkey or Tampermonkey is required to install.*
+
 **Screenshots**
 
 *    [Market overview](http://i.imgur.com/PIkDmor.png)
@@ -23,5 +29,3 @@ All pricing is based on the lowest listing, price history and your own minimum a
 *    [Inventory buttons](http://i.imgur.com/i3xQ6gl.png)
 *    [Inventory item details](http://i.imgur.com/9qrrcTP.png)
 *    [Inventory multiple items](http://i.imgur.com/FzNN8Q8.png)
-
-**This script requires Greasemonkey or Tampermonkey to install.**
