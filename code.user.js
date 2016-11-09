@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     1.1.0
+// @version     1.1.1
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -762,7 +762,7 @@
                     if (index === items.length - 1) {
                         inventoryQueueState = QueueState.Filled;
                     }
-                }, getRandomInt(6000 * index, (6000 * index) + 1000)); // Have some healthy delay or steam will block you for flooding.
+                }, getRandomInt(7000 * index, (7000 * index) + 1000)); // Have some healthy delay or steam will block you for flooding.
             });
         }
     }
@@ -849,7 +849,7 @@
 
             setTimeout(function () {
                 marketQueue.push(listing);
-            }, getRandomInt(6000 * index, (6000 * index) + 1000)); // Have some healthy delay or steam will block you for flooding.
+            }, getRandomInt(7000 * index, (7000 * index) + 1000)); // Have some healthy delay or steam will block you for flooding.
         });
     }
     //#endregion
