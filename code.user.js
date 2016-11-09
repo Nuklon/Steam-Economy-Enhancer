@@ -254,7 +254,7 @@
         var sessionId = readCookie('sessionid');
         $.ajax({
             type: "POST",
-            url: 'https://steamcommunity.com/market/sellitem/',
+            url: 'https://steamcommunity.com/market/sellitem/', // HTTPS.
             data: {
                 sessionid: sessionId,
                 appid: item.appid,
@@ -281,7 +281,7 @@
         var sessionId = readCookie('sessionid');
         $.ajax({
             type: "POST",
-            url: location.protocol + '//steamcommunity.com/market/removelisting/' + item,
+            url: 'http://steamcommunity.com/market/removelisting/' + item, // HTTP.
             data: {
                 sessionid: sessionId
             },
@@ -312,10 +312,7 @@
             if (market_name == null)
                 return callback(true);
 
-            $.get(location.protocol + '//steamcommunity.com/market/pricehistory/', {
-                appid: item.appid,
-                market_hash_name: market_name
-            },
+            $.get('http://steamcommunity.com/market/pricehistory/?appid=' + item.appid + '&market_hash_name=' + market_name, // HTTP.
 			function (data) {
 			    if (!data || !data.success || !data.prices) {
 			        return callback(true);
@@ -347,7 +344,7 @@
     //	 "steam_fee":136,
     //	 "publisher_fee":272,
     //	 "publisher_fee_app":570,
-    //	 "publisher_fee_percent":"0.10000000149011612", (actually a multiplier, not a percentage)
+    //	 "publisher_fee_percent":"0.12000000149011612", (actually a multiplier, not a percentage)
     //	 "currencyid":2005,
     //	 "converted_price":50, (price before fees, amount to pay is price+fee)
     //	 "converted_fee":7, (fee added to price)
@@ -362,7 +359,7 @@
             if (market_name == null)
                 return callback(true);
 
-            $.get(location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name, function (page) {
+            $.get('http://steamcommunity.com/market/listings/' + item.appid + '/' + market_name, function (page) { // HTTP.
                 var matches = /var g_rgListingInfo = (.+);/.exec(page);
                 var listingInfo = JSON.parse(matches[1]);
                 if (!listingInfo) {
@@ -388,7 +385,7 @@
     //"lowest_sell_order" : "4",
     //"buy_order_graph" : [[0.03, 93, "93 buy orders at 0,03\u20ac or higher"]],
     //"sell_order_graph" : [[0.04, 311, "311 sell orders at 0,04\u20ac or lower"], [0.05, 1206, "1,206 sell orders at 0,05\u20ac or lower"], [0.06, 1701, "1,701 sell orders at 0,06\u20ac or lower"], [0.07, 1875, "1,875 sell orders at 0,07\u20ac or lower"], [0.08, 1924, "1,924 sell orders at 0,08\u20ac or lower"], [0.09, 1934, "1,934 sell orders at 0,09\u20ac or lower"], [0.1, 1936, "1,936 sell orders at 0,10\u20ac or lower"], [0.11, 1937, "1,937 sell orders at 0,11\u20ac or lower"], [0.12, 1944, "1,944 sell orders at 0,12\u20ac or lower"], [0.14, 1945, "1,945 sell orders at 0,14\u20ac or lower"]],
-    //"graph_max_y" : 2000,
+    //"graph_max_y" : 3000,
     //"graph_min_x" : 0.03,
     //"graph_max_x" : 0.14,
     //"price_prefix" : "",
@@ -399,13 +396,13 @@
             var market_name = getMarketHashName(item);
             if (market_name == null)
                 return callback(true);
-            
-            $.get(location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name, function (page) {
+
+            $.get('http://steamcommunity.com/market/listings/' + item.appid + '/' + market_name, function (page) { // HTTP.
                 var matches = /Market_LoadOrderSpread\( (.+) \);/.exec(page);
                 var item_nameid = matches[1];
                 var currency = market.walletInfo.wallet_currency;
 
-                var histogramUrl = location.protocol + '//steamcommunity.com/market/itemordershistogram?language=english&currency=' + currency + "&item_nameid=" + item_nameid + '&two_factor=0';
+                var histogramUrl = 'http://steamcommunity.com/market/itemordershistogram?language=english&currency=' + currency + '&item_nameid=' + item_nameid + '&two_factor=0'; // HTTP.
 
                 $.get(histogramUrl, function (pageHistogram) {
                     callback(null, pageHistogram);
@@ -597,7 +594,7 @@
 
                 next();
             });
-        }, 2);
+        }, 1);
 
         sellQueue.drain = function () {
             if (inventoryQueueState == QueueState.Empty) {
@@ -742,7 +739,7 @@
                         next();
                     });
                 });
-            }, 2);
+            }, 1);
 
             itemQueue.drain = function () {
                 if (inventoryQueueState == QueueState.Filled)
@@ -762,7 +759,7 @@
                     if (index === items.length - 1) {
                         inventoryQueueState = QueueState.Filled;
                     }
-                }, getRandomInt(7000 * index, (7000 * index) + 1000)); // Have some healthy delay or steam will block you for flooding.
+                }, getRandomInt(12000 * index, (12000 * index) + 3000)); // Have some healthy delay or steam will block you for flooding.
             });
         }
     }
@@ -840,7 +837,7 @@
                     next();
                 });
             });
-        }, 2);
+        }, 1);
 
         $('.my_listing_section > .market_listing_row').each(function (index) {
             var listing = $(this);
@@ -849,13 +846,12 @@
 
             setTimeout(function () {
                 marketQueue.push(listing);
-            }, getRandomInt(7000 * index, (7000 * index) + 1000)); // Have some healthy delay or steam will block you for flooding.
+            }, getRandomInt(12000 * index, (12000 * index) + 3000)); // Have some healthy delay or steam will block you for flooding.
         });
     }
     //#endregion
 
     //#region UI
-
     function addCss(css) {
         var head, style;
         head = document.getElementsByTagName('head')[0];
@@ -937,7 +933,7 @@
                     if (err) {
                         console.log('Failed to get listings for ' + item.name);
                     }
-                    
+
                     var groupMain = $('<div id="listingsGroup">' +
                                         '<div><div id="listingsSell">Sell</div>' + listings.sell_order_table + '</div>' +
                                         '<div><div id="listingsBuy">Buy</div>' + listings.buy_order_table + '</div>' +
@@ -967,10 +963,10 @@
 
                     var currency = window.GetCurrencySymbol(window.GetCurrencyCode(market.walletInfo.wallet_currency));
                     var buttons = '<br/>';
-                    prices.forEach(function(e) {
+                    prices.forEach(function (e) {
                         buttons += '<a class="item_market_action_button item_market_action_button_green quicksellbutton" id="quicksellbutton' + e + '">' +
                                         '<span class="item_market_action_button_edge item_market_action_button_left"></span>' +
-                                        '<span class="item_market_action_button_contents">' + (e/100.0) + currency + '</span>' +
+                                        '<span class="item_market_action_button_contents">' + (e / 100.0) + currency + '</span>' +
                                         '<span class="item_market_action_button_edge item_market_action_button_right"></span>' +
                                         '<span class="item_market_action_button_preload"></span>' +
                                    '</a>'
@@ -978,7 +974,7 @@
 
                     $('#' + item_info_id + '_item_market_actions').append(buttons);
 
-                    $('.quicksellbutton').on('click', function() {
+                    $('.quicksellbutton').on('click', function () {
                         var price = $(this).attr('id').replace('quicksellbutton', '');
                         price = market.getPriceBeforeFees(price);
 
@@ -1032,7 +1028,7 @@
                         }
                     });
 
-                }, getRandomInt(500 * index, (500 * index) + 100)); // Have some healthy delay or steam will block you for flooding.
+                }, getRandomInt(500 * index, (500 * index) + 250)); // Have some healthy delay or steam will block you for flooding.
             });
         });
     }
