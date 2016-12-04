@@ -3,14 +3,14 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     1.1.2
+// @version     1.1.3
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
 // @include     *://steamcommunity.com/market*
 // @require     https://raw.githubusercontent.com/caolan/async/master/dist/async.min.js
 // @require     https://raw.githubusercontent.com/kapetan/jquery-observe/master/jquery-observe.js
-// @require     http://code.jquery.com/ui/1.12.1/jquery-ui.min.js
+// @require     https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
 // @homepageURL https://github.com/Nuklon/Steam-Economy-Enhancer
 // @supportURL  https://github.com/Nuklon/Steam-Economy-Enhancer/issues
 // @downloadURL https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
@@ -254,7 +254,7 @@
         var sessionId = readCookie('sessionid');
         $.ajax({
             type: "POST",
-            url: 'https://steamcommunity.com/market/sellitem/', // HTTPS.
+            url: 'https://steamcommunity.com/market/sellitem/',
             data: {
                 sessionid: sessionId,
                 appid: item.appid,
@@ -281,7 +281,7 @@
         var sessionId = readCookie('sessionid');
         $.ajax({
             type: "POST",
-            url: 'http://steamcommunity.com/market/removelisting/' + item, // HTTP.
+            url: window.location.protocol + '//steamcommunity.com/market/removelisting/' + item,
             data: {
                 sessionid: sessionId
             },
@@ -312,7 +312,7 @@
             if (market_name == null)
                 return callback(true);
 
-			var url = 'http://steamcommunity.com/market/pricehistory/?appid=' + item.appid + '&market_hash_name=' + market_name;
+			var url = window.location.protocol + '//steamcommunity.com/market/pricehistory/?appid=' + item.appid + '&market_hash_name=' + market_name;
 			var storage_hash = 'pricehistory_' + url;
 			
 			if (!sessionStorage.getItem(storage_hash)) {
@@ -366,12 +366,11 @@
             var market_name = getMarketHashName(item);
             if (market_name == null)
                 return callback(true);
-
-			var url = 'http://steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
+	
+			var url = window.location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
 			var storage_hash = 'listings_' + url;
-			
 			if (!sessionStorage.getItem(storage_hash)) {
-				$.get(url, function (page) { // HTTP.
+				$.get(url, function (page) {
 					var matches = /var g_rgListingInfo = (.+);/.exec(page);
 					var listingInfo = JSON.parse(matches[1]);
 					if (!listingInfo) {
@@ -380,7 +379,7 @@
 					
 					sessionStorage.setItem(storage_hash, JSON.stringify(listingInfo));					
 					callback(null, listingInfo);
-				}).fail(function () {
+				}).fail(function (e) {
 					return callback(true);
 				});
 			}
@@ -416,16 +415,16 @@
                 return callback(true);
 				
 			
-			var url = 'http://steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
+			var url = window.location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
 			var storage_hash = 'listingsextended_' + url;
 
 			if (!sessionStorage.getItem(storage_hash)) {
-				$.get(url, function (page) { // HTTP.
+				$.get(url, function (page) {
 					var matches = /Market_LoadOrderSpread\( (.+) \);/.exec(page);
 					var item_nameid = matches[1];
 					
 					var currency = market.walletInfo.wallet_currency;
-					var histogramUrl = 'http://steamcommunity.com/market/itemordershistogram?language=english&currency=' + currency + '&item_nameid=' + item_nameid + '&two_factor=0'; // HTTP.
+					var histogramUrl = window.location.protocol + '//steamcommunity.com/market/itemordershistogram?language=english&currency=' + currency + '&item_nameid=' + item_nameid + '&two_factor=0'; // HTTP.
 
 					$.get(histogramUrl, function (pageHistogram) {
 						sessionStorage.setItem(storage_hash, JSON.stringify(pageHistogram));					
@@ -790,7 +789,7 @@
                     if (index === items.length - 1) {
                         inventoryQueueState = QueueState.Filled;
                     }
-                }, getRandomInt(10000 * index, (10000 * index) + 2000)); // Have some healthy delay or steam will block you for flooding.
+                }, getRandomInt(7500 * index, (7500 * index) + 2000)); // Have some healthy delay or steam will block you for flooding.
             });
         }
     }
@@ -872,14 +871,18 @@
             });
         }, 1);
 
+		
+		var marketListings = $('.my_listing_section > .market_listing_row');
         $('.my_listing_section > .market_listing_row').each(function (index) {
             var listing = $(this);
 
-            $('.market_listing_cancel_button', listing).after('<div class="market_listing_select" style="position: absolute;top: 16px;right: 10px;"><input type="checkbox" class="market_select_item"/></div>');
+			$('.market_listing_cancel_button', listing).after('<div class="market_listing_select" style="position: absolute;top: 16px;right: 10px;"><input type="checkbox" class="market_select_item"/></div>');
 
             setTimeout(function () {
-                marketQueue.push(listing);
-            }, getRandomInt(10000 * index, (10000 * index) + 2000)); // Have some healthy delay or steam will block you for flooding.
+				marketQueue.push(listing);
+				
+				unsafeWindow.g_bMarketWindowHidden = listing[0] != marketListings.last()[0]; // Prevent polling of popular listings to reduce the number of requests made to steam.
+            }, getRandomInt(7500 * index, (7500 * index) + 2000)); // Have some healthy delay or steam will block you for flooding.
         });
     }
     //#endregion
