@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     1.2.0
+// @version     1.2.1
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -457,7 +457,8 @@
     //#endregion
 
 	function escapeURI(name) {
-		return name.replace('?', '%3F');
+		return name.replace('?', '%3F')
+				   .replace('#', '%23');
 	}
 	
     //#region Steam Market / Inventory helpers
