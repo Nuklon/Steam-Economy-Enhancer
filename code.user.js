@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     1.1.5
+// @version     1.2.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -19,22 +19,13 @@
 
 (function ($, async, g_rgAppContextData, g_strInventoryLoadURL, g_rgWalletInfo) {
     var STEAM_INVENTORY_ID = 753;
-
-    var QueueState = {
-        Adding: 0,
-        Filled: 1,
-        Empty: 2,
-        Waiting: 3
-    }
-
-    var inventoryQueueState = QueueState.Adding;
-
-    var currentIndex = 0;
-    var numberOfItems = 0;
+	
+    var queuedItems = [];
 
     var isOnMarket = window.location.href.includes('.com/market');
 
     var market = new SteamMarket(g_rgAppContextData, g_strInventoryLoadURL, g_rgWalletInfo);
+	var user_currency = window.GetCurrencySymbol(window.GetCurrencyCode(market.walletInfo.wallet_currency));
 
     function SteamMarket(appContext, inventoryUrl, walletInfo) {
         this.appContext = appContext;
@@ -412,14 +403,14 @@
         try {
             var market_name = getMarketHashName(item);
             if (market_name == null)
-                return callback(true);
-				
+                return callback(true);				
 			
 			var url = window.location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
 			var storage_hash = 'listingsextended_' + url;
 
 			if (!sessionStorage.getItem(storage_hash)) {
 				$.get(url, function (page) {
+					
 					var matches = /Market_LoadOrderSpread\( (.+) \);/.exec(page);
 					var item_nameid = matches[1];
 					
@@ -465,14 +456,18 @@
     };
     //#endregion
 
+	function escapeURI(name) {
+		return name.replace('?', '%3F');
+	}
+	
     //#region Steam Market / Inventory helpers
-    function getMarketHashName(item) {
+    function getMarketHashName(item) {	
         if (typeof item === 'undefined')
             return null;
         if (typeof item.market_hash_name !== 'undefined')
-            return item.market_hash_name;
+            return escapeURI(item.market_hash_name);
         if (typeof item.name !== 'undefined')
-            return item.name;
+            return escapeURI(item.name);
         return null;
     }
 
@@ -603,15 +598,13 @@
     if (!isOnMarket) {
 
         var sellQueue = async.queue(function (task, next) {
-            currentIndex++;
-
+		
             market.sellItem(task.item, task.sellPrice, function (err, data) {
-                var digits = getNumberOfDigits(numberOfItems);
-                var padLeft = padLeftZero('' + currentIndex, digits);
-				var currency = window.GetCurrencySymbol(window.GetCurrencyCode(market.walletInfo.wallet_currency));
-				
+                var digits = getNumberOfDigits(queuedItems.length);
+                var padLeft = padLeftZero('' + (queuedItems.indexOf(task.item.id) + 1), digits) + ' / ' + queuedItems.length;				
+								
                 if (!err) {
-                    log(padLeft + ' - ' + task.item.name + ' added to market for ' + (market.getPriceIncludingFees(task.sellPrice) / 100.0).toFixed(2) + currency + '.');
+                    log(padLeft + ' - ' + task.item.name + ' added to market for ' + (market.getPriceIncludingFees(task.sellPrice) / 100.0).toFixed(2) + user_currency + '.');
 
                     $('#item' + task.item.appid + '_' + task.item.contextid + '_' + task.item.id).css('background', '#496424');
                 } else {
@@ -623,18 +616,8 @@
                 next();
             });
         }, 1);
-
-        sellQueue.drain = function () {
-            if (inventoryQueueState == QueueState.Empty) {
-                log('Done... added everything to market.');
-
-                inventoryQueueState = QueueState.Waiting;
-            }
-        }
-
+		
         function sellAllItems(appId) {
-            clearLog();
-
             market.getInventory(appId, function (err, items) {
                 if (err)
                     return log('Something went wrong fetching inventory, try again...');
@@ -656,8 +639,6 @@
         }
 
         function sellAllCards() {
-            clearLog();
-
             market.getInventory(STEAM_INVENTORY_ID, function (err, items) {
                 if (err)
                     return log('Something went wrong fetching inventory, try again...');
@@ -679,8 +660,6 @@
         }
 
         function sellSelectedItems() {
-            clearLog();
-
             var idsToSell = [];
             $('.inventory_ctn').each(function () {
                 $(this).find('.inventory_page').each(function () {
@@ -721,75 +700,79 @@
                 sellItems(filteredItems);
             });
         }
+		
+		function itemQueueWorker(item, ignoreErrors, callback) {
+			var priceInfo = getPriceInformationFromInventoryItem(item);
+			
+			var failed = 0;
+			
+			market.getPriceHistory(item, function (err, history, cachedHistory) {
+				if (err) {
+					console.log('Failed to get price history for ' + item.name);
+					failed += 1;
+				}
+
+				market.getListings(item, function (err, listings, cachedListings) {
+					if (err) {
+						console.log('Failed to get listings for ' + item.name);
+						failed += 1;
+					}
+
+					if (failed > 0 && !ignoreErrors) {
+						return callback(false, cachedHistory && cachedListings);
+					}
+					
+					console.log('============================')
+					console.log(item.name);
+
+					var sellPrice = calculateSellPrice(history, listings, true);
+					console.log('Calculated sell price: ' + sellPrice + ' (' + market.getPriceIncludingFees(sellPrice) + ')');
+
+					// Item is not yet listed (or Steam is broken again), so list for maximum price.
+					if (sellPrice <= 0) {
+						sellPrice = priceInfo.maxPriceBeforeFee;
+					}
+
+					if (sellPrice < priceInfo.minPriceBeforeFee)
+						sellPrice = priceInfo.minPriceBeforeFee;
+
+					if (sellPrice > priceInfo.maxPriceBeforeFee)
+						sellPrice = priceInfo.maxPriceBeforeFee;
+
+					sellQueue.push({
+						item: item,
+						sellPrice: sellPrice
+					});
+					
+					return callback(true, cachedHistory && cachedListings);				
+				});
+			});
+		}		
 
         function sellItems(items) {
-            inventoryQueueState = QueueState.Adding;
-            currentIndex = 0;
-            numberOfItems = 0;
-
             var itemQueue = async.queue(function (item, next) {
-                var priceInfo = getPriceInformationFromInventoryItem(item);
-
-                market.getPriceHistory(item, function (err, history) {
-                    if (err) {
-                        console.log('Failed to get price history for ' + item.name);
-                    }
-
-					setTimeout(function() {
-						market.getListings(item, function (err, listings) {
-							if (err) {
-								console.log('Failed to get listings for ' + item.name);
-							}
-
-							console.log('============================')
-							console.log(item.name);
-
-							var sellPrice = calculateSellPrice(history, listings, true);
-							console.log('Calculated sell price: ' + sellPrice + ' (' + market.getPriceIncludingFees(sellPrice) + ')');
-
-							// Item is not yet listed (or Steam is fucked again), so list for maximum price.
-							if (sellPrice <= 0) {
-								sellPrice = priceInfo.maxPriceBeforeFee;
-							}
-
-							if (sellPrice < priceInfo.minPriceBeforeFee)
-								sellPrice = priceInfo.minPriceBeforeFee;
-
-							if (sellPrice > priceInfo.maxPriceBeforeFee)
-								sellPrice = priceInfo.maxPriceBeforeFee;
-
-							if (sellPrice > 0) {
-								sellQueue.push({
-									item: item,
-									sellPrice: sellPrice
-								});
-							}
-
+				itemQueueWorker(item, false, function(success, cached) {
+					if (success) {
+						setTimeout(function() { 
 							next();
-						});
-					}, getRandomInt(2500, 3000));                    
-                });
+						}, cached ? 0 : getRandomInt(2500, 3000));
+					} else {
+						setTimeout(function() { 
+							itemQueueWorker(item, true, function(success, cached) { 
+								next(); // Go to the next queue item, regardless of success.
+							});
+						}, cached ? 0 : getRandomInt(45000, 60000));
+					}
+				});               
             }, 1);
-
-            itemQueue.drain = function () {
-                if (inventoryQueueState == QueueState.Filled)
-                    inventoryQueueState = QueueState.Empty;
-            };
-
-            items = items.sort((a, b) => a.name.localeCompare(b.name));
-            numberOfItems = items.length;
-
-            log('Adding ' + items.length + ' items to market...');
-            if (items.length == 0)
-                log('Done... added everything to market.')
-
+           
+            items = items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+			
             items.forEach(function (item, index, array) {
-                setTimeout(function () {
-                    itemQueue.push(item);
-                    if (index === items.length - 1) {
-                        inventoryQueueState = QueueState.Filled;
-                    }
-                }, getRandomInt(7500 * index, (7500 * index) + 2000)); // Have some healthy delay or steam will block you for flooding.
+				if (queuedItems.indexOf(item.id) == -1) {
+					queuedItems.push(item.id);
+					itemQueue.push(item);
+				}
             });
         }
     }
@@ -809,7 +792,7 @@
 						marketQueueWorker(listing, true, function(success, cached) { 
 							next(); // Go to the next queue item, regardless of success.
 						});
-					}, cached ? 0 : getRandomInt(30000, 45000));
+					}, cached ? 0 : getRandomInt(45000, 60000));
 				}
 			});
 		}, 1);
@@ -824,14 +807,12 @@
             var game_name = $('.market_listing_game_name', listing).text().trim();
             var price = $('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listing).text().trim().replace('--', '00').replace(/\D/g, '');
 
-            var market_hash_name = url.substr(url.lastIndexOf("/") + 1);
             var priceInfo = getPriceInformationFromListing(url, game_name);
 
 			var appid = url.substr(0, url.lastIndexOf("/"));
-            appid = appid.substr(appid.lastIndexOf("/") + 1)
+			appid = appid.substr(appid.lastIndexOf("/") + 1);
+            var market_hash_name = url.substr(url.lastIndexOf("/") + 1);
             var item = { appid: parseInt(appid), market_hash_name: market_hash_name };
-
-            var currency = window.GetCurrencySymbol(window.GetCurrencyCode(market.walletInfo.wallet_currency));
 
 			var failed = 0;
 			
@@ -887,7 +868,7 @@
 						listing.addClass('fair');
 					}
 
-					$('.market_listing_my_price', listing).prop('title', 'Best price is ' + (market.getPriceIncludingFees(sellPrice) / 100.0) + currency);						
+					$('.market_listing_my_price', listing).prop('title', 'Best price is ' + (market.getPriceIncludingFees(sellPrice) / 100.0) + user_currency);						
 					
 					return callback(true, cachedHistory && cachedListings);
 				});
@@ -896,13 +877,13 @@
 		
 		var marketListings = $('.my_listing_section > .market_listing_row');
         $('.my_listing_section > .market_listing_row').each(function (index) {
-            var listing = $(this);
+			var listing = $(this);
 			
 			$('.market_listing_cancel_button', listing).after('<div class="market_listing_select" style="position: absolute;top: 16px;right: 10px;"><input type="checkbox" class="market_select_item"/></div>');
-
-			unsafeWindow.g_bMarketWindowHidden = true;
 			
-			marketQueue.push(listing);
+			marketQueue.push(listing);						
+			
+			unsafeWindow.g_bMarketWindowHidden = true; // Limit the number of requests made to Steam by stopping constant polling of popular listings.
         });
     }
     //#endregion
@@ -983,6 +964,9 @@
             var appid = g_ActiveInventory.selectedItem.appid;
 
             var item = { appid: parseInt(appid), market_hash_name: market_hash_name };
+			
+			if (item_info.html().indexOf('checkout/sendgift/') > -1) // Gifts have no market information.
+				return;
 
             market.getListingsExtended(item,
                 function (err, listings) {
@@ -999,6 +983,10 @@
 
                     // Generate quick sell buttons.
 
+					if (queuedItems.indexOf(g_ActiveInventory.selectedItem.id) != -1) { // There's no need to add queued items again.
+						return;
+					}
+					
                     var prices = [];
 
                     if (listings.highest_buy_order != null) {
@@ -1017,12 +1005,11 @@
 
                     prices = prices.filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
 
-                    var currency = window.GetCurrencySymbol(window.GetCurrencyCode(market.walletInfo.wallet_currency));
                     var buttons = '<br/>';
                     prices.forEach(function (e) {
                         buttons += '<a class="item_market_action_button item_market_action_button_green quicksellbutton" id="quicksellbutton' + e + '">' +
                                         '<span class="item_market_action_button_edge item_market_action_button_left"></span>' +
-                                        '<span class="item_market_action_button_contents">' + (e / 100.0) + currency + '</span>' +
+                                        '<span class="item_market_action_button_contents">' + (e / 100.0) + user_currency + '</span>' +
                                         '<span class="item_market_action_button_edge item_market_action_button_right"></span>' +
                                         '<span class="item_market_action_button_preload"></span>' +
                                    '</a>'
@@ -1031,13 +1018,17 @@
                     $('#' + item_info_id + '_item_market_actions').append(buttons);
 
                     $('.quicksellbutton').on('click', function () {
-                        var price = $(this).attr('id').replace('quicksellbutton', '');
+                        if (queuedItems.indexOf(g_ActiveInventory.selectedItem.id) != -1) { // There's no need to add queued items again.
+							return;
+						}
+						
+						var price = $(this).attr('id').replace('quicksellbutton', '');
                         price = market.getPriceBeforeFees(price);
-
-                        sellQueue.push({
-                            item: g_ActiveInventory.selectedItem,
-                            sellPrice: price
-                        });
+							
+						sellQueue.push({
+							item: g_ActiveInventory.selectedItem,
+							sellPrice: price
+						});						
                     });
                 });
         });
