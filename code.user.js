@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     1.2.1
+// @version     1.2.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -402,7 +402,7 @@
     SteamMarket.prototype.getListingsExtended = function (item, callback, cached) {
         try {
             var market_name = getMarketHashName(item);
-            if (market_name == null)
+			if (market_name == null)
                 return callback(true);				
 			
 			var url = window.location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
@@ -465,10 +465,19 @@
     function getMarketHashName(item) {	
         if (typeof item === 'undefined')
             return null;
+			
+		if (typeof item.description !== 'undefined') {
+			if (typeof item.description.market_hash_name !== 'undefined')
+				return escapeURI(item.description.market_hash_name);
+			if (typeof item.description.name !== 'undefined')
+				return escapeURI(item.description.name);
+		}
+			
         if (typeof item.market_hash_name !== 'undefined')
             return escapeURI(item.market_hash_name);
         if (typeof item.name !== 'undefined')
             return escapeURI(item.name);
+		
         return null;
     }
 
@@ -948,7 +957,7 @@
         });
 
         $('.inventory_page_right').observe('childlist', '.hover_item_name:visible', function (record) {
-            var item_info_id = $(this).attr('id').replace('_item_name', '');
+			var item_info_id = $(this).attr('id').replace('_item_name', '');
             var item_info = $('#' + item_info_id);
 
             // Move scrap to bottom, this is of little interest.
@@ -958,18 +967,18 @@
             // Starting at prices are already retrieved in the table.
             $('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(2)').remove();
 
-            var market_hash_name = getMarketHashName(g_ActiveInventory.selectedItem);
+			var market_hash_name = getMarketHashName(g_ActiveInventory.selectedItem);
             if (market_hash_name == null)
                 return;
 
-            var appid = g_ActiveInventory.selectedItem.appid;
-
+			var appid = g_ActiveInventory.selectedItem.appid;
+			
             var item = { appid: parseInt(appid), market_hash_name: market_hash_name };
 			
 			if (item_info.html().indexOf('checkout/sendgift/') > -1) // Gifts have no market information.
 				return;
 
-            market.getListingsExtended(item,
+			market.getListingsExtended(item,
                 function (err, listings) {
                     if (err) {
                         console.log('Failed to get listings for ' + item.name);
