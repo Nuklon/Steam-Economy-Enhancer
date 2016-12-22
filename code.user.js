@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     1.5.0
+// @version     1.6.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -43,6 +43,7 @@
     var SETTING_MAX_FOIL_PRICE = 'SETTING_MAX_FOIL_PRICE';
     var SETTING_MIN_MISC_PRICE = 'SETTING_MIN_MISC_PRICE';
     var SETTING_MAX_MISC_PRICE = 'SETTING_MAX_MISC_PRICE';
+    var SETTING_PRICE_OFFSET = 'SETTING_PRICE_OFFSET';
 
     var settingDefaults =
     {
@@ -51,7 +52,8 @@
         SETTING_MIN_FOIL_PRICE: 0.15,
         SETTING_MAX_FOIL_PRICE: 10,
         SETTING_MIN_MISC_PRICE: 0.05,
-        SETTING_MAX_MISC_PRICE: 10
+        SETTING_MAX_MISC_PRICE: 10,
+        SETTING_PRICE_OFFSET: -0.01
     };
 
     function getSetting(name) {
@@ -67,7 +69,6 @@
     function getPriceInformationFromInventoryItem(item) {
         var isTradingCard = getIsTradingCard(item);
         var isFoilTradingCard = getIsFoilTradingCard(item);
-
         return getPriceInformation(isTradingCard, isFoilTradingCard);
     }
 
@@ -130,19 +131,16 @@
         if (total == 0)
             return 0;
 
-        highest = Math.ceil(highest / total);
+        highest = Math.floor(highest / total);
         return market.getPriceBeforeFees(highest);
     }
 
     // Calculate the sell price based on the history and listings.
-    // belowFirstListing specifies whether the returned price should be 1 cent below the lowest listing (only if highest average is lower than first listing).
-    function calculateSellPriceListings(history, listings, belowFirstListing) {
+    // applyOffset specifies whether the price offset should be applied when the listings are used to determine the price.
+    function calculateSellPriceListings(history, listings, applyOffset) {
         var historyPrice = calculateAverageHistory(history);
 
         if (listings == null || Object.keys(listings).length === 0) {
-            if (historyPrice == 0)
-                return 0;
-
             return historyPrice;
         }
 
@@ -151,8 +149,8 @@
         // If the highest average price is lower than the first listing, return 1 cent below that listing.
         // Otherwise, use the highest average price instead.
         if (historyPrice < listingPrice) {
-            if (belowFirstListing) {
-                return listingPrice - 1;
+            if (applyOffset) {
+                return listingPrice + (getSetting(SETTING_PRICE_OFFSET) * 100);
             }
             return listingPrice;
         } else {
@@ -161,24 +159,23 @@
     }
 
     // Calculate the sell price based on the history and listings.
-    // belowFirstListing specifies whether the returned price should be 1 cent below the lowest listing (only if highest average is lower than first listing).
-    function calculateSellPriceHistogram(history, histogram, belowFirstListing) {
+    // applyOffset specifies whether the price offset should be applied when the listings are used to determine the price.
+    function calculateSellPriceHistogram(history, histogram, applyOffset) {
         var historyPrice = calculateAverageHistory(history);
-        if (histogram == null || typeof histogram.sell_order_graph === 'undefined' || histogram.sell_order_graph.length == 0) {
-            if (historyPrice == 0) {
-                return 0;
-            }
-                
+        
+        if (histogram == null || typeof histogram.lowest_sell_order === 'undefined' || typeof histogram.sell_order_graph === 'undefined')
             return historyPrice;
-        }
+
+        if (histogram.lowest_sell_order == null) // This means that we did managed to retrieve the histogram, but there are no current listings.
+            return 0; // In this case we should return 0 so the price can be determined by its minimum and maximum value.
 
         var listingPrice = market.getPriceBeforeFees(histogram.lowest_sell_order);
 
         // If the highest average price is lower than the first listing, return 1 cent below that listing.
         // Otherwise, use the highest average price instead.
         if (historyPrice < listingPrice) {
-            if (belowFirstListing) {
-                return listingPrice - 1;
+            if (applyOffset) {
+                return listingPrice + (getSetting(SETTING_PRICE_OFFSET) * 100);
             }
             return listingPrice;
         } else {
@@ -351,14 +348,14 @@
                 return;
             }
 
-            var url = window.location.protocol + '//steamcommunity.com/market/pricehistory/?appid=' + item.appid + '&market_hash_name=' + market_name;
-            var storage_hash = 'pricehistory_' + url;
+            var storage_hash = 'pricehistory_' + item.appid + '+' + market_name;
 
             if (sessionStorage.getItem(storage_hash)) {
                 callback(null, JSON.parse(sessionStorage.getItem(storage_hash)), true);
                 return;
             }
-            
+
+            var url = window.location.protocol + '//steamcommunity.com/market/pricehistory/?appid=' + item.appid + '&market_hash_name=' + market_name;
             $.get(url,
                 function (data) {
                     if (!data || !data.success || !data.prices) {
@@ -376,7 +373,7 @@
                     callback(null, data.prices, false);
                 }, 'json')
 			 .fail(function () {
-			 	 return callback(true);
+			     return callback(true);
 			 });
         } catch (e) {
             return callback(true);
@@ -413,14 +410,14 @@
                 return;
             }
 
-            var url = window.location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
-            var storage_hash = 'listings_' + url;
+            var storage_hash = 'listings_' + item.appid + '+' + market_name;
 
             if (sessionStorage.getItem(storage_hash)) {
                 callback(null, JSON.parse(sessionStorage.getItem(storage_hash)), true);
                 return;
             }
-           
+
+            var url = window.location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
             $.get(url,
                 function (page) {
                     var matches = /var g_rgListingInfo = (.+);/.exec(page);
@@ -439,8 +436,8 @@
                     callback(null, listingInfo, false);
                 })
              .fail(function (e) {
-                return callback(true);
-             });            
+                 return callback(true);
+             });
         } catch (e) {
             return callback(true);
         }
@@ -455,19 +452,19 @@
                 return;
             }
 
-            var url = window.location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
-            var storage_hash = 'itemnameid_' + url;
+            var storage_hash = 'itemnameid_' + item.appid + '+' + market_name;
 
             if (localStorage.getItem(storage_hash)) {
                 var item_nameid = localStorage.getItem(storage_hash);
 
                 // Make sure the stored item name id is valid before returning it.
-                if (replaceNonNumbers(item_nameid) == item_nameid) { 
+                if (replaceNonNumbers(item_nameid) == item_nameid) {
                     callback(null, item_nameid);
                     return;
                 }
             }
-            
+
+            var url = window.location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
             $.get(url,
                 function (page) {
                     var matches = /Market_LoadOrderSpread\( (.+) \);/.exec(page);
@@ -513,32 +510,32 @@
             if (market_name == null)
                 return callback(true);
 
-            var url = window.location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
-            var storage_hash = 'itemordershistogram_' + url;
-
+            var storage_hash = 'itemordershistogram_' + item.appid + '+' + market_name;
+            
             if (sessionStorage.getItem(storage_hash)) {
                 callback(null, JSON.parse(sessionStorage.getItem(storage_hash)), true);
                 return;
             }
-            
+
             this.getMarketItemNameId(item,
                 function (err, item_nameid) {
                     if (err) {
                         callback(true);
                         return;
                     }
-                    
-                    var currency = market.walletInfo.wallet_currency;
-                    var histogramUrl = window.location.protocol + '//steamcommunity.com/market/itemordershistogram?language=english&currency=' + currency + '&item_nameid=' + item_nameid + '&two_factor=0';
 
-                    $.get(histogramUrl,
+                    var currency = market.walletInfo.wallet_currency;
+
+                    var url = window.location.protocol + '//steamcommunity.com/market/itemordershistogram?language=english&currency=' + currency + '&item_nameid=' + item_nameid + '&two_factor=0';
+
+                    $.get(url,
                         function (pageHistogram) {
                             sessionStorage.setItem(storage_hash, JSON.stringify(pageHistogram));
                             callback(null, pageHistogram, false);
                         })
                      .fail(function () {
                          return callback(true);
-                     });                    
+                     });
                 });
         } catch (e) {
             return callback(true);
@@ -547,9 +544,17 @@
 
     // Calculate the price before fees (seller price) from the buyer price
     SteamMarket.prototype.getPriceBeforeFees = function (price, item) {
+        var publisherFee = -1;
+        if (typeof item !== 'undefined') {
+            if (typeof item.market_fee !== 'undefined')
+                publisherFee = item.market_fee;
+            else if (typeof item.description !== 'undefined' && typeof item.description.market_fee !== 'undefined')
+                publisherFee = item.description.market_fee;
+        }
+        if (publisherFee == -1)
+            publisherFee = this.walletInfo['wallet_publisher_fee_percent_default'];
+
         price = Math.round(price);
-        // market_fee may or may not exist - this is copied from steam's code
-        var publisherFee = (item && typeof item.market_fee != 'undefined') ? item.market_fee : this.walletInfo['wallet_publisher_fee_percent_default'];
         var feeInfo = CalculateFeeAmount(price, publisherFee, this.walletInfo);
 
         return price - feeInfo.fees;
@@ -557,9 +562,17 @@
 
     // Calculate the buyer price from the seller price
     SteamMarket.prototype.getPriceIncludingFees = function (price, item) {
+        var publisherFee = -1;
+        if (typeof item !== 'undefined') {
+            if (typeof item.market_fee !== 'undefined')
+                publisherFee = item.market_fee;
+            else if (typeof item.description !== 'undefined' && typeof item.description.market_fee !== 'undefined')
+                publisherFee = item.description.market_fee;
+        }
+        if (publisherFee == -1)
+            publisherFee = this.walletInfo['wallet_publisher_fee_percent_default'];
+
         price = Math.round(price);
-        // market_fee may or may not exist - this is copied from steam's code
-        var publisherFee = (item && typeof item.market_fee != 'undefined') ? item.market_fee : this.walletInfo['wallet_publisher_fee_percent_default'];
         var feeInfo = CalculateAmountToSendForDesiredReceivedAmount(price, publisherFee, this.walletInfo);
 
         return feeInfo.amount;
@@ -577,15 +590,15 @@
         if (typeof item === 'undefined')
             return null;
 
-        if (typeof item.description !== 'undefined') {
-            if (typeof item.description.market_hash_name !== 'undefined')
-                return escapeURI(item.description.market_hash_name);
-            if (typeof item.description.name !== 'undefined')
-                return escapeURI(item.description.name);
-        }
+        if (typeof item.description !== 'undefined' && typeof item.description.market_hash_name !== 'undefined')
+            return escapeURI(item.description.market_hash_name);
+
+        if (typeof item.description !== 'undefined' && typeof item.description.name !== 'undefined')
+            return escapeURI(item.description.name);
 
         if (typeof item.market_hash_name !== 'undefined')
             return escapeURI(item.market_hash_name);
+
         if (typeof item.name !== 'undefined')
             return escapeURI(item.name);
 
@@ -593,14 +606,21 @@
     }
 
     function getIsTradingCard(item) {
-        if (!item.marketable)
+        if (typeof item === 'undefined')
             return false;
 
-        if (typeof item.tags === 'undefined')
+        if (typeof item.marketable !== 'undefined' && !item.marketable)
+            return false;
+
+        if (typeof item.description !== 'undefined' && typeof item.description.marketable !== 'undefined' && !item.description.marketable)
+            return false;
+
+        var tags = typeof item.tags !== 'undefined' ? item.tags : (typeof item.description !== 'undefined' && typeof item.description.tags !== 'undefined' ? item.description.tags : null);
+        if (tags == null)
             return false;
 
         var isTaggedAsTradingCard = false;
-        item.tags.forEach(function (arrayItem) {
+        tags.forEach(function (arrayItem) {
             if (arrayItem.category == 'item_class')
                 if (arrayItem.internal_name == 'item_class_2') // trading card.
                     isTaggedAsTradingCard = true;
@@ -614,7 +634,11 @@
             return false;
 
         var isTaggedAsFoilTradingCard = false;
-        item.tags.forEach(function (arrayItem) {
+        var tags = typeof item.tags !== 'undefined' ? item.tags : (typeof item.description !== 'undefined' && typeof item.description.tags !== 'undefined' ? item.description.tags : null);
+        if (tags == null)
+            return false;
+
+        tags.forEach(function (arrayItem) {
             if (arrayItem.category == 'cardborder')
                 if (arrayItem.internal_name == 'cardborder_1') // foil border.
                     isTaggedAsFoilTradingCard = true;
@@ -652,6 +676,21 @@
         }
         // fees.amount should equal the passed in amount
         return fees;
+    }
+
+    // Clamps the price between min and max (inclusive).
+    // zeroOrLower specifies the value to use if the price is zero or lower.
+    function clampPrice(cur, min, max, zeroOrLower) {
+        if (cur <= 0)
+            cur = zeroOrLower;
+
+        if (cur < min)
+            cur = min;
+
+        if (cur > max)
+            cur = max;
+
+        return cur;
     }
 
     // Strangely named function, it actually works out the fees and buyer price for a seller price
@@ -752,7 +791,6 @@
 
                     items.forEach(function (item) {
                         if (!item.marketable) {
-                            console.log('Skipping: ' + item.name);
                             return;
                         }
 
@@ -773,7 +811,6 @@
 
                     items.forEach(function (item) {
                         if (!getIsTradingCard(item)) {
-                            console.log('Skipping: ' + item.name);
                             return;
                         }
 
@@ -814,11 +851,11 @@
 
                 items.forEach(function (item) {
                     if (!item.marketable) {
-                        console.log('Skipping: ' + item.name);
                         return;
                     }
 
-                    if (idsToSell.indexOf(item.id) !== -1) {
+                    var itemId = item.assetid || item.id;
+                    if (idsToSell.indexOf(itemId) !== -1) {
                         filteredItems.push(item);
                     }
                 });
@@ -831,16 +868,17 @@
             var priceInfo = getPriceInformationFromInventoryItem(item);
 
             var failed = 0;
+            var itemName = item.name || item.description.name;
 
             market.getPriceHistory(item, function (err, history, cachedHistory) {
                 if (err) {
-                    console.log('Failed to get price history for ' + item.name);
+                    console.log('Failed to get price history for ' + itemName);
                     failed += 1;
                 }
 
                 market.getItemOrdersHistogram(item, function (err, listings, cachedListings) {
                     if (err) {
-                        console.log('Failed to get orders histogram for ' + item.name);
+                        console.log('Failed to get orders histogram for ' + itemName);
                         failed += 1;
                     }
 
@@ -849,21 +887,14 @@
                     }
 
                     console.log('============================')
-                    console.log(item.name);
+                    console.log(itemName);
 
                     var sellPrice = calculateSellPriceHistogram(history, listings, true);
-                    console.log('Calculated sell price: ' + sellPrice + ' (' + market.getPriceIncludingFees(sellPrice) + ')');
+                    console.log('Calculated sell price: ' + sellPrice / 100.0 + ' (' + market.getPriceIncludingFees(sellPrice) / 100.0 + ')');
 
-                    // Item is not yet listed (or Steam is broken again), so list for maximum price.
-                    if (sellPrice <= 0) {
-                        sellPrice = priceInfo.maxPriceBeforeFee;
-                    }
+                    sellPrice = clampPrice(sellPrice, priceInfo.minPriceBeforeFee, priceInfo.maxPriceBeforeFee, priceInfo.maxPriceBeforeFee);
 
-                    if (sellPrice < priceInfo.minPriceBeforeFee)
-                        sellPrice = priceInfo.minPriceBeforeFee;
-
-                    if (sellPrice > priceInfo.maxPriceBeforeFee)
-                        sellPrice = priceInfo.maxPriceBeforeFee;
+                    console.log('Used sell price: ' + sellPrice / 100.0 + ' (' + market.getPriceIncludingFees(sellPrice) / 100.0 + ')');
 
                     sellQueue.push({
                         item: item,
@@ -935,14 +966,14 @@
             var name = $('.market_listing_item_name_link', listing).text().trim();
             var game_name = $('.market_listing_game_name', listing).text().trim();
             var price = $('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listing).text().trim().replace('--', '00').replace(/\D/g, '');
-
+            
             var priceInfo = getPriceInformationFromListing(url, game_name);
-
+            
             var appid = url.substr(0, url.lastIndexOf("/"));
             appid = appid.substr(appid.lastIndexOf("/") + 1);
             var market_hash_name = url.substr(url.lastIndexOf("/") + 1);
-            var item = { appid: parseInt(appid), market_hash_name: market_hash_name };
-
+            var item = { appid: parseInt(appid), description: { market_hash_name: market_hash_name } };
+            
             var failed = 0;
 
             market.getPriceHistory(item, function (err, history, cachedHistory) {
@@ -962,21 +993,15 @@
                     }
 
                     console.log('============================')
-                    console.log(game_name);
+                    console.log(game_name + ': ' + name);
                     console.log('Sell price: ' + price);
 
                     var sellPrice = calculateSellPriceHistogram(history, listings, false);
-                    console.log('Calculated sell price: ' + sellPrice + ' (' + market.getPriceIncludingFees(sellPrice) + ')');
+                    console.log('Calculated sell price: ' + sellPrice / 100.0 + ' (' + market.getPriceIncludingFees(sellPrice) / 100.0 + ')');
 
-                    if (sellPrice <= 0) { // Failed to get price; use the listed price instead.
-                        sellPrice = market.getPriceBeforeFees(price);
-                    }
+                    sellPrice = clampPrice(sellPrice, priceInfo.minPriceBeforeFee, priceInfo.maxPriceBeforeFee, market.getPriceBeforeFees(price));
 
-                    if (sellPrice < priceInfo.minPriceBeforeFee)
-                        sellPrice = priceInfo.minPriceBeforeFee;
-
-                    if (sellPrice > priceInfo.maxPriceBeforeFee)
-                        sellPrice = priceInfo.maxPriceBeforeFee;
+                    console.log('Used sell price: ' + sellPrice / 100.0 + ' (' + market.getPriceIncludingFees(sellPrice) / 100.0 + ')');
 
                     if (market.getPriceIncludingFees(sellPrice) < price) {
                         console.log('Sell price is too high.');
@@ -1010,7 +1035,7 @@
             var listing = $(this);
 
             $('.market_listing_cancel_button', listing).after('<div class="market_listing_select" style="position: absolute;top: 16px;right: 10px;"><input type="checkbox" class="market_select_item"/></div>');
-
+            
             marketQueue.push(listing);
 
             injectJs(function () {
@@ -1070,6 +1095,9 @@
             var item_info_id = $(this).attr('id').replace('_item_name', '');
             var item_info = $('#' + item_info_id);
 
+            if (item_info.html().indexOf('checkout/sendgift/') > -1) // Gifts have no market information.
+                return;
+
             // Move scrap to bottom, this is of little interest.
             var scrap = $('#' + item_info_id + '_scrap_content');
             scrap.next().insertBefore(scrap);
@@ -1083,15 +1111,14 @@
 
             var appid = g_ActiveInventory.selectedItem.appid;
 
-            var item = { appid: parseInt(appid), market_hash_name: market_hash_name };
+            var item = { appid: parseInt(appid), description: { market_hash_name: market_hash_name } };
 
-            if (item_info.html().indexOf('checkout/sendgift/') > -1) // Gifts have no market information.
-                return;
+            var itemName = item.name || item.description.name;
 
             market.getItemOrdersHistogram(item,
                 function (err, listings) {
                     if (err) {
-                        console.log('Failed to get orders histogram for ' + item.name);
+                        console.log('Failed to get orders histogram for ' + itemName);
                         return;
                     }
 
@@ -1280,18 +1307,22 @@
                                 '<div>' +
                                     (isSteamInventory ?
                                     '<div style="margin-bottom:6px;margin-top:6px">' +
-                                        'Minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSetting(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
-                                        'Maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSetting(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;for normal cards' +
+                                        'Price minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSetting(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
+                                        'and maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSetting(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;for normal cards' +
                                         '<br/>' +
                                     '</div>' +
                                     '<div style="margin-bottom:6px;">' +
-                                        'Minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSetting(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
-                                        'Maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSetting(SETTING_MAX_FOIL_PRICE) + '>&nbsp;for foil cards' +
+                                        'Price minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSetting(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
+                                        'and maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSetting(SETTING_MAX_FOIL_PRICE) + '>&nbsp;for foil cards' +
+                                        '<br/>' +
+                                    '</div>' +
+                                    '<div style="margin-bottom:6px;">' +
+                                        'Price minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSetting(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
+                                        'and maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSetting(SETTING_MAX_MISC_PRICE) + '>&nbsp;for items' +
                                         '<br/>' +
                                     '</div>' +
                                     '<div>' +
-                                        'Minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSetting(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
-                                        'Maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSetting(SETTING_MAX_MISC_PRICE) + '>&nbsp;for items' +
+                                        'Price to add to lowest listing:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSetting(SETTING_PRICE_OFFSET) + '>' +
                                         '<br/>' +
                                     '</div>' :
                                     '<div style="margin-bottom:6px;margin-top:6px">' +
@@ -1340,6 +1371,7 @@
             setSetting(SETTING_MAX_FOIL_PRICE, $('#' + SETTING_MAX_FOIL_PRICE).val());
             setSetting(SETTING_MIN_MISC_PRICE, $('#' + SETTING_MIN_MISC_PRICE).val());
             setSetting(SETTING_MAX_MISC_PRICE, $('#' + SETTING_MAX_MISC_PRICE).val());
+            setSetting(SETTING_PRICE_OFFSET, $('#' + SETTING_PRICE_OFFSET).val());
         });
 
         $('#inventoryPriceButtons').accordion({
