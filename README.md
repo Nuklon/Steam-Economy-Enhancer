@@ -15,6 +15,10 @@ This script adds the following features to the Steam Inventory:
 *    Market sell and buy table added to item details.
 *    Quick sell buttons to sell an item without confirmations.
 
+This script adds the following features to the Steam Tradeoffers:
+
+*    A summary of all items from both parties.
+
 All pricing is based on the lowest listing, price history and your own minimum and maximum prices.
 
 **Download**
