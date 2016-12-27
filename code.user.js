@@ -3,11 +3,12 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     1.6.0
+// @version     1.6.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
 // @include     *://steamcommunity.com/market*
+// @include     *://steamcommunity.com/tradeoffer*
 // @require     https://raw.githubusercontent.com/caolan/async/master/dist/async.min.js
 // @require     https://raw.githubusercontent.com/kapetan/jquery-observe/master/jquery-observe.js
 // @require     https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
@@ -19,13 +20,18 @@
 
 (function ($, async, g_rgAppContextData, g_strInventoryLoadURL, g_rgWalletInfo) {
     var STEAM_INVENTORY_ID = 753;
+
+    var PAGE_MARKET = 0;
+    var PAGE_TRADEOFFER = 1;
+    var PAGE_INVENTORY = 2;
+
     var COLOR_ERROR = '#772527';
     var COLOR_SUCCESS = '#496424';
     var COLOR_PENDING = '#837433';
 
     var queuedItems = [];
 
-    var isOnMarket = window.location.href.includes('.com/market');
+    var currentPage = window.location.href.includes('.com/market') ? PAGE_MARKET : (window.location.href.includes('.com/tradeoffer') ? PAGE_TRADEOFFER : PAGE_INVENTORY);
 
     var market = new SteamMarket(g_rgAppContextData, g_strInventoryLoadURL, g_rgWalletInfo);
     var user_currency = GetCurrencySymbol(GetCurrencyCode(market.walletInfo.wallet_currency));
@@ -162,7 +168,7 @@
     // applyOffset specifies whether the price offset should be applied when the listings are used to determine the price.
     function calculateSellPriceHistogram(history, histogram, applyOffset) {
         var historyPrice = calculateAverageHistory(history);
-        
+
         if (histogram == null || typeof histogram.lowest_sell_order === 'undefined' || typeof histogram.sell_order_graph === 'undefined')
             return historyPrice;
 
@@ -511,7 +517,7 @@
                 return callback(true);
 
             var storage_hash = 'itemordershistogram_' + item.appid + '+' + market_name;
-            
+
             if (sessionStorage.getItem(storage_hash)) {
                 callback(null, JSON.parse(sessionStorage.getItem(storage_hash)), true);
                 return;
@@ -755,7 +761,7 @@
     //#endregion
 
     //#region Inventory
-    if (!isOnMarket) {
+    if (currentPage == PAGE_INVENTORY) {
 
         var sellQueue = async.queue(function (task, next) {
 
@@ -876,7 +882,7 @@
                     failed += 1;
                 }
 
-                market.getItemOrdersHistogram(item, function (err, listings, cachedListings) {
+                market.getItemOrdersHistogram(item, function (err, histogram, cachedListings) {
                     if (err) {
                         console.log('Failed to get orders histogram for ' + itemName);
                         failed += 1;
@@ -889,10 +895,18 @@
                     console.log('============================')
                     console.log(itemName);
 
-                    var sellPrice = calculateSellPriceHistogram(history, listings, true);
+
+                    var sellPrice = calculateSellPriceHistogram(history, histogram, true);
+
+                    var maxPriceBeforeFee = priceInfo.maxPriceBeforeFee;
+                    if (histogram != null && typeof histogram.highest_buy_order !== 'undefined') {
+                        if (market.getPriceBeforeFees(histogram.highest_buy_order) > maxPriceBeforeFee) // In case there's a buy order with a value larger than our defined maximum.
+                            maxPriceBeforeFee = market.getPriceBeforeFees(histogram.highest_buy_order);
+                    }
+
                     console.log('Calculated sell price: ' + sellPrice / 100.0 + ' (' + market.getPriceIncludingFees(sellPrice) / 100.0 + ')');
 
-                    sellPrice = clampPrice(sellPrice, priceInfo.minPriceBeforeFee, priceInfo.maxPriceBeforeFee, priceInfo.maxPriceBeforeFee);
+                    sellPrice = clampPrice(sellPrice, priceInfo.minPriceBeforeFee, maxPriceBeforeFee, maxPriceBeforeFee);
 
                     console.log('Used sell price: ' + sellPrice / 100.0 + ' (' + market.getPriceIncludingFees(sellPrice) / 100.0 + ')');
 
@@ -937,7 +951,7 @@
     //#endregion
 
     //#region Market
-    if (isOnMarket) {
+    if (currentPage == PAGE_MARKET) {
 
         var marketQueue = async.queue(function (listing, next) {
             marketQueueWorker(listing, false, function (success, cached) {
@@ -966,14 +980,14 @@
             var name = $('.market_listing_item_name_link', listing).text().trim();
             var game_name = $('.market_listing_game_name', listing).text().trim();
             var price = $('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listing).text().trim().replace('--', '00').replace(/\D/g, '');
-            
+
             var priceInfo = getPriceInformationFromListing(url, game_name);
-            
+
             var appid = url.substr(0, url.lastIndexOf("/"));
             appid = appid.substr(appid.lastIndexOf("/") + 1);
             var market_hash_name = url.substr(url.lastIndexOf("/") + 1);
             var item = { appid: parseInt(appid), description: { market_hash_name: market_hash_name } };
-            
+
             var failed = 0;
 
             market.getPriceHistory(item, function (err, history, cachedHistory) {
@@ -982,7 +996,7 @@
                     failed += 1;
                 }
 
-                market.getItemOrdersHistogram(item, function (err, listings, cachedListings) {
+                market.getItemOrdersHistogram(item, function (err, histogram, cachedListings) {
                     if (err) {
                         console.log('Failed to get orders histogram for ' + game_name);
                         failed += 1;
@@ -996,10 +1010,16 @@
                     console.log(game_name + ': ' + name);
                     console.log('Sell price: ' + price);
 
-                    var sellPrice = calculateSellPriceHistogram(history, listings, false);
+                    var sellPrice = calculateSellPriceHistogram(history, histogram, false);
+                    var maxPriceBeforeFee = priceInfo.maxPriceBeforeFee;
+                    if (histogram != null && typeof histogram.highest_buy_order !== 'undefined') {
+                        if (market.getPriceBeforeFees(histogram.highest_buy_order) > maxPriceBeforeFee) // In case there's a buy order with a value larger than our defined maximum.
+                            maxPriceBeforeFee = market.getPriceBeforeFees(histogram.highest_buy_order);
+                    }
+
                     console.log('Calculated sell price: ' + sellPrice / 100.0 + ' (' + market.getPriceIncludingFees(sellPrice) / 100.0 + ')');
 
-                    sellPrice = clampPrice(sellPrice, priceInfo.minPriceBeforeFee, priceInfo.maxPriceBeforeFee, market.getPriceBeforeFees(price));
+                    sellPrice = clampPrice(sellPrice, priceInfo.minPriceBeforeFee, maxPriceBeforeFee, market.getPriceBeforeFees(price));
 
                     console.log('Used sell price: ' + sellPrice / 100.0 + ' (' + market.getPriceIncludingFees(sellPrice) / 100.0 + ')');
 
@@ -1035,7 +1055,7 @@
             var listing = $(this);
 
             $('.market_listing_cancel_button', listing).after('<div class="market_listing_select" style="position: absolute;top: 16px;right: 10px;"><input type="checkbox" class="market_select_item"/></div>');
-            
+
             marketQueue.push(listing);
 
             injectJs(function () {
@@ -1048,6 +1068,7 @@
     //#region UI
     injectCss('.ui-selected { outline: 1px groove #ABABAB; } ' +
            '#logger { color: #767676; font-size: 12px;margin-top:16px; }' +
+           '.trade_offer_sum { color: #767676; font-size: 12px;margin-top:8px; }' +
            '.market_commodity_orders_table { font-size:12px; font-family: "Motiva Sans", Sans-serif; font-weight: 300; }' +
            '.market_commodity_orders_table th { padding-left: 10px; }' +
            '#listingsGroup { display: flex; justify-content: space-between; margin-bottom: 8px; }' +
@@ -1056,14 +1077,61 @@
            '.quicksellbutton { margin-right: 4px; }');
 
     $(document).ready(function () {
-        if (!isOnMarket) {
+        if (currentPage == PAGE_INVENTORY) {
             initializeInventoryUI();
         }
 
-        if (isOnMarket) {
+        if (currentPage == PAGE_MARKET) {
             initializeMarketUI();
         }
+
+        if (currentPage == PAGE_TRADEOFFER) {
+            initializeTradeOfferUI();
+        }
     });
+
+    function initializeTradeOfferUI() {
+        $('.trade_item_box').observe('childlist subtree', function (record) {
+            $('#trade_offer_your_sum').remove();
+            $('#trade_offer_their_sum').remove();
+
+            var your_sum = sumAssets(g_rgCurrentTradeStatus.me.assets, UserYou);
+            var their_sum = sumAssets(g_rgCurrentTradeStatus.them.assets, UserThem);
+
+            $('div.offerheader:nth-child(1) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_your_sum">' + your_sum + '</div>');
+            $('div.offerheader:nth-child(3) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_their_sum">' + their_sum + '</div>');            
+        });
+    }
+
+    function sumAssets(assets, user) {
+        var total = {};
+
+        for (var i = 0; i < assets.length; i++) {
+            var rgItem = user.findAsset(assets[i].appid, assets[i].contextid, assets[i].assetid);
+            
+            var text = '';
+            if (rgItem) {
+                text = rgItem.name;
+                if (typeof rgItem.type !== 'undefined' && rgItem.type.length > 0) {
+                    text += ' (' + rgItem.type + ')';
+                }
+            }
+            else
+                text = 'Unknown Item';
+
+            if (text in total)
+                total[text] = total[text] + 1;
+            else
+                total[text] = 1;
+        }
+
+        var totalText = '';
+        for (var k in total) {
+            totalText += total[k] + 'x ' + k + '<br/>';
+        }
+
+        return totalText;
+    }
 
     // Initialize the inventory UI.
     function initializeInventoryUI() {
