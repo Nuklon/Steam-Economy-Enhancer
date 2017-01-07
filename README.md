@@ -7,6 +7,7 @@ This script adds the following features to the Steam Market:
 *    Detect overpriced and underpriced items.
 *    Select all (overpriced) items and remove them all at once.
 *    Relist overpriced items.
+*    Sort items by name, price or date.
 
 This script adds the following features to the Steam Inventory:
 
