@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     1.6.5
+// @version     1.7.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -11,6 +11,7 @@
 // @include     *://steamcommunity.com/tradeoffer*
 // @require     https://raw.githubusercontent.com/caolan/async/master/dist/async.min.js
 // @require     https://raw.githubusercontent.com/kapetan/jquery-observe/master/jquery-observe.js
+// @require     https://cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min.js
 // @require     https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
 // @homepageURL https://github.com/Nuklon/Steam-Economy-Enhancer
 // @supportURL  https://github.com/Nuklon/Steam-Economy-Enhancer/issues
@@ -30,6 +31,7 @@
     var COLOR_PENDING = '#837433';
 
     var queuedItems = [];
+    var lastSort = -1;
 
     var currentPage = window.location.href.includes('.com/market') ? PAGE_MARKET : (window.location.href.includes('.com/tradeoffer') ? PAGE_TRADEOFFER : PAGE_INVENTORY);
 
@@ -1257,6 +1259,46 @@
         $('.market_listing_table_header > .market_listing_edit_buttons').append('<a class="item_market_action_button item_market_action_button_green select_all" style="margin-right:4px;margin-top:1px"><span class="item_market_action_button_contents" style="text-transform:none">Select all</span></a>');
         $('.pick_and_sell_button').prepend('<a class="item_market_action_button item_market_action_button_green relist_overpriced" style="margin-right:3px;margin-top:1px"><span class="item_market_action_button_contents" style="text-transform:none">Relist overpriced</span></a>');
         $('.market_listing_table_header > .market_listing_edit_buttons').append('<a class="item_market_action_button item_market_action_button_green remove_selected" style="margin-top:1px"><span class="item_market_action_button_contents" style="text-transform:none">Remove selected</span></a>');
+
+        $('.market_listing_table_header').on('click', 'span', function () {
+            var isPrice = $('.market_listing_table_header').children().eq(1).text() == $(this).text();
+            var isDate = $('.market_listing_table_header').children().eq(2).text() == $(this).text();
+            var isName = $('.market_listing_table_header').children().eq(3).text() == $(this).text();
+
+            var nextSort = isPrice ? 1 : (isDate ? 2 : 3);
+            var asc = true;
+            if (lastSort == nextSort)
+                asc = false;
+            lastSort = lastSort < 0 ? nextSort : -1;
+            
+            $(this).parent().parent().find('.market_listing_row').sort(function (a, b) {
+                var first = asc ? a : b;
+                var second = asc ? b : a;
+
+                if (isName) {
+                    var firstName = $(first).find('.market_listing_item_name_link').text().toLowerCase();
+                    var secondName = $(second).find('.market_listing_item_name_link').text().toLowerCase();
+                    return firstName.localeCompare(secondName);
+                } else if (isDate) {
+                    var firstDate = Date.parse($(first).find('.market_listing_listed_date').text());
+                    var secondDate = Date.parse($(second).find('.market_listing_listed_date').text());
+                    var currentMonth = parseInt(Date.today().toString('M'));
+                    
+                    if (parseInt(firstDate.toString('M')) > currentMonth)
+                        firstDate = firstDate.addYears(-1);
+                    if (parseInt(secondDate.toString('M')) > currentMonth)
+                        secondDate = secondDate.addYears(-1);
+
+                    return firstDate.compareTo(secondDate);
+                } else if (isPrice) {
+                    var firstPrice = parseInt(replaceNonNumbers($(first).find('.market_listing_price > span > span:nth-child(1)').text()));
+                    var secondPrice = parseInt(replaceNonNumbers($(second).find('.market_listing_price > span > span:nth-child(1)').text()));
+                    return firstPrice - secondPrice;
+                }
+            }).each(function (_, container) {
+                $(container).parent().append(container);
+            });;
+        });
 
         $('.select_all').on('click', '*', function () {
             $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
