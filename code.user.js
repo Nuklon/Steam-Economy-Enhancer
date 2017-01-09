@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     1.7.0
+// @version     1.7.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -20,18 +20,21 @@
 // ==/UserScript==
 
 (function ($, async, g_rgAppContextData, g_strInventoryLoadURL, g_rgWalletInfo) {
-    var STEAM_INVENTORY_ID = 753;
+    const STEAM_INVENTORY_ID = 753;
 
-    var PAGE_MARKET = 0;
-    var PAGE_TRADEOFFER = 1;
-    var PAGE_INVENTORY = 2;
+    const PAGE_MARKET = 0;
+    const PAGE_TRADEOFFER = 1;
+    const PAGE_INVENTORY = 2;
 
-    var COLOR_ERROR = '#772527';
-    var COLOR_SUCCESS = '#496424';
-    var COLOR_PENDING = '#837433';
+    const COLOR_ERROR = '#8A4243';
+    const COLOR_SUCCESS = '#407736';
+    const COLOR_PENDING = '#908F44';
+    const COLOR_PRICE_FAIR = '#496424';
+    const COLOR_PRICE_CHEAP = '#837433';
+    const COLOR_PRICE_EXPENSIVE = '#496424';
 
     var queuedItems = [];
-    var lastSort = -1;
+    var lastSort = 0;
 
     var currentPage = window.location.href.includes('.com/market') ? PAGE_MARKET : (window.location.href.includes('.com/tradeoffer') ? PAGE_TRADEOFFER : PAGE_INVENTORY);
 
@@ -45,13 +48,13 @@
     }
 
     //#region Settings
-    var SETTING_MIN_NORMAL_PRICE = 'SETTING_MIN_NORMAL_PRICE';
-    var SETTING_MAX_NORMAL_PRICE = 'SETTING_MAX_NORMAL_PRICE';
-    var SETTING_MIN_FOIL_PRICE = 'SETTING_MIN_FOIL_PRICE';
-    var SETTING_MAX_FOIL_PRICE = 'SETTING_MAX_FOIL_PRICE';
-    var SETTING_MIN_MISC_PRICE = 'SETTING_MIN_MISC_PRICE';
-    var SETTING_MAX_MISC_PRICE = 'SETTING_MAX_MISC_PRICE';
-    var SETTING_PRICE_OFFSET = 'SETTING_PRICE_OFFSET';
+    const SETTING_MIN_NORMAL_PRICE = 'SETTING_MIN_NORMAL_PRICE';
+    const SETTING_MAX_NORMAL_PRICE = 'SETTING_MAX_NORMAL_PRICE';
+    const SETTING_MIN_FOIL_PRICE = 'SETTING_MIN_FOIL_PRICE';
+    const SETTING_MAX_FOIL_PRICE = 'SETTING_MAX_FOIL_PRICE';
+    const SETTING_MIN_MISC_PRICE = 'SETTING_MIN_MISC_PRICE';
+    const SETTING_MAX_MISC_PRICE = 'SETTING_MAX_MISC_PRICE';
+    const SETTING_PRICE_OFFSET = 'SETTING_PRICE_OFFSET';
 
     var settingDefaults =
     {
@@ -64,12 +67,49 @@
         SETTING_PRICE_OFFSET: -0.01
     };
 
-    function getSetting(name) {
-        return localStorage.getItem(name) || settingDefaults[name];
+    function getSettingWithDefault(name) {
+        return getLocalStorageItem(name) || (name in settingDefaults ? settingDefaults[name] : null);
     }
 
     function setSetting(name, value) {
-        localStorage.setItem(name, value);
+        setLocalStorageItem(name, value);
+    }
+    //#endregion
+
+    //#region Storage
+    function getLocalStorageItem(name) {
+        try {
+            return localStorage.getItem(name);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function setLocalStorageItem(name, value) {
+        try {
+            localStorage.setItem(name, value);
+            return true;
+        } catch (e) {
+            console.log('Failed to set local storage item ' + name + ', ' + e + '.')
+            return false;
+        }
+    }
+    function getSessionStorageItem(name) {
+        try {
+            return sessionStorage.getItem(name);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function setSessionStorageItem(name, value) {
+        try {
+            sessionStorage.setItem(name, value);
+            return true;
+        } catch (e) {
+            console.log('Failed to set session storage item ' + name + ', ' + e + '.')
+            return false;
+        }
     }
     //#endregion
 
@@ -102,11 +142,11 @@
         var minPrice = 0;
 
         if (!isTradingCard) {
-            maxPrice = getSetting(SETTING_MAX_MISC_PRICE);
-            minPrice = getSetting(SETTING_MIN_MISC_PRICE);
+            maxPrice = getSettingWithDefault(SETTING_MAX_MISC_PRICE);
+            minPrice = getSettingWithDefault(SETTING_MIN_MISC_PRICE);
         } else {
-            maxPrice = isFoilTradingCard ? getSetting(SETTING_MAX_FOIL_PRICE) : getSetting(SETTING_MAX_NORMAL_PRICE);
-            minPrice = isFoilTradingCard ? getSetting(SETTING_MIN_FOIL_PRICE) : getSetting(SETTING_MIN_NORMAL_PRICE);
+            maxPrice = isFoilTradingCard ? getSettingWithDefault(SETTING_MAX_FOIL_PRICE) : getSettingWithDefault(SETTING_MAX_NORMAL_PRICE);
+            minPrice = isFoilTradingCard ? getSettingWithDefault(SETTING_MIN_FOIL_PRICE) : getSettingWithDefault(SETTING_MIN_NORMAL_PRICE);
         }
 
         maxPrice = maxPrice * 100.0;
@@ -158,7 +198,7 @@
         // Otherwise, use the highest average price instead.
         if (historyPrice < listingPrice) {
             if (applyOffset) {
-                return listingPrice + (getSetting(SETTING_PRICE_OFFSET) * 100);
+                return listingPrice + (getSettingWithDefault(SETTING_PRICE_OFFSET) * 100);
             }
             return listingPrice;
         } else {
@@ -183,7 +223,7 @@
         // Otherwise, use the highest average price instead.
         if (historyPrice < listingPrice) {
             if (applyOffset) {
-                return listingPrice + (getSetting(SETTING_PRICE_OFFSET) * 100);
+                return listingPrice + (getSettingWithDefault(SETTING_PRICE_OFFSET) * 100);
             }
             return listingPrice;
         } else {
@@ -358,8 +398,9 @@
 
             var storage_hash = 'pricehistory_' + item.appid + '+' + market_name;
 
-            if (sessionStorage.getItem(storage_hash)) {
-                callback(null, JSON.parse(sessionStorage.getItem(storage_hash)), true);
+            var sessionStorageItem = getSessionStorageItem(storage_hash);
+            if (sessionStorageItem) {
+                callback(null, JSON.parse(sessionStorageItem), true);
                 return;
             }
 
@@ -377,7 +418,7 @@
                         data.prices[i][2] = parseInt(data.prices[i][2]);
                     }
 
-                    sessionStorage.setItem(storage_hash, JSON.stringify(data.prices));
+                    setSessionStorageItem(storage_hash, JSON.stringify(data.prices));
                     callback(null, data.prices, false);
                 }, 'json')
 			 .fail(function () {
@@ -420,8 +461,9 @@
 
             var storage_hash = 'listings_' + item.appid + '+' + market_name;
 
-            if (sessionStorage.getItem(storage_hash)) {
-                callback(null, JSON.parse(sessionStorage.getItem(storage_hash)), true);
+            var sessionStorageItem = getSessionStorageItem(storage_hash);
+            if (sessionStorageItem) {
+                callback(null, JSON.parse(sessionStorageItem), true);
                 return;
             }
 
@@ -440,7 +482,7 @@
                         return;
                     }
 
-                    sessionStorage.setItem(storage_hash, JSON.stringify(listingInfo));
+                    setSessionStorageItem(storage_hash, JSON.stringify(listingInfo));
                     callback(null, listingInfo, false);
                 })
              .fail(function (e) {
@@ -462,8 +504,9 @@
 
             var storage_hash = 'itemnameid_' + item.appid + '+' + market_name;
 
-            if (localStorage.getItem(storage_hash)) {
-                var item_nameid = localStorage.getItem(storage_hash);
+            var localStorageItem = getLocalStorageItem(storage_hash);
+            if (localStorageItem) {
+                var item_nameid = localStorageItem;
 
                 // Make sure the stored item name id is valid before returning it.
                 if (replaceNonNumbers(item_nameid) == item_nameid) {
@@ -483,8 +526,7 @@
 
                     var item_nameid = matches[1];
 
-                    localStorage.setItem(storage_hash, item_nameid);
-
+                    setLocalStorageItem(storage_hash, item_nameid);
                     callback(null, item_nameid);
                 })
              .fail(function () {
@@ -520,8 +562,9 @@
 
             var storage_hash = 'itemordershistogram_' + item.appid + '+' + market_name;
 
-            if (sessionStorage.getItem(storage_hash)) {
-                callback(null, JSON.parse(sessionStorage.getItem(storage_hash)), true);
+            var sessionStorageItem = getSessionStorageItem(storage_hash);
+            if (sessionStorageItem) {
+                callback(null, JSON.parse(sessionStorageItem), true);
                 return;
             }
 
@@ -533,12 +576,11 @@
                     }
 
                     var currency = market.walletInfo.wallet_currency;
-
                     var url = window.location.protocol + '//steamcommunity.com/market/itemordershistogram?language=english&currency=' + currency + '&item_nameid=' + item_nameid + '&two_factor=0';
 
                     $.get(url,
                         function (pageHistogram) {
-                            sessionStorage.setItem(storage_hash, JSON.stringify(pageHistogram));
+                            setSessionStorageItem(storage_hash, JSON.stringify(pageHistogram));
                             callback(null, pageHistogram, false);
                         })
                      .fail(function () {
@@ -1028,19 +1070,19 @@
                     if (market.getPriceIncludingFees(sellPrice) < price) {
                         console.log('Sell price is too high.');
 
-                        $('.market_listing_my_price', listing).css('background', COLOR_ERROR);
+                        $('.market_listing_my_price', listing).css('background', COLOR_PRICE_EXPENSIVE);
                         listing.addClass('overpriced');
                     }
                     else if (market.getPriceIncludingFees(sellPrice) > price) {
                         console.log('Sell price is too low.');
 
-                        $('.market_listing_my_price', listing).css('background', COLOR_PENDING);
+                        $('.market_listing_my_price', listing).css('background', COLOR_PRICE_CHEAP);
                         listing.addClass('underpriced');
                     }
                     else {
                         console.log('Sell price is fair.');
 
-                        $('.market_listing_my_price', listing).css('background', COLOR_SUCCESS);
+                        $('.market_listing_my_price', listing).css('background', COLOR_PRICE_FAIR);
                         listing.addClass('fair');
                     }
 
@@ -1076,6 +1118,8 @@
            '#listingsGroup { display: flex; justify-content: space-between; margin-bottom: 8px; }' +
            '#listingsSell { text-align: right; color: #589328; font-weight:600; }' +
            '#listingsBuy { text-align: right; color: #589328; font-weight:600; }' +
+           '.market_listing_my_price { height: 50px; padding-right:6px; }' +
+           '.market_listing_edit_buttons.actual_content { width:276px; transition-property: background-color, border-color; transition-timing-function: linear; transition-duration: 1s;}' +
            '.quicksellbutton { margin-right: 4px; }');
 
     $(document).ready(function () {
@@ -1101,7 +1145,7 @@
             var their_sum = sumAssets(g_rgCurrentTradeStatus.them.assets, UserThem);
 
             $('div.offerheader:nth-child(1) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_your_sum">' + your_sum + '</div>');
-            $('div.offerheader:nth-child(3) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_their_sum">' + their_sum + '</div>');            
+            $('div.offerheader:nth-child(3) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_their_sum">' + their_sum + '</div>');
         });
     }
 
@@ -1110,7 +1154,7 @@
 
         for (var i = 0; i < assets.length; i++) {
             var rgItem = user.findAsset(assets[i].appid, assets[i].contextid, assets[i].assetid);
-            
+
             var text = '';
             if (rgItem) {
                 text = rgItem.name;
@@ -1261,16 +1305,39 @@
         $('.market_listing_table_header > .market_listing_edit_buttons').append('<a class="item_market_action_button item_market_action_button_green remove_selected" style="margin-top:1px"><span class="item_market_action_button_contents" style="text-transform:none">Remove selected</span></a>');
 
         $('.market_listing_table_header').on('click', 'span', function () {
+            if ($(this).hasClass('market_listing_edit_buttons') || $(this).hasClass('item_market_action_button_contents'))
+                return
+
             var isPrice = $('.market_listing_table_header').children().eq(1).text() == $(this).text();
             var isDate = $('.market_listing_table_header').children().eq(2).text() == $(this).text();
             var isName = $('.market_listing_table_header').children().eq(3).text() == $(this).text();
 
+
+            // Change sort order (asc/desc).
             var nextSort = isPrice ? 1 : (isDate ? 2 : 3);
             var asc = true;
-            if (lastSort == nextSort)
+            if (lastSort == nextSort) {
                 asc = false;
-            lastSort = lastSort < 0 ? nextSort : -1;
-            
+                lastSort = -nextSort;
+            } else
+                lastSort = nextSort;
+
+
+            // (Re)set the asc/desc arrows.
+            const arrow_down = '🡻';
+            const arrow_up = '🡹';
+
+            $('.market_listing_table_header > span').each(function () {
+                if ($(this).hasClass('market_listing_edit_buttons'))
+                    return;
+
+                $(this).text($(this).text().replace(' ' + arrow_down, '').replace(' ' + arrow_up, ''));
+            })
+
+            $(this).text($(this).text() + ' ' + (asc ? arrow_up : arrow_down));
+
+
+            // Sort the rows.
             $(this).parent().parent().find('.market_listing_row').sort(function (a, b) {
                 var first = asc ? a : b;
                 var second = asc ? b : a;
@@ -1283,7 +1350,7 @@
                     var firstDate = Date.parse($(first).find('.market_listing_listed_date').text());
                     var secondDate = Date.parse($(second).find('.market_listing_listed_date').text());
                     var currentMonth = parseInt(Date.today().toString('M'));
-                    
+
                     if (parseInt(firstDate.toString('M')) > currentMonth)
                         firstDate = firstDate.addYears(-1);
                     if (parseInt(secondDate.toString('M')) > currentMonth)
@@ -1297,8 +1364,10 @@
                 }
             }).each(function (_, container) {
                 $(container).parent().append(container);
-            });;
+            });
         });
+
+        $('.market_listing_listed_date').trigger('click');
 
         $('.select_all').on('click', '*', function () {
             $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
@@ -1327,12 +1396,18 @@
                 setTimeout(function () {
                     market.removeListing(item, function (err, data) {
                         if (!err) {
-                            $('#mylisting_' + item).css('background', COLOR_SUCCESS);
+                            $('#mylisting_' + item + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_SUCCESS);
                             setTimeout(function () {
                                 $('#mylisting_' + item).remove();
+
+                                var numberOfListings = parseInt($('#my_market_selllistings_number').text());
+                                $('#my_market_selllistings_number').text((numberOfListings - 1).toString());
+
+                                var numberOfActiveListings = parseInt($('#my_market_activelistings_number').text());
+                                $('#my_market_activelistings_number').text((numberOfActiveListings - 1).toString());
                             }, 3000);
                         } else
-                            $('#mylisting_' + item).css('background', COLOR_ERROR);
+                            $('#mylisting_' + item + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
                     });
 
                 }, getRandomInt(500 * index, (500 * index) + 250)); // Have some healthy delay or steam will block you for flooding.
@@ -1350,12 +1425,12 @@
                             market.sellItem(item, market.getPriceBeforeFees(item.sellPrice),
                             function (err2) {
                                 if (!err2) {
-                                    $('#mylisting_' + item.listing).css('background', COLOR_SUCCESS);
+                                    $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_SUCCESS);
                                     setTimeout(function () {
                                         $('#mylisting_' + item.listing).remove();
                                     }, timeout);
                                 } else {
-                                    $('#mylisting_' + item.listing).css('background', COLOR_ERROR);
+                                    $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
                                 }
 
                                 setTimeout(function () {
@@ -1366,7 +1441,7 @@
                         });
                     } else {
                         setTimeout(function () {
-                            $('#mylisting_' + item.listing).css('background', COLOR_ERROR);
+                            $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
                             next();
                         }, getRandomInt(3000, 3500));
                     }
@@ -1417,27 +1492,27 @@
                                 '<div>' +
                                     (isSteamInventory ?
                                     '<div style="margin-bottom:6px;margin-top:6px">' +
-                                        'Price minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSetting(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
-                                        'and maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSetting(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;for normal cards' +
+                                        'Price minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
+                                        'and maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;for normal cards' +
                                         '<br/>' +
                                     '</div>' +
                                     '<div style="margin-bottom:6px;">' +
-                                        'Price minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSetting(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
-                                        'and maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSetting(SETTING_MAX_FOIL_PRICE) + '>&nbsp;for foil cards' +
+                                        'Price minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
+                                        'and maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_FOIL_PRICE) + '>&nbsp;for foil cards' +
                                         '<br/>' +
                                     '</div>' +
                                     '<div style="margin-bottom:6px;">' +
-                                        'Price minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSetting(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
-                                        'and maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSetting(SETTING_MAX_MISC_PRICE) + '>&nbsp;for items' +
+                                        'Price minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
+                                        'and maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;for items' +
                                         '<br/>' +
                                     '</div>' +
                                     '<div>' +
-                                        'Price to add to lowest listing:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSetting(SETTING_PRICE_OFFSET) + '>' +
+                                        'Price to add to lowest listing:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
                                         '<br/>' +
                                     '</div>' :
                                     '<div style="margin-bottom:6px;margin-top:6px">' +
-                                        'Minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSetting(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
-                                        'Maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSetting(SETTING_MAX_MISC_PRICE) + '>&nbsp;for items' +
+                                        'Minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
+                                        'Maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;for items' +
                                         '<br/>' +
                                     '</div>'
                                     ) +
