@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     1.7.5
+// @version     1.7.6
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -31,7 +31,7 @@
     const COLOR_PENDING = '#908F44';
     const COLOR_PRICE_FAIR = '#496424';
     const COLOR_PRICE_CHEAP = '#837433';
-    const COLOR_PRICE_EXPENSIVE = '#496424';
+    const COLOR_PRICE_EXPENSIVE = '#813030';
 
     var queuedItems = [];
     var lastSort = 0;
@@ -1418,7 +1418,7 @@
             var items = async.queue(function (item, next) {
                 market.removeListing(item.listing, function (err, data) {
                     if (!err) {
-                        $('#mylisting_' + item.listing).css('background', COLOR_PENDING);
+                        $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_PENDING);
                         var timeout = getRandomInt(3000, 3500);
 
                         setTimeout(function () {
