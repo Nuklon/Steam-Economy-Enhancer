@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     1.7.6
+// @version     1.8.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -55,6 +55,7 @@
     const SETTING_MIN_MISC_PRICE = 'SETTING_MIN_MISC_PRICE';
     const SETTING_MAX_MISC_PRICE = 'SETTING_MAX_MISC_PRICE';
     const SETTING_PRICE_OFFSET = 'SETTING_PRICE_OFFSET';
+    const SETTING_PRICE_ALGORITHM = 'SETTING_PRICE_ALGORITHM';
 
     var settingDefaults =
     {
@@ -64,7 +65,8 @@
         SETTING_MAX_FOIL_PRICE: 10,
         SETTING_MIN_MISC_PRICE: 0.05,
         SETTING_MAX_MISC_PRICE: 10,
-        SETTING_PRICE_OFFSET: -0.01
+        SETTING_PRICE_OFFSET: -0.01,
+        SETTING_PRICE_ALGORITHM: 1
     };
 
     function getSettingWithDefault(name) {
@@ -193,10 +195,11 @@
         }
 
         var listingPrice = listings[Object.keys(listings)[0]].converted_price;
+        var useAverage = getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1;
 
-        // If the highest average price is lower than the first listing, return 1 cent below that listing.
+        // If the highest average price is lower than the first listing, return the offset + that listing.
         // Otherwise, use the highest average price instead.
-        if (historyPrice < listingPrice) {
+        if (historyPrice < listingPrice || !useAverage) {
             if (applyOffset) {
                 return listingPrice + (getSettingWithDefault(SETTING_PRICE_OFFSET) * 100);
             }
@@ -218,10 +221,11 @@
             return 0; // In this case we should return 0 so the price can be determined by its minimum and maximum value.
 
         var listingPrice = market.getPriceBeforeFees(histogram.lowest_sell_order);
+        var useAverage = getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1;
 
-        // If the highest average price is lower than the first listing, return 1 cent below that listing.
+        // If the highest average price is lower than the first listing, return the offset + that listing.
         // Otherwise, use the highest average price instead.
-        if (historyPrice < listingPrice) {
+        if (historyPrice < listingPrice || !useAverage) {
             if (applyOffset) {
                 return listingPrice + (getSettingWithDefault(SETTING_PRICE_OFFSET) * 100);
             }
@@ -914,6 +918,34 @@
             });
         }
 
+        function sellItems(items) {
+            var itemQueue = async.queue(function (item, next) {
+                itemQueueWorker(item, false, function (success, cached) {
+                    if (success) {
+                        setTimeout(function () {
+                            next();
+                        }, cached ? 0 : getRandomInt(2500, 3000));
+                    } else {
+                        setTimeout(function () {
+                            itemQueueWorker(item, true, function (success, cached) {
+                                next(); // Go to the next queue item, regardless of success.
+                            });
+                        }, cached ? 0 : getRandomInt(45000, 60000));
+                    }
+                });
+            }, 1);
+
+            items = items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+
+            items.forEach(function (item, index, array) {
+                var itemId = item.assetid || item.id;
+                if (queuedItems.indexOf(itemId) == -1) {
+                    queuedItems.push(itemId);
+                    itemQueue.push(item);
+                }
+            });
+        }
+
         function itemQueueWorker(item, ignoreErrors, callback) {
             var priceInfo = getPriceInformationFromInventoryItem(item);
 
@@ -963,220 +995,6 @@
                 });
             });
         }
-
-        function sellItems(items) {
-            var itemQueue = async.queue(function (item, next) {
-                itemQueueWorker(item, false, function (success, cached) {
-                    if (success) {
-                        setTimeout(function () {
-                            next();
-                        }, cached ? 0 : getRandomInt(2500, 3000));
-                    } else {
-                        setTimeout(function () {
-                            itemQueueWorker(item, true, function (success, cached) {
-                                next(); // Go to the next queue item, regardless of success.
-                            });
-                        }, cached ? 0 : getRandomInt(45000, 60000));
-                    }
-                });
-            }, 1);
-
-            items = items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-
-            items.forEach(function (item, index, array) {
-                var itemId = item.assetid || item.id;
-                if (queuedItems.indexOf(itemId) == -1) {
-                    queuedItems.push(itemId);
-                    itemQueue.push(item);
-                }
-            });
-        }
-    }
-    //#endregion
-
-    //#region Market
-    if (currentPage == PAGE_MARKET) {
-
-        var marketQueue = async.queue(function (listing, next) {
-            marketQueueWorker(listing, false, function (success, cached) {
-                if (success) {
-                    setTimeout(function () {
-                        next();
-                    }, cached ? 0 : getRandomInt(2500, 3000));
-                } else {
-                    setTimeout(function () {
-                        marketQueueWorker(listing, true, function (success, cached) {
-                            next(); // Go to the next queue item, regardless of success.
-                        });
-                    }, cached ? 0 : getRandomInt(45000, 60000));
-                }
-            });
-        }, 1);
-
-        marketQueue.drain = function () {
-            injectJs(function () {
-                g_bMarketWindowHidden = false;
-            })
-        };
-
-        function marketQueueWorker(listing, ignoreErrors, callback) {
-            var url = $('.market_listing_item_name_link', listing).attr('href');
-            var name = $('.market_listing_item_name_link', listing).text().trim();
-            var game_name = $('.market_listing_game_name', listing).text().trim();
-            var price = $('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listing).text().trim().replace('--', '00').replace(/\D/g, '');
-
-            var priceInfo = getPriceInformationFromListing(url, game_name);
-
-            var appid = url.substr(0, url.lastIndexOf("/"));
-            appid = appid.substr(appid.lastIndexOf("/") + 1);
-            var market_hash_name = url.substr(url.lastIndexOf("/") + 1);
-            var item = { appid: parseInt(appid), description: { market_hash_name: market_hash_name } };
-
-            var failed = 0;
-
-            market.getPriceHistory(item, function (err, history, cachedHistory) {
-                if (err) {
-                    console.log('Failed to get price history for ' + game_name);
-                    failed += 1;
-                }
-
-                market.getItemOrdersHistogram(item, function (err, histogram, cachedListings) {
-                    if (err) {
-                        console.log('Failed to get orders histogram for ' + game_name);
-                        failed += 1;
-                    }
-
-                    if (failed > 0 && !ignoreErrors) {
-                        return callback(false, cachedHistory && cachedListings);
-                    }
-
-                    console.log('============================')
-                    console.log(game_name + ': ' + name);
-                    console.log('Sell price: ' + price);
-
-                    var sellPrice = calculateSellPriceHistogram(history, histogram, false);
-                    var maxPriceBeforeFee = priceInfo.maxPriceBeforeFee;
-                    if (histogram != null && typeof histogram.highest_buy_order !== 'undefined') {
-                        if (market.getPriceBeforeFees(histogram.highest_buy_order) > maxPriceBeforeFee) // In case there's a buy order with a value larger than our defined maximum.
-                            maxPriceBeforeFee = market.getPriceBeforeFees(histogram.highest_buy_order);
-                    }
-
-                    console.log('Calculated sell price: ' + sellPrice / 100.0 + ' (' + market.getPriceIncludingFees(sellPrice) / 100.0 + ')');
-
-                    sellPrice = clampPrice(sellPrice, priceInfo.minPriceBeforeFee, maxPriceBeforeFee, market.getPriceBeforeFees(price));
-
-                    console.log('Used sell price: ' + sellPrice / 100.0 + ' (' + market.getPriceIncludingFees(sellPrice) / 100.0 + ')');
-
-                    if (market.getPriceIncludingFees(sellPrice) < price) {
-                        console.log('Sell price is too high.');
-
-                        $('.market_listing_my_price', listing).css('background', COLOR_PRICE_EXPENSIVE);
-                        listing.addClass('overpriced');
-                    }
-                    else if (market.getPriceIncludingFees(sellPrice) > price) {
-                        console.log('Sell price is too low.');
-
-                        $('.market_listing_my_price', listing).css('background', COLOR_PRICE_CHEAP);
-                        listing.addClass('underpriced');
-                    }
-                    else {
-                        console.log('Sell price is fair.');
-
-                        $('.market_listing_my_price', listing).css('background', COLOR_PRICE_FAIR);
-                        listing.addClass('fair');
-                    }
-
-                    listing.addClass('price_' + market.getPriceIncludingFees(sellPrice));
-                    $('.market_listing_my_price', listing).prop('title', 'Best price is ' + (market.getPriceIncludingFees(sellPrice) / 100.0) + user_currency);
-
-                    return callback(true, cachedHistory && cachedListings);
-                });
-            });
-        }
-
-        var marketListings = $('.my_listing_section > .market_listing_row');
-        $('.my_listing_section > .market_listing_row').each(function (index) {
-            var listing = $(this);
-
-            $('.market_listing_cancel_button', listing).after('<div class="market_listing_select" style="position: absolute;top: 16px;right: 10px;"><input type="checkbox" class="market_select_item"/></div>');
-
-            marketQueue.push(listing);
-
-            injectJs(function () {
-                g_bMarketWindowHidden = true; // Limit the number of requests made to Steam by stopping constant polling of popular listings.
-            })
-        });
-    }
-    //#endregion
-
-    //#region UI
-    injectCss('.ui-selected { outline: 1px groove #ABABAB; } ' +
-           '#logger { color: #767676; font-size: 12px;margin-top:16px; }' +
-           '.trade_offer_sum { color: #767676; font-size: 12px;margin-top:8px; }' +
-           '.market_commodity_orders_table { font-size:12px; font-family: "Motiva Sans", Sans-serif; font-weight: 300; }' +
-           '.market_commodity_orders_table th { padding-left: 10px; }' +
-           '#listingsGroup { display: flex; justify-content: space-between; margin-bottom: 8px; }' +
-           '#listingsSell { text-align: right; color: #589328; font-weight:600; }' +
-           '#listingsBuy { text-align: right; color: #589328; font-weight:600; }' +
-           '.market_listing_my_price { height: 50px; padding-right:6px; }' +
-           '.market_listing_edit_buttons.actual_content { width:276px; transition-property: background-color, border-color; transition-timing-function: linear; transition-duration: 1s;}' +
-           '.quicksellbutton { margin-right: 4px; }');
-
-    $(document).ready(function () {
-        if (currentPage == PAGE_INVENTORY) {
-            initializeInventoryUI();
-        }
-
-        if (currentPage == PAGE_MARKET) {
-            initializeMarketUI();
-        }
-
-        if (currentPage == PAGE_TRADEOFFER) {
-            initializeTradeOfferUI();
-        }
-    });
-
-    function initializeTradeOfferUI() {
-        $('.trade_item_box').observe('childlist subtree', function (record) {
-            $('#trade_offer_your_sum').remove();
-            $('#trade_offer_their_sum').remove();
-
-            var your_sum = sumAssets(g_rgCurrentTradeStatus.me.assets, UserYou);
-            var their_sum = sumAssets(g_rgCurrentTradeStatus.them.assets, UserThem);
-
-            $('div.offerheader:nth-child(1) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_your_sum">' + your_sum + '</div>');
-            $('div.offerheader:nth-child(3) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_their_sum">' + their_sum + '</div>');
-        });
-    }
-
-    function sumAssets(assets, user) {
-        var total = {};
-
-        for (var i = 0; i < assets.length; i++) {
-            var rgItem = user.findAsset(assets[i].appid, assets[i].contextid, assets[i].assetid);
-
-            var text = '';
-            if (rgItem) {
-                text = rgItem.name;
-                if (typeof rgItem.type !== 'undefined' && rgItem.type.length > 0) {
-                    text += ' (' + rgItem.type + ')';
-                }
-            }
-            else
-                text = 'Unknown Item';
-
-            if (text in total)
-                total[text] = total[text] + 1;
-            else
-                total[text] = 1;
-        }
-
-        var totalText = '';
-        for (var k in total) {
-            totalText += total[k] + 'x ' + k + '<br/>';
-        }
-
-        return totalText;
     }
 
     // Initialize the inventory UI.
@@ -1297,179 +1115,6 @@
         });
     }
 
-    // Initialize the market UI.
-    function initializeMarketUI() {
-        $('.market_listing_table_header > .market_listing_edit_buttons').append('<a class="item_market_action_button item_market_action_button_green select_overpriced" style="margin-right:4px;margin-top:1px"><span class="item_market_action_button_contents" style="text-transform:none">Select overpriced</span></a>');
-        $('.market_listing_table_header > .market_listing_edit_buttons').append('<a class="item_market_action_button item_market_action_button_green select_all" style="margin-right:4px;margin-top:1px"><span class="item_market_action_button_contents" style="text-transform:none">Select all</span></a>');
-        $('.pick_and_sell_button').prepend('<a class="item_market_action_button item_market_action_button_green relist_overpriced" style="margin-right:3px;margin-top:1px"><span class="item_market_action_button_contents" style="text-transform:none">Relist overpriced</span></a>');
-        $('.market_listing_table_header > .market_listing_edit_buttons').append('<a class="item_market_action_button item_market_action_button_green remove_selected" style="margin-top:1px"><span class="item_market_action_button_contents" style="text-transform:none">Remove selected</span></a>');
-
-        $('.market_listing_table_header').on('click', 'span', function () {
-            if ($(this).hasClass('market_listing_edit_buttons') || $(this).hasClass('item_market_action_button_contents'))
-                return
-
-            var isPrice = $('.market_listing_table_header').children().eq(1).text() == $(this).text();
-            var isDate = $('.market_listing_table_header').children().eq(2).text() == $(this).text();
-            var isName = $('.market_listing_table_header').children().eq(3).text() == $(this).text();
-
-
-            // Change sort order (asc/desc).
-            var nextSort = isPrice ? 1 : (isDate ? 2 : 3);
-            var asc = true;
-            if (lastSort == nextSort) {
-                asc = false;
-                lastSort = -nextSort;
-            } else
-                lastSort = nextSort;
-
-
-            // (Re)set the asc/desc arrows.
-            const arrow_down = '🡻';
-            const arrow_up = '🡹';
-
-            $('.market_listing_table_header > span').each(function () {
-                if ($(this).hasClass('market_listing_edit_buttons'))
-                    return;
-
-                $(this).text($(this).text().replace(' ' + arrow_down, '').replace(' ' + arrow_up, ''));
-            })
-
-            $(this).text($(this).text() + ' ' + (asc ? arrow_up : arrow_down));
-
-
-            // Sort the rows.
-            $(this).parent().parent().find('.market_listing_row').sort(function (a, b) {
-                var first = asc ? a : b;
-                var second = asc ? b : a;
-
-                if (isName) {
-                    var firstName = $(first).find('.market_listing_item_name_link').text().toLowerCase();
-                    var secondName = $(second).find('.market_listing_item_name_link').text().toLowerCase();
-                    return firstName.localeCompare(secondName);
-                } else if (isDate) {
-                    var firstDate = Date.parse($(first).find('.market_listing_listed_date').text());
-                    var secondDate = Date.parse($(second).find('.market_listing_listed_date').text());
-                    var currentMonth = parseInt(Date.today().toString('M'));
-
-                    if (parseInt(firstDate.toString('M')) > currentMonth)
-                        firstDate = firstDate.addYears(-1);
-                    if (parseInt(secondDate.toString('M')) > currentMonth)
-                        secondDate = secondDate.addYears(-1);
-
-                    return firstDate.compareTo(secondDate);
-                } else if (isPrice) {
-                    var firstPrice = parseInt(replaceNonNumbers($(first).find('.market_listing_price > span > span:nth-child(1)').text()));
-                    var secondPrice = parseInt(replaceNonNumbers($(second).find('.market_listing_price > span > span:nth-child(1)').text()));
-                    return firstPrice - secondPrice;
-                }
-            }).each(function (_, container) {
-                $(container).parent().append(container);
-            });
-        });
-
-        $('.market_listing_listed_date').trigger('click');
-
-        $('.select_all').on('click', '*', function () {
-            $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
-                $('.market_select_item', $(this)).prop('checked', true);
-            });
-        });
-
-        $('.select_overpriced').on('click', '*', function () {
-            $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
-                if ($(this).hasClass('overpriced'))
-                    $('.market_select_item', $(this)).prop('checked', true);
-            });
-        });
-
-        $('.remove_selected').on('click', '*', function () {
-            var filteredItems = [];
-
-            $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
-                if ($('.market_select_item', $(this)).prop('checked')) {
-                    var id = $('.market_listing_item_name', $(this)).attr('id').replace('mylisting_', '').replace('_name', '');
-                    filteredItems.push(id);
-                }
-            });
-
-            filteredItems.forEach(function (item, index, array) {
-                setTimeout(function () {
-                    market.removeListing(item, function (err, data) {
-                        if (!err) {
-                            $('#mylisting_' + item + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_SUCCESS);
-                            setTimeout(function () {
-                                $('#mylisting_' + item).remove();
-
-                                var numberOfListings = parseInt($('#my_market_selllistings_number').text());
-                                $('#my_market_selllistings_number').text((numberOfListings - 1).toString());
-
-                                var numberOfActiveListings = parseInt($('#my_market_activelistings_number').text());
-                                $('#my_market_activelistings_number').text((numberOfActiveListings - 1).toString());
-                            }, 3000);
-                        } else
-                            $('#mylisting_' + item + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
-                    });
-
-                }, getRandomInt(500 * index, (500 * index) + 250)); // Have some healthy delay or steam will block you for flooding.
-            });
-        });
-
-        $('.relist_overpriced').on('click', '*', function () {
-            var items = async.queue(function (item, next) {
-                market.removeListing(item.listing, function (err, data) {
-                    if (!err) {
-                        $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_PENDING);
-                        var timeout = getRandomInt(3000, 3500);
-
-                        setTimeout(function () {
-                            market.sellItem(item, market.getPriceBeforeFees(item.sellPrice),
-                            function (err2) {
-                                if (!err2) {
-                                    $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_SUCCESS);
-                                    setTimeout(function () {
-                                        $('#mylisting_' + item.listing).remove();
-                                    }, timeout);
-                                } else {
-                                    $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
-                                }
-
-                                setTimeout(function () {
-                                    $('#mylisting_' + item.listing).remove();
-                                    next();
-                                }, timeout);
-                            });
-                        });
-                    } else {
-                        setTimeout(function () {
-                            $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
-                            next();
-                        }, getRandomInt(3000, 3500));
-                    }
-                });
-            }, 1);
-
-            $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
-                if ($(this).hasClass('overpriced')) {
-                    var id = $('.market_listing_item_name', $(this)).attr('id').replace('mylisting_', '').replace('_name', '');
-                    var listingUrl = $('.item_market_action_button_edit', $(this)).first().attr('href');
-                    var listingUrlParts = listingUrl.split(',');
-                    var assetid = replaceNonNumbers(listingUrlParts.pop());
-                    var contextid = replaceNonNumbers(listingUrlParts.pop());
-                    var appid = replaceNonNumbers(listingUrlParts.pop());
-                    var price = parseInt($(this).attr('class').split(' ').pop().replace('price_', ''));
-
-                    items.push({
-                        listing: id,
-                        assetid: assetid,
-                        contextid: contextid,
-                        appid: appid,
-                        sellPrice: price
-                    });
-                }
-            });
-        });
-    }
-
     // Update the inventory UI.
     function updateInventoryUI() {
         // Remove previous containers (e.g., when a user changes inventory).
@@ -1506,8 +1151,15 @@
                                         'and maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;for items' +
                                         '<br/>' +
                                     '</div>' +
+                                    '<div style="margin-bottom:6px;">' +
+                                        'Price algorithm:&nbsp;<select class="priceInput" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
+                                            '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>Maximum of average price (12 hours) and lowest listing</option>' +
+                                            '<option value="2" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : '') + '>Lowest listing</option>' +
+                                        '</select>' +
+                                        '<br/>' +
+                                    '</div>' +
                                     '<div>' +
-                                        'Price to add to lowest listing:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
+                                        'Price difference when the lowest listing is used:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
                                         '<br/>' +
                                     '</div>' :
                                     '<div style="margin-bottom:6px;margin-top:6px">' +
@@ -1557,6 +1209,7 @@
             setSetting(SETTING_MIN_MISC_PRICE, $('#' + SETTING_MIN_MISC_PRICE).val());
             setSetting(SETTING_MAX_MISC_PRICE, $('#' + SETTING_MAX_MISC_PRICE).val());
             setSetting(SETTING_PRICE_OFFSET, $('#' + SETTING_PRICE_OFFSET).val());
+            setSetting(SETTING_PRICE_ALGORITHM, $('#' + SETTING_PRICE_ALGORITHM).val());
         });
 
         $('#inventoryPriceButtons').accordion({
@@ -1564,7 +1217,371 @@
             active: true,
         });
     }
+    //#endregion
 
+    //#region Market
+    if (currentPage == PAGE_MARKET) {
+
+        var marketQueue = async.queue(function (listing, next) {
+            marketQueueWorker(listing, false, function (success, cached) {
+                if (success) {
+                    setTimeout(function () {
+                        next();
+                    }, cached ? 0 : getRandomInt(2500, 3000));
+                } else {
+                    setTimeout(function () {
+                        marketQueueWorker(listing, true, function (success, cached) {
+                            next(); // Go to the next queue item, regardless of success.
+                        });
+                    }, cached ? 0 : getRandomInt(45000, 60000));
+                }
+            });
+        }, 1);
+
+        marketQueue.drain = function () {
+            injectJs(function () {
+                g_bMarketWindowHidden = false;
+            })
+        };
+
+        function marketQueueWorker(listing, ignoreErrors, callback) {
+            var url = $('.market_listing_item_name_link', listing).attr('href');
+            var name = $('.market_listing_item_name_link', listing).text().trim();
+            var game_name = $('.market_listing_game_name', listing).text().trim();
+            var price = $('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listing).text().trim().replace('--', '00').replace(/\D/g, '');
+
+            var priceInfo = getPriceInformationFromListing(url, game_name);
+
+            var appid = url.substr(0, url.lastIndexOf("/"));
+            appid = appid.substr(appid.lastIndexOf("/") + 1);
+            var market_hash_name = url.substr(url.lastIndexOf("/") + 1);
+            var item = { appid: parseInt(appid), description: { market_hash_name: market_hash_name } };
+
+            var failed = 0;
+
+            market.getPriceHistory(item, function (err, history, cachedHistory) {
+                if (err) {
+                    console.log('Failed to get price history for ' + game_name);
+                    failed += 1;
+                }
+
+                market.getItemOrdersHistogram(item, function (err, histogram, cachedListings) {
+                    if (err) {
+                        console.log('Failed to get orders histogram for ' + game_name);
+                        failed += 1;
+                    }
+
+                    if (failed > 0 && !ignoreErrors) {
+                        return callback(false, cachedHistory && cachedListings);
+                    }
+
+                    console.log('============================')
+                    console.log(game_name + ': ' + name);
+                    console.log('Sell price: ' + price);
+
+                    var sellPrice = calculateSellPriceHistogram(history, histogram, false);
+                    var maxPriceBeforeFee = priceInfo.maxPriceBeforeFee;
+                    if (histogram != null && typeof histogram.highest_buy_order !== 'undefined') {
+                        if (market.getPriceBeforeFees(histogram.highest_buy_order) > maxPriceBeforeFee) // In case there's a buy order with a value larger than our defined maximum.
+                            maxPriceBeforeFee = market.getPriceBeforeFees(histogram.highest_buy_order);
+                    }
+
+                    console.log('Calculated sell price: ' + sellPrice / 100.0 + ' (' + market.getPriceIncludingFees(sellPrice) / 100.0 + ')');
+
+                    sellPrice = clampPrice(sellPrice, priceInfo.minPriceBeforeFee, maxPriceBeforeFee, market.getPriceBeforeFees(price));
+
+                    console.log('Used sell price: ' + sellPrice / 100.0 + ' (' + market.getPriceIncludingFees(sellPrice) / 100.0 + ')');
+
+                    if (market.getPriceIncludingFees(sellPrice) < price) {
+                        console.log('Sell price is too high.');
+
+                        $('.market_listing_my_price', listing).css('background', COLOR_PRICE_EXPENSIVE);
+                        listing.addClass('overpriced');
+                    }
+                    else if (market.getPriceIncludingFees(sellPrice) > price) {
+                        console.log('Sell price is too low.');
+
+                        $('.market_listing_my_price', listing).css('background', COLOR_PRICE_CHEAP);
+                        listing.addClass('underpriced');
+                    }
+                    else {
+                        console.log('Sell price is fair.');
+
+                        $('.market_listing_my_price', listing).css('background', COLOR_PRICE_FAIR);
+                        listing.addClass('fair');
+                    }
+
+                    listing.addClass('price_' + market.getPriceIncludingFees(sellPrice));
+                    $('.market_listing_my_price', listing).prop('title', 'Best price is ' + (market.getPriceIncludingFees(sellPrice) / 100.0) + user_currency);
+
+                    return callback(true, cachedHistory && cachedListings);
+                });
+            });
+        }
+
+        // Process the market listings.
+        function processMarketListings() {
+            $('.my_listing_section > .market_listing_row').each(function (index) {
+                var listing = $(this);
+
+                $('.market_listing_cancel_button', listing).after('<div class="market_listing_select" style="position: absolute;top: 16px;right: 10px;"><input type="checkbox" class="market_select_item"/></div>');
+
+                marketQueue.push(listing);
+
+                injectJs(function () {
+                    g_bMarketWindowHidden = true; // Limit the number of requests made to Steam by stopping constant polling of popular listings.
+                })
+            });
+        }
+
+        // Initialize the market UI.
+        function initializeMarketUI() {
+            $('.market_listing_table_header > .market_listing_edit_buttons').append('<a class="item_market_action_button item_market_action_button_green select_overpriced" style="margin-right:4px;margin-top:1px"><span class="item_market_action_button_contents" style="text-transform:none">Select overpriced</span></a>');
+            $('.market_listing_table_header > .market_listing_edit_buttons').append('<a class="item_market_action_button item_market_action_button_green select_all" style="margin-right:4px;margin-top:1px"><span class="item_market_action_button_contents" style="text-transform:none">Select all</span></a>');
+            $('.pick_and_sell_button').prepend('<a class="item_market_action_button item_market_action_button_green relist_overpriced" style="margin-right:3px;margin-top:1px"><span class="item_market_action_button_contents" style="text-transform:none">Relist overpriced</span></a>');
+            $('.market_listing_table_header > .market_listing_edit_buttons').append('<a class="item_market_action_button item_market_action_button_green remove_selected" style="margin-top:1px"><span class="item_market_action_button_contents" style="text-transform:none">Remove selected</span></a>');
+
+            $('.market_listing_table_header').on('click', 'span', function () {
+                if ($(this).hasClass('market_listing_edit_buttons') || $(this).hasClass('item_market_action_button_contents'))
+                    return
+
+                var isPrice = $('.market_listing_table_header').children().eq(1).text() == $(this).text();
+                var isDate = $('.market_listing_table_header').children().eq(2).text() == $(this).text();
+                var isName = $('.market_listing_table_header').children().eq(3).text() == $(this).text();
+
+
+                // Change sort order (asc/desc).
+                var nextSort = isPrice ? 1 : (isDate ? 2 : 3);
+                var asc = true;
+                if (lastSort == nextSort) {
+                    asc = false;
+                    lastSort = -nextSort;
+                } else
+                    lastSort = nextSort;
+
+
+                // (Re)set the asc/desc arrows.
+                const arrow_down = '🡻';
+                const arrow_up = '🡹';
+
+                $('.market_listing_table_header > span').each(function () {
+                    if ($(this).hasClass('market_listing_edit_buttons'))
+                        return;
+
+                    $(this).text($(this).text().replace(' ' + arrow_down, '').replace(' ' + arrow_up, ''));
+                })
+
+                $(this).text($(this).text() + ' ' + (asc ? arrow_up : arrow_down));
+
+
+                // Sort the rows.
+                $(this).parent().parent().find('.market_listing_row').sort(function (a, b) {
+                    var first = asc ? a : b;
+                    var second = asc ? b : a;
+
+                    if (isName) {
+                        var firstName = $(first).find('.market_listing_item_name_link').text().toLowerCase();
+                        var secondName = $(second).find('.market_listing_item_name_link').text().toLowerCase();
+                        return firstName.localeCompare(secondName);
+                    } else if (isDate) {
+                        var firstDate = Date.parse($(first).find('.market_listing_listed_date').text());
+                        var secondDate = Date.parse($(second).find('.market_listing_listed_date').text());
+                        var currentMonth = parseInt(Date.today().toString('M'));
+
+                        if (parseInt(firstDate.toString('M')) > currentMonth)
+                            firstDate = firstDate.addYears(-1);
+                        if (parseInt(secondDate.toString('M')) > currentMonth)
+                            secondDate = secondDate.addYears(-1);
+
+                        return firstDate.compareTo(secondDate);
+                    } else if (isPrice) {
+                        var firstPrice = parseInt(replaceNonNumbers($(first).find('.market_listing_price > span > span:nth-child(1)').text()));
+                        var secondPrice = parseInt(replaceNonNumbers($(second).find('.market_listing_price > span > span:nth-child(1)').text()));
+                        return firstPrice - secondPrice;
+                    }
+                }).each(function (_, container) {
+                    $(container).parent().append(container);
+                });
+            });
+
+            $('div.market_listing_table_header:nth-child(2) > span:nth-child(4)').trigger('click');
+
+            $('.select_all').on('click', '*', function () {
+                $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
+                    $('.market_select_item', $(this)).prop('checked', true);
+                });
+            });
+
+            $('.select_overpriced').on('click', '*', function () {
+                $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
+                    if ($(this).hasClass('overpriced'))
+                        $('.market_select_item', $(this)).prop('checked', true);
+                });
+            });
+
+            $('.remove_selected').on('click', '*', function () {
+                var filteredItems = [];
+
+                $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
+                    if ($('.market_select_item', $(this)).prop('checked')) {
+                        var id = $('.market_listing_item_name', $(this)).attr('id').replace('mylisting_', '').replace('_name', '');
+                        filteredItems.push(id);
+                    }
+                });
+
+                filteredItems.forEach(function (item, index, array) {
+                    setTimeout(function () {
+                        market.removeListing(item, function (err, data) {
+                            if (!err) {
+                                $('#mylisting_' + item + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_SUCCESS);
+                                setTimeout(function () {
+                                    $('#mylisting_' + item).remove();
+
+                                    var numberOfListings = parseInt($('#my_market_selllistings_number').text());
+                                    $('#my_market_selllistings_number').text((numberOfListings - 1).toString());
+
+                                    var numberOfActiveListings = parseInt($('#my_market_activelistings_number').text());
+                                    $('#my_market_activelistings_number').text((numberOfActiveListings - 1).toString());
+                                }, 3000);
+                            } else
+                                $('#mylisting_' + item + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
+                        });
+
+                    }, getRandomInt(500 * index, (500 * index) + 250)); // Have some healthy delay or steam will block you for flooding.
+                });
+            });
+
+            $('.relist_overpriced').on('click', '*', function () {
+                var items = async.queue(function (item, next) {
+                    market.removeListing(item.listing, function (err, data) {
+                        if (!err) {
+                            $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_PENDING);
+                            var timeout = getRandomInt(3000, 3500);
+
+                            setTimeout(function () {
+                                market.sellItem(item, market.getPriceBeforeFees(item.sellPrice),
+                                function (err2) {
+                                    if (!err2) {
+                                        $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_SUCCESS);
+                                        setTimeout(function () {
+                                            $('#mylisting_' + item.listing).remove();
+                                        }, timeout);
+                                    } else {
+                                        $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
+                                    }
+
+                                    setTimeout(function () {
+                                        $('#mylisting_' + item.listing).remove();
+                                        next();
+                                    }, timeout);
+                                });
+                            });
+                        } else {
+                            setTimeout(function () {
+                                $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
+                                next();
+                            }, getRandomInt(3000, 3500));
+                        }
+                    });
+                }, 1);
+
+                $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
+                    if ($(this).hasClass('overpriced')) {
+                        var id = $('.market_listing_item_name', $(this)).attr('id').replace('mylisting_', '').replace('_name', '');
+                        var listingUrl = $('.item_market_action_button_edit', $(this)).first().attr('href');
+                        var listingUrlParts = listingUrl.split(',');
+                        var assetid = replaceNonNumbers(listingUrlParts.pop());
+                        var contextid = replaceNonNumbers(listingUrlParts.pop());
+                        var appid = replaceNonNumbers(listingUrlParts.pop());
+                        var price = parseInt($(this).attr('class').split(' ').pop().replace('price_', ''));
+
+                        items.push({
+                            listing: id,
+                            assetid: assetid,
+                            contextid: contextid,
+                            appid: appid,
+                            sellPrice: price
+                        });
+                    }
+                });
+            });
+        }
+    }
+    //#endregion
+
+    //#region Tradeoffers
+    function sumTradeOfferAssets(assets, user) {
+        var total = {};
+
+        for (var i = 0; i < assets.length; i++) {
+            var rgItem = user.findAsset(assets[i].appid, assets[i].contextid, assets[i].assetid);
+
+            var text = '';
+            if (rgItem) {
+                text = rgItem.name;
+                if (typeof rgItem.type !== 'undefined' && rgItem.type.length > 0) {
+                    text += ' (' + rgItem.type + ')';
+                }
+            }
+            else
+                text = 'Unknown Item';
+
+            if (text in total)
+                total[text] = total[text] + 1;
+            else
+                total[text] = 1;
+        }
+
+        var totalText = '';
+        for (var k in total) {
+            totalText += total[k] + 'x ' + k + '<br/>';
+        }
+
+        return totalText;
+    }
+
+    function initializeTradeOfferUI() {
+        $('.trade_item_box').observe('childlist subtree', function (record) {
+            $('#trade_offer_your_sum').remove();
+            $('#trade_offer_their_sum').remove();
+
+            var your_sum = sumTradeOfferAssets(g_rgCurrentTradeStatus.me.assets, UserYou);
+            var their_sum = sumTradeOfferAssets(g_rgCurrentTradeStatus.them.assets, UserThem);
+
+            $('div.offerheader:nth-child(1) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_your_sum">' + your_sum + '</div>');
+            $('div.offerheader:nth-child(3) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_their_sum">' + their_sum + '</div>');
+        });
+    }
+    //#endregion
+
+    //#region UI
+    injectCss('.ui-selected { outline: 1px groove #ABABAB; } ' +
+           '#logger { color: #767676; font-size: 12px;margin-top:16px; }' +
+           '.trade_offer_sum { color: #767676; font-size: 12px;margin-top:8px; }' +
+           '.market_commodity_orders_table { font-size:12px; font-family: "Motiva Sans", Sans-serif; font-weight: 300; }' +
+           '.market_commodity_orders_table th { padding-left: 10px; }' +
+           '#listingsGroup { display: flex; justify-content: space-between; margin-bottom: 8px; }' +
+           '#listingsSell { text-align: right; color: #589328; font-weight:600; }' +
+           '#listingsBuy { text-align: right; color: #589328; font-weight:600; }' +
+           '.market_listing_my_price { height: 50px; padding-right:6px; }' +
+           '.market_listing_edit_buttons.actual_content { width:276px; transition-property: background-color, border-color; transition-timing-function: linear; transition-duration: 1s;}' +
+           '.quicksellbutton { margin-right: 4px; }');
+
+    $(document).ready(function () {
+        if (currentPage == PAGE_INVENTORY) {
+            initializeInventoryUI();
+        }
+
+        if (currentPage == PAGE_MARKET) {
+            initializeMarketUI();
+            processMarketListings();
+        }
+
+        if (currentPage == PAGE_TRADEOFFER) {
+            initializeTradeOfferUI();
+        }
+    });
+    
     function injectCss(css) {
         var head, style;
         head = document.getElementsByTagName('head')[0];
