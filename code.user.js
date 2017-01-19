@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     1.8.0
+// @version     1.8.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -810,14 +810,16 @@
 
     //#region Inventory
     if (currentPage == PAGE_INVENTORY) {
+        var numberOfProcessedItemsInSellQueue = 0;
 
         var sellQueue = async.queue(function (task, next) {
-
             market.sellItem(task.item, task.sellPrice, function (err, data) {
+                numberOfProcessedItemsInSellQueue++;
+
                 var digits = getNumberOfDigits(queuedItems.length);
                 var itemId = task.item.assetid || task.item.id;
                 var itemName = task.item.name || task.item.description.name;
-                var padLeft = padLeftZero('' + (queuedItems.indexOf(itemId) + 1), digits) + ' / ' + queuedItems.length;
+                var padLeft = padLeftZero('' + numberOfProcessedItemsInSellQueue, digits) + ' / ' + queuedItems.length;
 
                 if (!err) {
                     log(padLeft + ' - ' + itemName + ' added to market for ' + (market.getPriceIncludingFees(task.sellPrice) / 100.0).toFixed(2) + user_currency + '.');
@@ -827,7 +829,7 @@
                     if (typeof data.responseJSON.message != 'undefined')
                         log(padLeft + ' - ' + itemName + ' not added to market because ' + data.responseJSON.message[0].toLowerCase() + data.responseJSON.message.slice(1));
                     else
-                        log(padLeft + ' - ' + itemName + ' not added to market. ');
+                        log(padLeft + ' - ' + itemName + ' not added to market.');
 
                     $('#' + task.item.appid + '_' + task.item.contextid + '_' + itemId).css('background', COLOR_ERROR);
                 }
@@ -919,18 +921,31 @@
         }
 
         function sellItems(items) {
+            var numberOfFailedItems = 0;
+
             var itemQueue = async.queue(function (item, next) {
-                itemQueueWorker(item, false, function (success, cached) {
+                itemQueueWorker(item, item.ignoreErrors, function (success, cached) {
                     if (success) {
+                        if (numberOfFailedItems > 0)
+                            numberOfFailedItems--;
+
                         setTimeout(function () {
                             next();
                         }, cached ? 0 : getRandomInt(2500, 3000));
                     } else {
+                        if (!item.ignoreErrors) {
+                            item.ignoreErrors = true;
+                            itemQueue.push(item);
+                        }
+
+                        if (numberOfFailedItems < 2)
+                            numberOfFailedItems++;
+
+                        var delay = numberOfFailedItems > 1 || itemQueue.length < 2 ? getRandomInt(45000, 60000) : getRandomInt(2500, 3000);
+
                         setTimeout(function () {
-                            itemQueueWorker(item, true, function (success, cached) {
-                                next(); // Go to the next queue item, regardless of success.
-                            });
-                        }, cached ? 0 : getRandomInt(45000, 60000));
+                            next();
+                        }, cached ? 0 : delay);
                     }
                 });
             }, 1);
@@ -940,6 +955,8 @@
             items.forEach(function (item, index, array) {
                 var itemId = item.assetid || item.id;
                 if (queuedItems.indexOf(itemId) == -1) {
+                    item.ignoreErrors = false;
+
                     queuedItems.push(itemId);
                     itemQueue.push(item);
                 }
@@ -1137,29 +1154,29 @@
                                 '<div>' +
                                     (isSteamInventory ?
                                     '<div style="margin-bottom:6px;margin-top:6px">' +
-                                        'Price minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
+                                        'Minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
                                         'and maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;for normal cards' +
                                         '<br/>' +
                                     '</div>' +
                                     '<div style="margin-bottom:6px;">' +
-                                        'Price minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
+                                        'Minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
                                         'and maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_FOIL_PRICE) + '>&nbsp;for foil cards' +
                                         '<br/>' +
                                     '</div>' +
                                     '<div style="margin-bottom:6px;">' +
-                                        'Price minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
+                                        'Minimum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
                                         'and maximum:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;for items' +
                                         '<br/>' +
                                     '</div>' +
                                     '<div style="margin-bottom:6px;">' +
-                                        'Price algorithm:&nbsp;<select class="priceInput" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
+                                        'Algorithm:&nbsp;<select class="priceInput" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
                                             '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>Maximum of average price (12 hours) and lowest listing</option>' +
                                             '<option value="2" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : '') + '>Lowest listing</option>' +
                                         '</select>' +
                                         '<br/>' +
                                     '</div>' +
                                     '<div>' +
-                                        'Price difference when the lowest listing is used:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
+                                        'Difference when the lowest listing is used:&nbsp;<input class="priceInput" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
                                         '<br/>' +
                                     '</div>' :
                                     '<div style="margin-bottom:6px;margin-top:6px">' +
