@@ -19,6 +19,7 @@ This script adds the following features to the Steam Inventory:
 This script adds the following features to the Steam Tradeoffers:
 
 *    A summary of all items from both parties.
+*    Select all items of the current page.
 
 All pricing is based on the lowest listing, price history and your own minimum and maximum prices.
 
