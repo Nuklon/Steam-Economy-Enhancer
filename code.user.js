@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     1.9.0
+// @version     1.9.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -396,7 +396,7 @@
     // e.g. [["Fri, 19 Jul 2013 01:00:00 +0000",7.30050206184,362]]
     // Prices are ordered by oldest to most recent
     // Price is inclusive of fees
-    SteamMarket.prototype.getPriceHistory = function (item, callback, cached) {
+    SteamMarket.prototype.getPriceHistory = function (item, cache, callback) {
         try {
             var market_name = getMarketHashName(item);
             if (market_name == null) {
@@ -406,10 +406,12 @@
 
             var storage_hash = 'pricehistory_' + item.appid + '+' + market_name;
 
-            var sessionStorageItem = getSessionStorageItem(storage_hash);
-            if (sessionStorageItem) {
-                callback(ERROR_SUCCESS, JSON.parse(sessionStorageItem), true);
-                return;
+            if (cache) {
+                var sessionStorageItem = getSessionStorageItem(storage_hash);
+                if (sessionStorageItem) {
+                    callback(ERROR_SUCCESS, JSON.parse(sessionStorageItem), true);
+                    return;
+                }
             }
 
             var url = window.location.protocol + '//steamcommunity.com/market/pricehistory/?appid=' + item.appid + '&market_hash_name=' + market_name;
@@ -459,7 +461,7 @@
     //	 "converted_publisher_fee":5,
     //	 "asset":{"currency":0,"appid":570,"contextid":"2","id":"1113797403","amount":"1"}
     // }
-    SteamMarket.prototype.getListings = function (item, callback, cached) {
+    SteamMarket.prototype.getListings = function (item, cache, callback) {
         try {
             var market_name = getMarketHashName(item);
             if (market_name == null) {
@@ -469,10 +471,12 @@
 
             var storage_hash = 'listings_' + item.appid + '+' + market_name;
 
-            var sessionStorageItem = getSessionStorageItem(storage_hash);
-            if (sessionStorageItem) {
-                callback(ERROR_SUCCESS, JSON.parse(sessionStorageItem), true);
-                return;
+            if (cache) {
+                var sessionStorageItem = getSessionStorageItem(storage_hash);
+                if (sessionStorageItem) {
+                    callback(ERROR_SUCCESS, JSON.parse(sessionStorageItem), true);
+                    return;
+                }
             }
 
             var url = window.location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
@@ -562,18 +566,20 @@
     //"price_prefix" : "",
     //"price_suffix" : "\u20ac"
     //}
-    SteamMarket.prototype.getItemOrdersHistogram = function (item, callback, cached) {
+    SteamMarket.prototype.getItemOrdersHistogram = function (item, cache, callback) {
         try {
             var market_name = getMarketHashName(item);
             if (market_name == null)
                 return callback(ERROR_FAILED);
 
             var storage_hash = 'itemordershistogram_' + item.appid + '+' + market_name;
-
-            var sessionStorageItem = getSessionStorageItem(storage_hash);
-            if (sessionStorageItem) {
-                callback(ERROR_SUCCESS, JSON.parse(sessionStorageItem), true);
-                return;
+            
+            if (cache) {
+                var sessionStorageItem = getSessionStorageItem(storage_hash);
+                if (sessionStorageItem) {
+                    callback(ERROR_SUCCESS, JSON.parse(sessionStorageItem), true);
+                    return;
+                }
             }
 
             this.getMarketItemNameId(item,
@@ -973,7 +979,7 @@
             var failed = 0;
             var itemName = item.name || item.description.name;
 
-            market.getPriceHistory(item, function (err, history, cachedHistory) {
+            market.getPriceHistory(item, true, function (err, history, cachedHistory) {
                 if (err) {
                     console.log('Failed to get price history for ' + itemName);
 
@@ -981,7 +987,7 @@
                         failed += 1;
                 }
 
-                market.getItemOrdersHistogram(item, function (err, histogram, cachedListings) {
+                market.getItemOrdersHistogram(item, true, function (err, histogram, cachedListings) {
                     if (err) {
                         console.log('Failed to get orders histogram for ' + itemName);
 
@@ -1072,7 +1078,7 @@
 
             var itemName = item.name || item.description.name;
 
-            market.getItemOrdersHistogram(item,
+            market.getItemOrdersHistogram(item, false,
                 function (err, listings) {
                     if (err) {
                         console.log('Failed to get orders histogram for ' + itemName);
@@ -1284,7 +1290,7 @@
 
             var failed = 0;
 
-            market.getPriceHistory(item, function (err, history, cachedHistory) {
+            market.getPriceHistory(item, true, function (err, history, cachedHistory) {
                 if (err) {
                     console.log('Failed to get price history for ' + game_name);
 
@@ -1292,7 +1298,7 @@
                         failed += 1;
                 }
 
-                market.getItemOrdersHistogram(item, function (err, histogram, cachedListings) {
+                market.getItemOrdersHistogram(item, true, function (err, histogram, cachedListings) {
                     if (err) {
                         console.log('Failed to get orders histogram for ' + game_name);
 
@@ -1543,10 +1549,18 @@
 
         for (var i = 0; i < assets.length; i++) {
             var rgItem = user.findAsset(assets[i].appid, assets[i].contextid, assets[i].assetid);
-
+            
             var text = '';
             if (rgItem) {
-                text = rgItem.name;
+                if (typeof rgItem.original_amount !== 'undefined' && typeof rgItem.amount !== 'undefined') {
+                    var originalAmount = parseInt(rgItem.original_amount);
+                    var currentAmount = parseInt(rgItem.amount);
+                    var usedAmount = originalAmount - currentAmount;
+                    text += usedAmount.toString() + 'x ';
+                }
+
+                text += rgItem.name;
+                
                 if (typeof rgItem.type !== 'undefined' && rgItem.type.length > 0) {
                     text += ' (' + rgItem.type + ')';
                 }
