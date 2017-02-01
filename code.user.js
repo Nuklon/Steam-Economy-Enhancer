@@ -3,13 +3,14 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     2.0.0
+// @version     2.1.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
 // @include     *://steamcommunity.com/market*
 // @include     *://steamcommunity.com/tradeoffer*
 // @require     https://raw.githubusercontent.com/caolan/async/master/dist/async.min.js
+// @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.4.3/localforage.min.js
 // @require     https://raw.githubusercontent.com/kapetan/jquery-observe/master/jquery-observe.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min.js
 // @require     https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
@@ -60,6 +61,8 @@
     const SETTING_MAX_MISC_PRICE = 'SETTING_MAX_MISC_PRICE';
     const SETTING_PRICE_OFFSET = 'SETTING_PRICE_OFFSET';
     const SETTING_PRICE_ALGORITHM = 'SETTING_PRICE_ALGORITHM';
+    const SETTING_LAST_CACHE = 'SETTING_LAST_CACHE';
+    const SETTING_RELIST_AUTOMATICALLY = 'SETTING_RELIST_AUTOMATICALLY';
 
     var settingDefaults =
     {
@@ -70,7 +73,9 @@
         SETTING_MIN_MISC_PRICE: 0.05,
         SETTING_MAX_MISC_PRICE: 10,
         SETTING_PRICE_OFFSET: -0.01,
-        SETTING_PRICE_ALGORITHM: 1
+        SETTING_PRICE_ALGORITHM: 1,
+        SETTING_LAST_CACHE: 0,
+        SETTING_RELIST_AUTOMATICALLY: 0
     };
 
     function getSettingWithDefault(name) {
@@ -83,6 +88,34 @@
     //#endregion
 
     //#region Storage
+
+    var storagePersistent = localforage.createInstance({
+        name: 'see_persistent'
+    });
+
+    var storageSession;
+
+    // This does not work the same as the 'normal' session storage because opening a new browser session/tab will clear the cache.
+    // For this reason, a rolling cache is used.
+    if (getSessionStorageItem('SESSION') == null) {
+        var lastCache = getSettingWithDefault(SETTING_LAST_CACHE);
+        if (lastCache > 5)
+            lastCache = 0;
+
+        setSetting(SETTING_LAST_CACHE, lastCache + 1);
+
+        storageSession = localforage.createInstance({
+            name: 'see_session_' + lastCache
+        });
+
+        storageSession.clear(); // Clear any previous data.
+        setSessionStorageItem('SESSION', lastCache);
+    } else {
+        storageSession = localforage.createInstance({
+            name: 'see_session_' + getSessionStorageItem('SESSION')
+        });
+    }
+
     function getLocalStorageItem(name) {
         try {
             return localStorage.getItem(name);
@@ -100,6 +133,7 @@
             return false;
         }
     }
+
     function getSessionStorageItem(name) {
         try {
             return sessionStorage.getItem(name);
@@ -391,11 +425,12 @@
         return this.appContext;
     };
 
-    // Get the price history for an item
-    // PriceHistory is an array of prices in the form [data, price, number sold]
-    // e.g. [["Fri, 19 Jul 2013 01:00:00 +0000",7.30050206184,362]]
-    // Prices are ordered by oldest to most recent
-    // Price is inclusive of fees
+    // Get the price history for an item.
+    //
+    // PriceHistory is an array of prices in the form [data, price, number sold].
+    // Example: [["Fri, 19 Jul 2013 01:00:00 +0000",7.30050206184,362]]
+    // Prices are ordered by oldest to most recent.
+    // Price is inclusive of fees.
     SteamMarket.prototype.getPriceHistory = function (item, cache, callback) {
         try {
             var market_name = getMarketHashName(item);
@@ -404,108 +439,59 @@
                 return;
             }
 
-            var storage_hash = 'pricehistory_' + item.appid + '+' + market_name;
+            var appid = item.appid;
 
             if (cache) {
-                var sessionStorageItem = getSessionStorageItem(storage_hash);
-                if (sessionStorageItem) {
-                    callback(ERROR_SUCCESS, JSON.parse(sessionStorageItem), true);
-                    return;
-                }
-            }
+                var storage_hash = 'pricehistory_' + appid + '+' + market_name;
 
-            var url = window.location.protocol + '//steamcommunity.com/market/pricehistory/?appid=' + item.appid + '&market_hash_name=' + market_name;
-            $.get(url,
-                function (data) {
-                    if (!data || !data.success || !data.prices) {
-                        callback(ERROR_DATA);
-                        return;
-                    }
-
-                    // Multiply prices so they're in pennies
-                    for (var i = 0; i < data.prices.length; i++) {
-                        data.prices[i][1] *= 100;
-                        data.prices[i][2] = parseInt(data.prices[i][2]);
-                    }
-
-                    setSessionStorageItem(storage_hash, JSON.stringify(data.prices));
-                    callback(ERROR_SUCCESS, data.prices, false);
-                }, 'json')
-			 .fail(function () {
-			     return callback(ERROR_FAILED);
-			 });
+                storageSession.getItem(storage_hash)
+                              .then(function (value) {
+                                  if (value != null)
+                                      callback(ERROR_SUCCESS, value, true);
+                                  else
+                                      market.getCurrentPriceHistory(appid, market_name, callback);
+                              })
+                              .catch(function (error) {
+                                  market.getCurrentPriceHistory(appid, market_name, callback);
+                              });
+            } else
+                market.getCurrentPriceHistory(appid, market_name, callback);
         } catch (e) {
             return callback(ERROR_FAILED);
         }
     };
 
-    // Get the sales listings for this item in the market.
-    // Listings is a list of listing objects.
-    // converted_price and converted_fee are the useful bits of info.
-    //
-    // ** This is not returning up-to-date information on prices **
-    //
-    // {"listingid":"2944526023990990820",
-    //	 "steamid_lister":"76561198065094510",
-    //	 "price":2723,
-    //	 "fee":408,
-    //	 "steam_fee":136,
-    //	 "publisher_fee":272,
-    //	 "publisher_fee_app":570,
-    //	 "publisher_fee_percent":"0.12000000149011612", (actually a multiplier, not a percentage)
-    //	 "currencyid":2005,
-    //	 "converted_price":50, (price before fees, amount to pay is price+fee)
-    //	 "converted_fee":7, (fee added to price)
-    //	 "converted_currencyid":2002,
-    //	 "converted_steam_fee":2,
-    //	 "converted_publisher_fee":5,
-    //	 "asset":{"currency":0,"appid":570,"contextid":"2","id":"1113797403","amount":"1"}
-    // }
-    SteamMarket.prototype.getListings = function (item, cache, callback) {
-        try {
-            var market_name = getMarketHashName(item);
-            if (market_name == null) {
-                callback(ERROR_FAILED);
-                return;
-            }
+    // Get the current price history for an item.
+    SteamMarket.prototype.getCurrentPriceHistory = function (appid, market_name, callback) {
+        var url = window.location.protocol + '//steamcommunity.com/market/pricehistory/?appid=' + appid + '&market_hash_name=' + market_name;
 
-            var storage_hash = 'listings_' + item.appid + '+' + market_name;
-
-            if (cache) {
-                var sessionStorageItem = getSessionStorageItem(storage_hash);
-                if (sessionStorageItem) {
-                    callback(ERROR_SUCCESS, JSON.parse(sessionStorageItem), true);
+        $.get(url,
+            function (data) {
+                if (!data || !data.success || !data.prices) {
+                    callback(ERROR_DATA);
                     return;
                 }
-            }
 
-            var url = window.location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
-            $.get(url,
-                function (page) {
-                    var matches = /var g_rgListingInfo = (.+);/.exec(page);
-                    if (matches == null) {
-                        callback(ERROR_DATA);
-                        return;
-                    }
+                // Multiply prices so they're in pennies.
+                for (var i = 0; i < data.prices.length; i++) {
+                    data.prices[i][1] *= 100;
+                    data.prices[i][2] = parseInt(data.prices[i][2]);
+                }
 
-                    var listingInfo = JSON.parse(matches[1]);
-                    if (!listingInfo) {
-                        callback(ERROR_DATA);
-                        return;
-                    }
+                // Store the price history in the session storage.
+                var storage_hash = 'pricehistory_' + appid + '+' + market_name;
+                storageSession.setItem(storage_hash, data.prices);
 
-                    setSessionStorageItem(storage_hash, JSON.stringify(listingInfo));
-                    callback(null, listingInfo, false);
-                })
-             .fail(function (e) {
-                 return callback(ERROR_FAILED);
-             });
-        } catch (e) {
-            return callback(ERROR_FAILED);
-        }
-    };
+                callback(ERROR_SUCCESS, data.prices, false);
+            }, 'json')
+         .fail(function () {
+             return callback(ERROR_FAILED);
+         });
+    }
 
     // Get the item name id from a market item.
+    //
+    // This id never changes so we can store this in the persistent storage.
     SteamMarket.prototype.getMarketItemNameId = function (item, callback) {
         try {
             var market_name = getMarketHashName(item);
@@ -514,42 +500,50 @@
                 return;
             }
 
-            var storage_hash = 'itemnameid_' + item.appid + '+' + market_name;
+            var appid = item.appid;
+            var storage_hash = 'itemnameid_' + appid + '+' + market_name;
 
-            var localStorageItem = getLocalStorageItem(storage_hash);
-            if (localStorageItem) {
-                var item_nameid = localStorageItem;
-
-                // Make sure the stored item name id is valid before returning it.
-                if (replaceNonNumbers(item_nameid) == item_nameid) {
-                    callback(ERROR_SUCCESS, item_nameid);
-                    return;
-                }
-            }
-
-            var url = window.location.protocol + '//steamcommunity.com/market/listings/' + item.appid + '/' + market_name;
-            $.get(url,
-                function (page) {
-                    var matches = /Market_LoadOrderSpread\( (.+) \);/.exec(page);
-                    if (matches == null) {
-                        callback(ERROR_DATA);
-                        return;
-                    }
-
-                    var item_nameid = matches[1];
-
-                    setLocalStorageItem(storage_hash, item_nameid);
-                    callback(ERROR_SUCCESS, item_nameid);
-                })
-             .fail(function () {
-                 return callback(ERROR_FAILED);
-             });
+            storagePersistent.getItem(storage_hash)
+                             .then(function (value) {
+                                 if (value != null)
+                                     callback(ERROR_SUCCESS, value);
+                                 else
+                                     return market.getCurrentMarketItemNameId(appid, market_name, callback);
+                             })
+                             .catch(function (error) {
+                                 return market.getCurrentMarketItemNameId(appid, market_name, callback);
+                             });
         } catch (e) {
             return callback(ERROR_FAILED);
         }
     }
 
+    // Get the item name id from a market item.
+    SteamMarket.prototype.getCurrentMarketItemNameId = function (appid, market_name, callback) {
+        var url = window.location.protocol + '//steamcommunity.com/market/listings/' + appid + '/' + market_name;
+        $.get(url,
+            function (page) {
+                var matches = /Market_LoadOrderSpread\( (.+) \);/.exec(page);
+                if (matches == null) {
+                    callback(ERROR_DATA);
+                    return;
+                }
+
+                var item_nameid = matches[1];
+
+                // Store the item name id in the persistent storage.
+                var storage_hash = 'itemnameid_' + appid + '+' + market_name;
+                storagePersistent.setItem(storage_hash, item_nameid);
+
+                callback(ERROR_SUCCESS, item_nameid);
+            })
+         .fail(function () {
+             return callback(ERROR_FAILED);
+         });
+    };
+
     // Get the sales listings for this item in the market, with more information.
+    //
     //{
     //"success" : 1,
     //"sell_order_table" : "<table class=\"market_commodity_orders_table\"><tr><th align=\"right\">Price<\/th><th align=\"right\">Quantity<\/th><\/tr><tr><td align=\"right\" class=\"\">0,04\u20ac<\/td><td align=\"right\">311<\/td><\/tr><tr><td align=\"right\" class=\"\">0,05\u20ac<\/td><td align=\"right\">895<\/td><\/tr><tr><td align=\"right\" class=\"\">0,06\u20ac<\/td><td align=\"right\">495<\/td><\/tr><tr><td align=\"right\" class=\"\">0,07\u20ac<\/td><td align=\"right\">174<\/td><\/tr><tr><td align=\"right\" class=\"\">0,08\u20ac<\/td><td align=\"right\">49<\/td><\/tr><tr><td align=\"right\" class=\"\">0,09\u20ac or more<\/td><td align=\"right\">41<\/td><\/tr><\/table>",
@@ -569,41 +563,58 @@
     SteamMarket.prototype.getItemOrdersHistogram = function (item, cache, callback) {
         try {
             var market_name = getMarketHashName(item);
-            if (market_name == null)
-                return callback(ERROR_FAILED);
-
-            var storage_hash = 'itemordershistogram_' + item.appid + '+' + market_name;
-
-            if (cache) {
-                var sessionStorageItem = getSessionStorageItem(storage_hash);
-                if (sessionStorageItem) {
-                    callback(ERROR_SUCCESS, JSON.parse(sessionStorageItem), true);
-                    return;
-                }
+            if (market_name == null) {
+                callback(ERROR_FAILED);
+                return;
             }
 
-            this.getMarketItemNameId(item,
-                function (err, item_nameid) {
-                    if (err) {
-                        callback(ERROR_DATA);
-                        return;
-                    }
+            var appid = item.appid;
 
-                    var currency = market.walletInfo.wallet_currency;
-                    var url = window.location.protocol + '//steamcommunity.com/market/itemordershistogram?language=english&currency=' + currency + '&item_nameid=' + item_nameid + '&two_factor=0';
+            if (cache) {
+                var storage_hash = 'itemordershistogram_' + appid + '+' + market_name;
+                storageSession.getItem(storage_hash)
+                              .then(function (value) {
+                                  if (value != null)
+                                      callback(ERROR_SUCCESS, value, true);
+                                  else
+                                      market.getCurrentItemOrdersHistogram(item, market_name, callback);
+                              })
+                              .catch(function (error) {
+                                  market.getCurrentItemOrdersHistogram(item, market_name, callback);
+                              });
+            } else {
+                market.getCurrentItemOrdersHistogram(item, market_name, callback);
+            }
 
-                    $.get(url,
-                        function (pageHistogram) {
-                            setSessionStorageItem(storage_hash, JSON.stringify(pageHistogram));
-                            callback(ERROR_SUCCESS, pageHistogram, false);
-                        })
-                     .fail(function () {
-                         return callback(ERROR_FAILED);
-                     });
-                });
         } catch (e) {
             return callback(ERROR_FAILED);
         }
+    };
+
+    // Get the sales listings for this item in the market, with more information.
+    SteamMarket.prototype.getCurrentItemOrdersHistogram = function (item, market_name, callback) {
+        market.getMarketItemNameId(item,
+            function (error, item_nameid) {
+                if (error) {
+                    callback(ERROR_DATA);
+                    return;
+                }
+
+                var currency = market.walletInfo.wallet_currency;
+                var url = window.location.protocol + '//steamcommunity.com/market/itemordershistogram?language=english&currency=' + currency + '&item_nameid=' + item_nameid + '&two_factor=0';
+
+                $.get(url,
+                        function (pageHistogram) {
+                            // Store the histogram in the session storage.
+                            var storage_hash = 'itemordershistogram_' + item.appid + '+' + market_name;
+                            storageSession.setItem(storage_hash, pageHistogram);
+
+                            callback(ERROR_SUCCESS, pageHistogram, false);
+                        })
+                    .fail(function () {
+                        return callback(ERROR_FAILED);
+                    });
+            });
     };
 
     // Calculate the price before fees (seller price) from the buyer price
@@ -1073,10 +1084,9 @@
                 return;
 
             var appid = g_ActiveInventory.selectedItem.appid;
-
             var item = { appid: parseInt(appid), description: { market_hash_name: market_hash_name } };
 
-            var itemName = item.name || item.description.name;
+            var itemName = g_ActiveInventory.selectedItem.name || g_ActiveInventory.selectedItem.description.name;
 
             market.getItemOrdersHistogram(item, false,
                 function (err, listings) {
@@ -1253,15 +1263,15 @@
     //#region Market
     if (currentPage == PAGE_MARKET) {
 
-        var marketQueue = async.queue(function (listing, next) {
-            marketQueueWorker(listing, false, function (success, cached) {
+        var marketListingsQueue = async.queue(function (listing, next) {
+            marketListingsQueueWorker(listing, false, function (success, cached) {
                 if (success) {
                     setTimeout(function () {
                         next();
                     }, cached ? 0 : getRandomInt(500, 1000));
                 } else {
                     setTimeout(function () {
-                        marketQueueWorker(listing, true, function (success, cached) {
+                        marketListingsQueueWorker(listing, true, function (success, cached) {
                             next(); // Go to the next queue item, regardless of success.
                         });
                     }, cached ? 0 : getRandomInt(30000, 45000));
@@ -1269,13 +1279,13 @@
             });
         }, 1);
 
-        marketQueue.drain = function () {
+        marketListingsQueue.drain = function () {
             injectJs(function () {
                 g_bMarketWindowHidden = false;
             })
         };
 
-        function marketQueueWorker(listing, ignoreErrors, callback) {
+        function marketListingsQueueWorker(listing, ignoreErrors, callback) {
             var url = $('.market_listing_item_name_link', listing).attr('href');
             var name = $('.market_listing_item_name_link', listing).text().trim();
             var game_name = $('.market_listing_game_name', listing).text().trim();
@@ -1290,19 +1300,19 @@
 
             var failed = 0;
 
-            market.getPriceHistory(item, true, function (err, history, cachedHistory) {
-                if (err) {
+            market.getPriceHistory(item, true, function (errorPriceHistory, history, cachedHistory) {
+                if (errorPriceHistory) {
                     console.log('Failed to get price history for ' + game_name);
 
-                    if (err == ERROR_FAILED)
+                    if (errorPriceHistory == ERROR_FAILED)
                         failed += 1;
                 }
 
-                market.getItemOrdersHistogram(item, true, function (err, histogram, cachedListings) {
-                    if (err) {
+                market.getItemOrdersHistogram(item, true, function (errorHistogram, histogram, cachedListings) {
+                    if (errorHistogram) {
                         console.log('Failed to get orders histogram for ' + game_name);
 
-                        if (err == ERROR_FAILED)
+                        if (errorHistogram == ERROR_FAILED)
                             failed += 1;
                     }
 
@@ -1327,13 +1337,21 @@
 
                     console.log('Used sell price: ' + sellPrice / 100.0 + ' (' + market.getPriceIncludingFees(sellPrice) / 100.0 + ')');
 
-                    if (market.getPriceIncludingFees(sellPrice) < price) {
+                    var sellPriceIncludingFees = market.getPriceIncludingFees(sellPrice);
+                    listing.addClass('price_' + sellPriceIncludingFees);
+                    $('.market_listing_my_price', listing).prop('title', 'Best price is ' + (sellPriceIncludingFees / 100.0) + user_currency);
+                    
+                    if (sellPriceIncludingFees < price) {
                         console.log('Sell price is too high.');
 
                         $('.market_listing_my_price', listing).css('background', COLOR_PRICE_EXPENSIVE);
                         listing.addClass('overpriced');
+
+                        if (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1) {
+                            queueOverpricedItemListing(listing);
+                        }
                     }
-                    else if (market.getPriceIncludingFees(sellPrice) > price) {
+                    else if (sellPriceIncludingFees > price) {
                         console.log('Sell price is too low.');
 
                         $('.market_listing_my_price', listing).css('background', COLOR_PRICE_CHEAP);
@@ -1345,13 +1363,81 @@
                         $('.market_listing_my_price', listing).css('background', COLOR_PRICE_FAIR);
                         listing.addClass('fair');
                     }
-
-                    listing.addClass('price_' + market.getPriceIncludingFees(sellPrice));
-                    $('.market_listing_my_price', listing).prop('title', 'Best price is ' + (market.getPriceIncludingFees(sellPrice) / 100.0) + user_currency);
-
+                    
                     return callback(true, cachedHistory && cachedListings);
                 });
             });
+        }
+
+        var marketOverpricedQueue = async.queue(function (item, next) {
+            marketOverpricedQueueWorker(item, false, function (success) {
+                if (success) {
+                    setTimeout(function () {
+                        next();
+                    }, getRandomInt(500, 1000));
+                } else {
+                    setTimeout(function () {
+                        marketOverpricedQueueWorker(item, true, function (success) {
+                            next(); // Go to the next queue item, regardless of success.
+                        });
+                    }, getRandomInt(30000, 45000));
+                }
+            });
+        }, 1);
+
+        function marketOverpricedQueueWorker(item, ignoreErrors, callback) {
+            market.removeListing(item.listing, function (errorRemove, data) {
+                if (!errorRemove) {
+                    $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_PENDING);
+
+                    setTimeout(function () {
+                        market.sellItem(item, market.getPriceBeforeFees(item.sellPrice), function (errorSell) {
+                            if (!errorSell) {
+                                $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_SUCCESS);
+
+                                setTimeout(function () { $('#mylisting_' + item.listing).remove(); }, 3000);
+
+                                return callback(true);
+                            } else {
+                                $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
+
+                                return callback(false);
+                            }
+                        });
+                    }, getRandomInt(500, 1000)); // Wait a little to make sure the item is returned to inventory.
+                } else {
+                    $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
+
+                    return callback(false);
+                }
+            });
+        }
+
+        // Queue an overpriced item listing to be relisted.
+        function queueOverpricedItemListing(listing) {
+            var id = $('.market_listing_item_name', $(listing)).attr('id').replace('mylisting_', '').replace('_name', '');
+            var listingUrl = $('.item_market_action_button_edit', $(listing)).first().attr('href');
+            var listingUrlParts = listingUrl.split(',');
+            var assetid = replaceNonNumbers(listingUrlParts.pop());
+            var contextid = replaceNonNumbers(listingUrlParts.pop());
+            var appid = replaceNonNumbers(listingUrlParts.pop());
+            var price = -1;
+            
+            var items = $(listing).attr('class').split(' ');
+            for (var i in items) {
+                if (items[i].includes('price_'))
+                    price = parseInt(items[i].replace('price_', ''));
+            }
+
+            if (price > 0) {
+                marketOverpricedQueue.push({
+                    listing: id,
+                    assetid: assetid,
+                    contextid: contextid,
+                    appid: appid,
+                    sellPrice: price
+                });
+            }
         }
 
         // Process the market listings.
@@ -1361,7 +1447,7 @@
 
                 $('.market_listing_cancel_button', listing).after('<div class="market_listing_select" style="position: absolute;top: 16px;right: 10px;"><input type="checkbox" class="market_select_item"/></div>');
 
-                marketQueue.push(listing);
+                marketListingsQueue.push(listing);
 
                 injectJs(function () {
                     g_bMarketWindowHidden = true; // Limit the number of requests made to Steam by stopping constant polling of popular listings.
@@ -1380,8 +1466,9 @@
                 '<a class="item_market_action_button item_market_action_button_green select_all" style="margin-right:4px;margin-top:1px">' +
                     '<span class="item_market_action_button_contents" style="text-transform:none">Select all</span>' +
                 '</a>');
-
+            
             $('.pick_and_sell_button').prepend(
+                '<label class="market_relist_auto_label"><input class="market_relist_auto" type="checkbox" ' + (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked=""' : '') + '>Automatically</label>' +
                 '<a class="item_market_action_button item_market_action_button_green relist_overpriced" style="margin-right:3px;margin-top:1px">' +
                     '<span class="item_market_action_button_contents" style="text-transform:none">Relist overpriced</span>' +
                 '</a>');
@@ -1503,54 +1590,14 @@
                 });
             });
 
+            $('.market_relist_auto').change(function () {
+                setSetting(SETTING_RELIST_AUTOMATICALLY, $('.market_relist_auto').is(":checked") ? 1 : 0);
+            });
+
             $('.relist_overpriced').on('click', '*', function () {
-                var items = async.queue(function (item, next) {
-                    market.removeListing(item.listing, function (errorRemove, data) {
-                        if (!errorRemove) {
-                            $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_PENDING);
-
-                            setTimeout(function () {
-                                market.sellItem(item, market.getPriceBeforeFees(item.sellPrice), function (errorSell) {
-                                    if (!errorSell) {
-                                        $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_SUCCESS);
-                                    } else {
-                                        $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
-                                    }
-
-                                    setTimeout(function () {
-                                        $('#mylisting_' + item.listing).remove();
-                                    }, 3000);
-
-                                    next();
-                                });
-                            }, getRandomInt(500, 1000)); // Wait a little to make sure the item is returned to inventory.
-                        } else {
-                            setTimeout(function () {
-                                $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
-
-                                next();
-                            }, getRandomInt(30000, 45000));
-                        }
-                    });
-                }, 1);
-
                 $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
                     if ($(this).hasClass('overpriced')) {
-                        var id = $('.market_listing_item_name', $(this)).attr('id').replace('mylisting_', '').replace('_name', '');
-                        var listingUrl = $('.item_market_action_button_edit', $(this)).first().attr('href');
-                        var listingUrlParts = listingUrl.split(',');
-                        var assetid = replaceNonNumbers(listingUrlParts.pop());
-                        var contextid = replaceNonNumbers(listingUrlParts.pop());
-                        var appid = replaceNonNumbers(listingUrlParts.pop());
-                        var price = parseInt($(this).attr('class').split(' ').pop().replace('price_', ''));
-
-                        items.push({
-                            listing: id,
-                            assetid: assetid,
-                            contextid: contextid,
-                            appid: appid,
-                            sellPrice: price
-                        });
+                        queueOverpricedItemListing(this);
                     }
                 });
             });
@@ -1659,6 +1706,9 @@
            '#listings_buy { text-align: right; color: #589328; font-weight:600; }' +
            '.market_listing_my_price { height: 50px; padding-right:6px; }' +
            '.market_listing_edit_buttons.actual_content { width:276px; transition-property: background-color, border-color; transition-timing-function: linear; transition-duration: 0.5s;}' +
+           '.pick_and_sell_button > a { vertical-align: middle; }' +
+           '.market_relist_auto { margin-bottom: 8px;  }' +
+           '.market_relist_auto_label { margin-right: 6px;  }' +
            '.quick_sell { margin-right: 4px; }');
 
     $(document).ready(function () {
