@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     2.1.0
+// @version     2.2.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1339,12 +1339,12 @@
 
                     var sellPriceIncludingFees = market.getPriceIncludingFees(sellPrice);
                     listing.addClass('price_' + sellPriceIncludingFees);
-                    $('.market_listing_my_price', listing).prop('title', 'Best price is ' + (sellPriceIncludingFees / 100.0) + user_currency);
+                    $('.market_listing_my_price', listing).last().prop('title', 'Best price is ' + (sellPriceIncludingFees / 100.0) + user_currency);
                     
                     if (sellPriceIncludingFees < price) {
                         console.log('Sell price is too high.');
 
-                        $('.market_listing_my_price', listing).css('background', COLOR_PRICE_EXPENSIVE);
+                        $('.market_listing_my_price', listing).last().css('background', COLOR_PRICE_EXPENSIVE);
                         listing.addClass('overpriced');
 
                         if (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1) {
@@ -1354,13 +1354,13 @@
                     else if (sellPriceIncludingFees > price) {
                         console.log('Sell price is too low.');
 
-                        $('.market_listing_my_price', listing).css('background', COLOR_PRICE_CHEAP);
+                        $('.market_listing_my_price', listing).last().css('background', COLOR_PRICE_CHEAP);
                         listing.addClass('underpriced');
                     }
                     else {
                         console.log('Sell price is fair.');
 
-                        $('.market_listing_my_price', listing).css('background', COLOR_PRICE_FAIR);
+                        $('.market_listing_my_price', listing).last().css('background', COLOR_PRICE_FAIR);
                         listing.addClass('fair');
                     }
                     
@@ -1388,25 +1388,25 @@
         function marketOverpricedQueueWorker(item, ignoreErrors, callback) {
             market.removeListing(item.listing, function (errorRemove, data) {
                 if (!errorRemove) {
-                    $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_PENDING);
+                    $('.actual_content', '#mylisting_' + item.listing).css('background', COLOR_PENDING);
 
                     setTimeout(function () {
                         market.sellItem(item, market.getPriceBeforeFees(item.sellPrice), function (errorSell) {
                             if (!errorSell) {
-                                $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_SUCCESS);
+                                $('.actual_content', '#mylisting_' + item.listing).css('background', COLOR_SUCCESS);
 
                                 setTimeout(function () { $('#mylisting_' + item.listing).remove(); }, 3000);
 
                                 return callback(true);
                             } else {
-                                $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
+                                $('.actual_content', '#mylisting_' + item.listing).css('background', COLOR_ERROR);
 
                                 return callback(false);
                             }
                         });
                     }, getRandomInt(500, 1000)); // Wait a little to make sure the item is returned to inventory.
                 } else {
-                    $('#mylisting_' + item.listing + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
+                    $('.actual_content', '#mylisting_' + item.listing).css('background', COLOR_ERROR);
 
                     return callback(false);
                 }
@@ -1425,8 +1425,8 @@
             
             var items = $(listing).attr('class').split(' ');
             for (var i in items) {
-                if (items[i].includes('price_'))
-                    price = parseInt(items[i].replace('price_', ''));
+                if (items[i].toString().includes('price_'))
+                    price = parseInt(items[i].toString().replace('price_', ''));
             }
 
             if (price > 0) {
@@ -1445,7 +1445,7 @@
             $('.my_listing_section > .market_listing_row').each(function (index) {
                 var listing = $(this);
 
-                $('.market_listing_cancel_button', listing).after('<div class="market_listing_select" style="position: absolute;top: 16px;right: 10px;"><input type="checkbox" class="market_select_item"/></div>');
+                $('.market_listing_cancel_button', listing).after('<div class="market_listing_select"><input type="checkbox" class="market_select_item"/></div>');
 
                 marketListingsQueue.push(listing);
 
@@ -1457,30 +1457,31 @@
 
         // Initialize the market UI.
         function initializeMarketUI() {
-            $('.market_listing_table_header > .market_listing_edit_buttons').append(
-                '<a class="item_market_action_button item_market_action_button_green select_overpriced" style="margin-right:4px;margin-top:1px">' +
-                    '<span class="item_market_action_button_contents" style="text-transform:none">Select overpriced</span>' +
-                '</a>');
-
-            $('.market_listing_table_header > .market_listing_edit_buttons').append(
-                '<a class="item_market_action_button item_market_action_button_green select_all" style="margin-right:4px;margin-top:1px">' +
-                    '<span class="item_market_action_button_contents" style="text-transform:none">Select all</span>' +
-                '</a>');
+            $('.my_market_header').append(
+                '<div class="market_listing_buttons">' +
+                    '<a class="item_market_action_button item_market_action_button_green select_overpriced market_listing_button">' +
+                        '<span class="item_market_action_button_contents" style="text-transform:none">Select overpriced</span>' +
+                    '</a>' +
+                    '<a class="item_market_action_button item_market_action_button_green select_all market_listing_button">' +
+                        '<span class="item_market_action_button_contents" style="text-transform:none">Select all</span>' +
+                    '</a>' +
+                    '<a class="item_market_action_button item_market_action_button_green remove_selected market_listing_button">' +
+                        '<span class="item_market_action_button_contents" style="text-transform:none">Remove selected</span>' +
+                    '</a>' +
+                    '<a class="item_market_action_button item_market_action_button_green relist_overpriced market_listing_button">' +
+                        '<span class="item_market_action_button_contents" style="text-transform:none">Relist overpriced</span>' +
+                    '</a>' +
+                    '<label class="market_relist_auto_label market_listing_label_right" for="market_listing_relist">' +
+                        '<input id="market_listing_relist" class="market_relist_auto" type="checkbox" ' + (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked=""' : '') + '>Automatically relist overpriced listings' +
+                    '</label>' +
+                '</div>');
             
-            $('.pick_and_sell_button').prepend(
-                '<label class="market_relist_auto_label"><input class="market_relist_auto" type="checkbox" ' + (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked=""' : '') + '>Automatically</label>' +
-                '<a class="item_market_action_button item_market_action_button_green relist_overpriced" style="margin-right:3px;margin-top:1px">' +
-                    '<span class="item_market_action_button_contents" style="text-transform:none">Relist overpriced</span>' +
-                '</a>');
-
-            $('.market_listing_table_header > .market_listing_edit_buttons').append(
-                '<a class="item_market_action_button item_market_action_button_green remove_selected" style="margin-top:1px">' +
-                    '<span class="item_market_action_button_contents" style="text-transform:none">Remove selected</span>' +
-                '</a>');
-
             $('.market_listing_table_header').on('click', 'span', function () {
                 if ($(this).hasClass('market_listing_edit_buttons') || $(this).hasClass('item_market_action_button_contents'))
-                    return
+                    return;
+
+                if ($('#es_progress').length > 0) // Enhanced Steam.
+                    return;
 
                 var isPrice = $('.market_listing_table_header').children().eq(1).text() == $(this).text();
                 var isDate = $('.market_listing_table_header').children().eq(2).text() == $(this).text();
@@ -1541,7 +1542,11 @@
                 });
             });
 
-            $('div.market_listing_table_header:nth-child(2) > span:nth-child(4)').trigger('click');
+            setTimeout(function () {
+                $('.market_listing_table_header > span').last().trigger('click');
+                setTimeout(processMarketListings, 250);
+            }, 500);
+            
 
             $('.select_all').on('click', '*', function () {
                 $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
@@ -1570,7 +1575,7 @@
                     setTimeout(function () {
                         market.removeListing(item, function (errorRemove, data) {
                             if (!errorRemove) {
-                                $('#mylisting_' + item + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_SUCCESS);
+                                $('.actual_content', '#mylisting_' + item).css('background', COLOR_SUCCESS);
 
                                 setTimeout(function () {
                                     $('#mylisting_' + item).remove();
@@ -1582,7 +1587,7 @@
                                     $('#my_market_activelistings_number').text((numberOfActiveListings - 1).toString());
                                 }, 3000);
                             } else {
-                                $('#mylisting_' + item + ' > .market_listing_edit_buttons.actual_content').css('background', COLOR_ERROR);
+                                $('.actual_content', '#mylisting_' + item).css('background', COLOR_ERROR);
                             }
                         });
 
@@ -1706,6 +1711,12 @@
            '#listings_buy { text-align: right; color: #589328; font-weight:600; }' +
            '.market_listing_my_price { height: 50px; padding-right:6px; }' +
            '.market_listing_edit_buttons.actual_content { width:276px; transition-property: background-color, border-color; transition-timing-function: linear; transition-duration: 0.5s;}' +
+           '.market_listing_buttons { margin-top: 6px; background: rgba(0, 0, 0, 0.4); padding: 5px 0px 1px 0px; }' +
+           '.market_listing_button { margin-right: 4px; }' +
+           '.market_listing_button:first-child { margin-left: 4px; }' +
+           '.market_listing_label_right { float:right; font-size:12px; margin-top:1px; }' +
+           '.market_listing_select { position: absolute; top: 16px;right: 10px; display: flex; }' +
+           '#market_listing_relist { vertical-align: middle; position: relative; bottom: -1px; right: 2px; }' +
            '.pick_and_sell_button > a { vertical-align: middle; }' +
            '.market_relist_auto { margin-bottom: 8px;  }' +
            '.market_relist_auto_label { margin-right: 6px;  }' +
@@ -1718,7 +1729,6 @@
 
         if (currentPage == PAGE_MARKET) {
             initializeMarketUI();
-            processMarketListings();
         }
 
         if (currentPage == PAGE_TRADEOFFER) {
