@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     2.3.0
+// @version     2.3.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -20,7 +20,7 @@
 // @updateURL   https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
 // ==/UserScript==
 
-(function ($, async, g_rgAppContextData, g_strInventoryLoadURL, g_rgWalletInfo) {
+(function ($, async) {
     const STEAM_INVENTORY_ID = 753;
     
     const PAGE_MARKET = 0;
@@ -43,10 +43,11 @@
 
     var enableConsoleLog = false;
 
+    var isLoggedIn = typeof g_rgWalletInfo !== 'undefined' || (typeof g_bLoggedIn !== 'undefined' && g_bLoggedIn);
+
     var currentPage = window.location.href.includes('.com/market') ? PAGE_MARKET : (window.location.href.includes('.com/tradeoffer') ? PAGE_TRADEOFFER : PAGE_INVENTORY);
-    
-    var market = new SteamMarket(g_rgAppContextData, g_strInventoryLoadURL, g_rgWalletInfo);
-    var user_currency = GetCurrencySymbol(GetCurrencyCode(typeof market.walletInfo !== 'undefined' ? market.walletInfo.wallet_currency : 1));
+    var market = new SteamMarket(g_rgAppContextData, typeof g_strInventoryLoadURL !== 'undefined' ? g_strInventoryLoadURL : location.protocol + '//steamcommunity.com/my/inventory/json/', isLoggedIn ? g_rgWalletInfo : undefined);
+    var user_currency = GetCurrencySymbol(GetCurrencyCode(isLoggedIn ? market.walletInfo.wallet_currency : 1));
     
     function SteamMarket(appContext, inventoryUrl, walletInfo) {
         this.appContext = appContext;
@@ -1751,7 +1752,7 @@
 
     $(document).ready(function () {
         // Make sure the user is logged in, there's not much we can do otherwise.
-        if (!g_bLoggedIn) {
+        if (!isLoggedIn) {
             return;
         }
 
@@ -1813,4 +1814,4 @@
         iterator(0);
     };
     //#endregion
-})(jQuery, async, g_rgAppContextData, typeof g_strInventoryLoadURL !== 'undefined' ? g_strInventoryLoadURL : location.protocol + '//steamcommunity.com/my/inventory', g_bLoggedIn ? g_rgWalletInfo : undefined);
+})(jQuery, async);
