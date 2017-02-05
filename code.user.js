@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     2.3.5
+// @version     2.4.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -22,7 +22,7 @@
 
 (function ($, async) {
     const STEAM_INVENTORY_ID = 753;
-    
+
     const PAGE_MARKET = 0;
     const PAGE_TRADEOFFER = 1;
     const PAGE_INVENTORY = 2;
@@ -48,7 +48,7 @@
     var currentPage = window.location.href.includes('.com/market') ? PAGE_MARKET : (window.location.href.includes('.com/tradeoffer') ? PAGE_TRADEOFFER : PAGE_INVENTORY);
     var market = new SteamMarket(g_rgAppContextData, typeof g_strInventoryLoadURL !== 'undefined' ? g_strInventoryLoadURL : location.protocol + '//steamcommunity.com/my/inventory/json/', isLoggedIn ? g_rgWalletInfo : undefined);
     var user_currency = GetCurrencySymbol(GetCurrencyCode(isLoggedIn ? market.walletInfo.wallet_currency : 1));
-    
+
     function SteamMarket(appContext, inventoryUrl, walletInfo) {
         this.appContext = appContext;
         this.inventoryUrl = inventoryUrl;
@@ -239,7 +239,7 @@
 
         var listingPrice = market.getPriceBeforeFees(histogram.lowest_sell_order);
         var useAverage = getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1;
-        
+
         // If the highest average price is lower than the first listing, return the offset + that listing.
         // Otherwise, use the highest average price instead.
         if (historyPrice < listingPrice || !useAverage) {
@@ -1310,7 +1310,7 @@
                     logConsole('Sell price: ' + price);
 
                     var sellPrice = calculateSellPriceHistogram(history, histogram, false);
-                    
+
                     //// In case there's only one item - the item we're currently listing. // Unfortunately, sell_order_graph is not always populated with up-to-date values.
                     //if (histogram.sell_order_graph !== 'undefined' && histogram.sell_order_graph.length == 1 && histogram.sell_order_graph[0][1] == 1) {
                     //    sellPrice = priceInfo.maxPriceBeforeFee;
@@ -1319,7 +1319,7 @@
                     // In case there's a buy order with a value larger than our defined maximum.
                     var maxPriceBeforeFee = priceInfo.maxPriceBeforeFee;
                     if (histogram != null && typeof histogram.highest_buy_order !== 'undefined') {
-                        if (market.getPriceBeforeFees(histogram.highest_buy_order) > maxPriceBeforeFee) 
+                        if (market.getPriceBeforeFees(histogram.highest_buy_order) > maxPriceBeforeFee)
                             maxPriceBeforeFee = market.getPriceBeforeFees(histogram.highest_buy_order);
                     }
 
@@ -1332,7 +1332,7 @@
                     var sellPriceIncludingFees = market.getPriceIncludingFees(sellPrice);
                     listing.addClass('price_' + sellPriceIncludingFees);
                     $('.market_listing_my_price', listing).last().prop('title', 'Best price is ' + (sellPriceIncludingFees / 100.0) + user_currency);
-                    
+
                     if (sellPriceIncludingFees < price) {
                         logConsole('Sell price is too high.');
 
@@ -1355,7 +1355,7 @@
                         $('.market_listing_my_price', listing).last().css('background', COLOR_PRICE_FAIR);
                         listing.addClass('fair');
                     }
-                    
+
                     return callback(true, cachedHistory && cachedListings);
                 });
             });
@@ -1414,7 +1414,7 @@
             var contextid = replaceNonNumbers(listingUrlParts.pop());
             var appid = replaceNonNumbers(listingUrlParts.pop());
             var price = -1;
-            
+
             var items = $(listing).attr('class').split(' ');
             for (var i in items) {
                 if (items[i].toString().includes('price_'))
@@ -1462,7 +1462,7 @@
 
                         var numberOfActiveListings = parseInt($('#my_market_activelistings_number').text());
                         if (numberOfActiveListings > 0)
-                            $('#my_market_activelistings_number').text((numberOfActiveListings - 1).toString());                        
+                            $('#my_market_activelistings_number').text((numberOfActiveListings - 1).toString());
                     }, 3000);
 
                     return callback(true);
@@ -1520,7 +1520,7 @@
                         '<input id="market_listing_relist" class="market_relist_auto" type="checkbox" ' + (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked=""' : '') + '>Automatically relist overpriced listings' +
                     '</label>' +
                 '</div>');
-            
+
             $('.market_listing_table_header').on('click', 'span', function () {
                 if ($(this).hasClass('market_listing_edit_buttons') || $(this).hasClass('item_market_action_button_contents'))
                     return;
@@ -1591,7 +1591,7 @@
                 $('.market_listing_table_header > span').last().trigger('click');
                 setTimeout(processMarketListings, 250);
             }, 500);
-            
+
 
             $('.select_all').on('click', '*', function () {
                 var invert = $('.market_select_item:checked').length == $('.market_select_item').length;
@@ -1611,7 +1611,7 @@
 
                 updateMarketSelectAllButton();
             });
-            
+
             $('.remove_selected').on('click', '*', function () {
                 var filteredItems = [];
 
@@ -1646,7 +1646,7 @@
             var rgItem = user.findAsset(assets[i].appid, assets[i].contextid, assets[i].assetid);
 
             var text = '';
-            if (rgItem) {
+            if (typeof rgItem !== 'undefined') {
                 if (typeof rgItem.original_amount !== 'undefined' && typeof rgItem.amount !== 'undefined') {
                     var originalAmount = parseInt(rgItem.original_amount);
                     var currentAmount = parseInt(rgItem.amount);
@@ -1678,8 +1678,9 @@
         }).reverse();
 
         var totalText = '';
-        for (var k in sortable) {
-            totalText += sortable[k][1] + 'x ' + sortable[k][0] + '<br/>';
+
+        for (var i = 0; i < sortable.length; i++) {
+            totalText += sortable[i][1] + 'x ' + sortable[i][0] + '<br/>';
         }
 
         return totalText;
