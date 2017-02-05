@@ -21,7 +21,7 @@ This script adds the following features to the Steam Tradeoffers:
 *    A summary of all items from both parties.
 *    Select all items of the current page.
 
-Pricing can be based on the lowest listed price or the price history (or a combination) and your own minimum and maximum prices.
+Pricing can be based on the lowest listed price, the price history and your own minimum and maximum prices.
 
 **Download**
 
