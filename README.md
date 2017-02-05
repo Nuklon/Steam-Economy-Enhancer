@@ -31,8 +31,14 @@ All pricing is based on the lowest listing, price history and your own minimum a
 
 **Screenshots**
 
+*Market*
 ![Market](http://i.imgur.com/A9Q7I9I.png)
 
+*Inventory*
 ![Inventory](http://i.imgur.com/yI9btgr.png)
 
+*Default pricing*
 ![Inventory pricing](http://i.imgur.com/RyO8ZBY.png)
+
+*Trade offers*
+![Tradeoffers](http://i.imgur.com/vdVeXHi.png)
