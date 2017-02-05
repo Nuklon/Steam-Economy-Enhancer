@@ -1,27 +1,27 @@
 # Steam Economy Enhancer
 
-Enhances the Steam Inventory and Steam Market.
+A free userscript to enhance your Steam Inventory, Steam Market and Steam Tradeoffers.
 
-This script adds the following features to the Steam Market:
+It adds the following features to the Steam Market:
 
 *    Detect overpriced and underpriced items.
-*    Select all (overpriced) items and remove them all at once.
+*    Select all (overpriced) items and remove them at once.
 *    (Automatically) relist overpriced items.
 *    Sort items by name, price or date.
 
-This script adds the following features to the Steam Inventory:
+It adds the following features to the Steam Inventory:
 
-*    Sell all (selected) items automatically. You can  select multiple items simultaneously with *Shift* and *Ctrl*.
-*    Sell your trading cards all at once.
-*    Market sell and buy table added to item details.
+*    Sell all (selected) items or trading cards automatically.
+*    Select multiple items simultaneously with *Shift* or *Ctrl*.
+*    Market sell and buy listings added to the item details.
 *    Quick sell buttons to sell an item without confirmations.
 
-This script adds the following features to the Steam Tradeoffers:
+It adds the following features to the Steam Tradeoffers:
 
 *    A summary of all items from both parties.
 *    Select all items of the current page.
 
-Pricing can be based on the lowest listed price, the price history and your own minimum and maximum prices.
+The pricing can be based on the lowest listed price, the price history and your own minimum and maximum prices.
 
 **Download**
 
@@ -42,3 +42,7 @@ Pricing can be based on the lowest listed price, the price history and your own 
 
 *Trade offers*
 ![Tradeoffers](http://i.imgur.com/vdVeXHi.png)
+
+**License**
+
+MIT
