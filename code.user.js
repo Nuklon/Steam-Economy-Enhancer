@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     2.4.0
+// @version     2.4.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1589,7 +1589,7 @@
 
             setTimeout(function () {
                 $('.market_listing_table_header > span').last().trigger('click');
-                setTimeout(processMarketListings, 250);
+                setTimeout(processMarketListings, 1000);
             }, 500);
 
 
