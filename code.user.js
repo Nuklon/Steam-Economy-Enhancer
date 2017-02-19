@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     2.5.0
+// @version     2.6.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1040,107 +1040,124 @@
                 var selectedIndex = $(ui.selecting.tagName, e.target).index(ui.selecting); // Get selected item index.
                 if (e.shiftKey && previousSelection > -1) { // If shift key was pressed and there is previous - select them all.
                     $(ui.selecting.tagName, e.target).slice(Math.min(previousSelection, selectedIndex), 1 + Math.max(previousSelection, selectedIndex)).each(function () {
-                        if ($(this).is(filter))
+                        if ($(this).is(filter)) {
                             $(this).addClass('ui-selected');
+                        }
                     });
                     previousSelection = 0; // Reset previous.
                 } else {
-                    previousSelection = selectedIndex; // Save previous.
-                }
-            }
-        });
-
-        $('.inventory_page_right').observe('childlist', '.hover_item_name:visible', function (record) {
-            var item_info_id = $(this).attr('id').replace('_item_name', '');
-            var item_info = $('#' + item_info_id);
-
-            if (item_info.html().indexOf('checkout/sendgift/') > -1) // Gifts have no market information.
-                return;
-
-            // Move scrap to bottom, this is of little interest.
-            var scrap = $('#' + item_info_id + '_scrap_content');
-            scrap.next().insertBefore(scrap);
-
-            // Starting at prices are already retrieved in the table.
-            $('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(2)').remove();
-
-            var market_hash_name = getMarketHashName(g_ActiveInventory.selectedItem);
-            if (market_hash_name == null)
-                return;
-
-            var appid = g_ActiveInventory.selectedItem.appid;
-            var item = { appid: parseInt(appid), description: { market_hash_name: market_hash_name } };
-
-            var itemName = g_ActiveInventory.selectedItem.name || g_ActiveInventory.selectedItem.description.name;
-
-            market.getItemOrdersHistogram(item, false,
-                function (err, listings) {
-                    if (err) {
-                        logConsole('Failed to get orders histogram for ' + itemName);
-                        return;
-                    }
-
-                    var groupMain = $('<div id="listings_group">' +
-                                        '<div><div id="listings_sell">Sell</div>' + listings.sell_order_table + '</div>' +
-                                        '<div><div id="listings_buy">Buy</div>' + listings.buy_order_table + '</div>' +
-                                      '</div>');
-
-                    $('.item_market_actions > div', item_info).after(groupMain);
-
-                    // Generate quick sell buttons.
-                    var itemId = g_ActiveInventory.selectedItem.assetid || g_ActiveInventory.selectedItem.id;
-                    if (queuedItems.indexOf(itemId) != -1) { // There's no need to add queued items again.
-                        return;
-                    }
-
-                    var prices = [];
-
-                    if (listings.highest_buy_order != null) {
-                        prices.push(parseInt(listings.highest_buy_order));
-                    }
-
-                    if (listings.lowest_sell_order != null) {
-                        prices.push(parseInt(listings.lowest_sell_order) - 1);
-                        prices.push(parseInt(listings.lowest_sell_order));
-                        prices.push(parseInt(listings.lowest_sell_order) + 1);
-                    }
-
-                    var priceInformation = getPriceInformationFromInventoryItem(g_ActiveInventory.selectedItem);
-                    prices.push(priceInformation.minPrice);
-                    prices.push(priceInformation.maxPrice);
-
-                    prices = prices.filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
-
-                    var buttons = '<br/>';
-                    prices.forEach(function (e) {
-                        buttons += '<a class="item_market_action_button item_market_action_button_green quick_sell" id="quick_sell' + e + '">' +
-                                        '<span class="item_market_action_button_edge item_market_action_button_left"></span>' +
-                                        '<span class="item_market_action_button_contents">' + (e / 100.0) + user_currency + '</span>' +
-                                        '<span class="item_market_action_button_edge item_market_action_button_right"></span>' +
-                                        '<span class="item_market_action_button_preload"></span>' +
-                                   '</a>'
-                    });
-
-                    $('#' + item_info_id + '_item_market_actions').append(buttons);
-
-                    $('.quick_sell').on('click', function () {
-                        if (queuedItems.indexOf(itemId) != -1) { // There's no need to add queued items again.
-                            return;
-                        }
-
-                        var price = $(this).attr('id').replace('quick_sell', '');
-                        price = market.getPriceBeforeFees(price);
-
-                        queuedItems.push(itemId);
-                        sellQueue.push({
-                            item: g_ActiveInventory.selectedItem,
-                            sellPrice: price
-                        });
-                    });
-                });
-        });
+                    previousSelection = selectedIndex; // Save previous.					
+                }				
+            },
+			selected: function(e, ui) {
+				updateInventorySelection(ui.selected);				
+			}
+        });   
     }
 
+	function updateInventorySelection(item) {
+		// Wait until g_ActiveInventory.selectedItem is identical to the selected UI item.
+		// This also makes sure that the new - and correct - item_info (iteminfo0 or iteminfo1) is visible.
+		var selectedItemIdUI = $('div', item).attr('id');
+		var selectedItemIdInventory = g_ActiveInventory.selectedItem.appid + '_' + g_ActiveInventory.selectedItem.contextid + '_' + g_ActiveInventory.selectedItem.assetid;
+		if (selectedItemIdUI !== selectedItemIdInventory) {
+			setTimeout(function() {
+				updateInventorySelection(item);
+			}, 250);
+			
+			return;
+		}
+		
+		var item_info = $('.inventory_iteminfo:visible').first();
+		if (item_info.html().indexOf('checkout/sendgift/') > -1) // Gifts have no market information.
+			return;
+			
+		// Use a 'hard' item id instead of relying on the selected item_info (sometimes Steam temporarily changes the correct item (?)).
+		var item_info_id = item_info.attr('id');
+			
+		// Move scrap to bottom, this is of little interest.
+		var scrap = $('#' + item_info_id + '_scrap_content');
+		scrap.next().insertBefore(scrap);
+		
+		// Starting at prices are already retrieved in the table.
+		$('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(2)').remove(); // Starting at: x,xx.
+
+		var market_hash_name = getMarketHashName(g_ActiveInventory.selectedItem);
+		if (market_hash_name == null)
+			return;
+
+		var appid = g_ActiveInventory.selectedItem.appid;
+		var item = { appid: parseInt(appid), description: { market_hash_name: market_hash_name } };
+
+		var itemName = g_ActiveInventory.selectedItem.name || g_ActiveInventory.selectedItem.description.name;
+		
+		market.getItemOrdersHistogram(item, false,
+			function (err, listings) {
+				if (err) {
+					logConsole('Failed to get orders histogram for ' + itemName);
+					return;
+				}
+
+				var groupMain = $('<div id="listings_group">' +
+									'<div><div id="listings_sell">Sell</div>' + listings.sell_order_table + '</div>' +
+									'<div><div id="listings_buy">Buy</div>' + listings.buy_order_table + '</div>' +
+								  '</div>');
+								 
+				$('#' + item_info_id + '_item_market_actions > div').after(groupMain);
+
+				// Generate quick sell buttons.
+				var itemId = g_ActiveInventory.selectedItem.assetid || g_ActiveInventory.selectedItem.id;
+				if (queuedItems.indexOf(itemId) != -1) { // There's no need to add queued items again.
+					return;
+				}
+
+				var prices = [];
+
+				if (listings.highest_buy_order != null) {
+					prices.push(parseInt(listings.highest_buy_order));
+				}
+
+				if (listings.lowest_sell_order != null) {
+					prices.push(parseInt(listings.lowest_sell_order) - 1);
+					prices.push(parseInt(listings.lowest_sell_order));
+					prices.push(parseInt(listings.lowest_sell_order) + 1);
+				}
+
+				var priceInformation = getPriceInformationFromInventoryItem(g_ActiveInventory.selectedItem);
+				prices.push(priceInformation.minPrice);
+				prices.push(priceInformation.maxPrice);
+
+				prices = prices.filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
+
+				var buttons = '<br/>';
+				prices.forEach(function (e) {
+					buttons += '<a class="item_market_action_button item_market_action_button_green quick_sell" id="quick_sell' + e + '">' +
+									'<span class="item_market_action_button_edge item_market_action_button_left"></span>' +
+									'<span class="item_market_action_button_contents">' + (e / 100.0) + user_currency + '</span>' +
+									'<span class="item_market_action_button_edge item_market_action_button_right"></span>' +
+									'<span class="item_market_action_button_preload"></span>' +
+							   '</a>'
+				});
+
+				$('#' + item_info_id + '_item_market_actions', item_info).append(buttons);
+
+				$('.quick_sell').on('click', function () {
+					if (queuedItems.indexOf(itemId) != -1) { // There's no need to add queued items again.
+						return;
+					}
+
+					var price = $(this).attr('id').replace('quick_sell', '');
+					price = market.getPriceBeforeFees(price);
+
+					queuedItems.push(itemId);
+					sellQueue.push({
+						item: g_ActiveInventory.selectedItem,
+						sellPrice: price
+					});
+				});
+			});
+	}
+	
     // Update the inventory UI.
     function updateInventoryUI() {
         // Remove previous containers (e.g., when a user changes inventory).
@@ -1729,7 +1746,7 @@
     //#endregion
 
     //#region UI
-    injectCss('.ui-selected { outline: 1px groove #ABABAB; } ' +
+    injectCss('.ui-selected { outline: 1px groove #FFFFFF; } ' +
            '#logger { color: #767676; font-size: 12px;margin-top:16px; }' +
            '.trade_offer_sum { color: #767676; font-size: 12px;margin-top:8px; }' +
            '.trade_offer_buttons { margin-top: 12px; }' +
