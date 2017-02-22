@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     2.6.0
+// @version     2.6.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1516,6 +1516,74 @@
             var invert = $('.market_select_item:checked').length == $('.market_select_item').length;
             $('.select_all > span').text(invert ? 'Deselect all' : 'Select all');
         }
+		
+		// Sort the market listings.
+		function sortMarketListings(isPrice, isDate, isName) {
+			// Change sort order (asc/desc).
+			var nextSort = isPrice ? 1 : (isDate ? 2 : 3);
+			var asc = true;
+			if (lastSort == nextSort) {
+				asc = false;
+				lastSort = -nextSort;
+			} else
+				lastSort = nextSort;
+
+
+			// (Re)set the asc/desc arrows.
+			const arrow_down = '🡻';
+			const arrow_up = '🡹';
+
+			$('.market_listing_table_header > span').each(function () {
+				if ($(this).hasClass('market_listing_edit_buttons'))
+					return;
+
+				$(this).text($(this).text().replace(' ' + arrow_down, '').replace(' ' + arrow_up, ''));
+			})
+
+			var market_listing_selector;
+			if (isPrice) {
+				market_listing_selector = $('.market_listing_table_header').children().eq(1);
+			} else if (isDate) {
+				market_listing_selector = $('.market_listing_table_header').children().eq(2);
+			} else if (isName) {
+				market_listing_selector = $('.market_listing_table_header').children().eq(3);
+			}
+			market_listing_selector.text(market_listing_selector.text() + ' ' + (asc ? arrow_up : arrow_down));
+
+
+			// Sort the rows.
+			$('.market_home_listing_table').find('.market_listing_row').sort(function (a, b) {
+				var first = asc ? a : b;
+				var second = asc ? b : a;
+
+				if (isName) {
+					var firstName = $(first).find('.market_listing_item_name_link').text().toLowerCase();
+					var secondName = $(second).find('.market_listing_item_name_link').text().toLowerCase();
+					return firstName.localeCompare(secondName);
+				} else if (isDate) {
+					var firstDate = Date.parse($(first).find('.market_listing_listed_date').text().trim());
+					var secondDate = Date.parse($(second).find('.market_listing_listed_date').text().trim());
+					var currentMonth = parseInt(Date.today().toString('M'));
+					
+					if (firstDate == null || secondDate == null) {
+						return 0;
+					}
+					
+					if (parseInt(firstDate.toString('M')) > currentMonth)
+						firstDate = firstDate.addYears(-1);
+					if (parseInt(secondDate.toString('M')) > currentMonth)
+						secondDate = secondDate.addYears(-1);
+					
+					return firstDate.compareTo(secondDate);
+				} else if (isPrice) {
+					var firstPrice = parseInt(replaceNonNumbers($(first).find('.market_listing_price > span > span:nth-child(1)').text()));
+					var secondPrice = parseInt(replaceNonNumbers($(second).find('.market_listing_price > span > span:nth-child(1)').text()));
+					return firstPrice - secondPrice;
+				}
+			}).each(function (_, container) {
+				$(container).parent().append(container);
+			});
+		}
 
         // Initialize the market UI.
         function initializeMarketUI() {
@@ -1548,68 +1616,10 @@
                 var isPrice = $('.market_listing_table_header').children().eq(1).text() == $(this).text();
                 var isDate = $('.market_listing_table_header').children().eq(2).text() == $(this).text();
                 var isName = $('.market_listing_table_header').children().eq(3).text() == $(this).text();
-
-
-                // Change sort order (asc/desc).
-                var nextSort = isPrice ? 1 : (isDate ? 2 : 3);
-                var asc = true;
-                if (lastSort == nextSort) {
-                    asc = false;
-                    lastSort = -nextSort;
-                } else
-                    lastSort = nextSort;
-
-
-                // (Re)set the asc/desc arrows.
-                const arrow_down = '🡻';
-                const arrow_up = '🡹';
-
-                $('.market_listing_table_header > span').each(function () {
-                    if ($(this).hasClass('market_listing_edit_buttons'))
-                        return;
-
-                    $(this).text($(this).text().replace(' ' + arrow_down, '').replace(' ' + arrow_up, ''));
-                })
-
-                $(this).text($(this).text() + ' ' + (asc ? arrow_up : arrow_down));
-
-
-                // Sort the rows.
-                $(this).parent().parent().find('.market_listing_row').sort(function (a, b) {
-                    var first = asc ? a : b;
-                    var second = asc ? b : a;
-
-                    if (isName) {
-                        var firstName = $(first).find('.market_listing_item_name_link').text().toLowerCase();
-                        var secondName = $(second).find('.market_listing_item_name_link').text().toLowerCase();
-                        return firstName.localeCompare(secondName);
-                    } else if (isDate) {
-                        var firstDate = Date.parse($(first).find('.market_listing_listed_date').text());
-                        var secondDate = Date.parse($(second).find('.market_listing_listed_date').text());
-                        var currentMonth = parseInt(Date.today().toString('M'));
-
-                        if (parseInt(firstDate.toString('M')) > currentMonth)
-                            firstDate = firstDate.addYears(-1);
-                        if (parseInt(secondDate.toString('M')) > currentMonth)
-                            secondDate = secondDate.addYears(-1);
-
-                        return firstDate.compareTo(secondDate);
-                    } else if (isPrice) {
-                        var firstPrice = parseInt(replaceNonNumbers($(first).find('.market_listing_price > span > span:nth-child(1)').text()));
-                        var secondPrice = parseInt(replaceNonNumbers($(second).find('.market_listing_price > span > span:nth-child(1)').text()));
-                        return firstPrice - secondPrice;
-                    }
-                }).each(function (_, container) {
-                    $(container).parent().append(container);
-                });
+				
+				sortMarketListings(isPrice, isDate, isName);                
             });
-
-            setTimeout(function () {
-                $('.market_listing_table_header > span').last().trigger('click');
-                setTimeout(processMarketListings, 1000);
-            }, 250);
-
-
+			
             $('.select_all').on('click', '*', function () {
                 var invert = $('.market_select_item:checked').length == $('.market_select_item').length;
 
@@ -1651,6 +1661,9 @@
                     }
                 });
             });
+			
+			sortMarketListings(false, false, true);
+			processMarketListings();            
         }
     }
     //#endregion
@@ -1768,7 +1781,7 @@
            '.market_relist_auto_label { margin-right: 6px;  }' +
            '.quick_sell { margin-right: 4px; }');
 
-    $(window).load(function () {
+    $(document).ready(function () {
         // Make sure the user is logged in, there's not much we can do otherwise.
         if (!isLoggedIn) {
             return;
