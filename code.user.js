@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     2.6.5
+// @version     2.7.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -431,7 +431,7 @@
                                       market.getCurrentPriceHistory(appid, market_name, callback);
                               })
                               .catch(function (error) {
-                                  market.getCurrentPriceHistory(appid, market_name, callback);
+								  market.getCurrentPriceHistory(appid, market_name, callback);
                               });
             } else
                 market.getCurrentPriceHistory(appid, market_name, callback);
@@ -463,8 +463,15 @@
 
                 callback(ERROR_SUCCESS, data.prices, false);
             }, 'json')
-         .fail(function () {
-             return callback(ERROR_FAILED);
+         .fail(function (data) {
+				if (!data || !data.responseJSON) {
+					return callback(ERROR_FAILED);
+				}
+				if (!data.responseJSON.success) {
+					callback(ERROR_DATA);
+                    return;
+                }
+				return callback(ERROR_FAILED);
          });
     }
 
