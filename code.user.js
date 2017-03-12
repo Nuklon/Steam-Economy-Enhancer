@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     2.7.0
+// @version     2.8.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1497,31 +1497,77 @@
                 }
             });
         }
+		
+		var marketListingsItemsQueue = async.queue(function (listing, next) {
+			$.get(window.location.protocol + '//steamcommunity.com/market/mylistings?count=100&start=' + listing, function (data) {
+					if (!data || !data.success) {     
+						next();						
+						return;
+					}
+					
+					var myMarketListings = $('#tabContentsMyActiveMarketListingsRows');
+					
+					var nodes = $.parseHTML(data.results_html);
+					var cells = $('.market_listing_row', nodes);
+					cells.each(function(index) {
+						$('.market_listing_cancel_button', $(this)).append('<div class="market_listing_select">' +
+																			  '<input type="checkbox" class="market_select_item"/>' +
+																		   '</div>');						
+																		   						
+					});
+					myMarketListings.append(cells);		
+
+					next();
+				}, 'json')
+			 .fail(function (data) {
+				next();				
+				return;
+			 });			 
+        }, 1);
+		
+        marketListingsItemsQueue.drain = function () {
+			$('.market_select_item').change(function(e){
+				updateMarketSelectAllButton();
+			});
+			
+			sortMarketListings(false, false, true);
+			
+			$('#tabContentsMyActiveMarketListingsRows > .market_listing_row').each(function() {
+				marketListingsQueue.push($(this));
+			});
+			
+			injectjs(function () {
+                g_bmarketwindowhidden = true; // limit the number of requests made to steam by stopping constant polling of popular listings.
+            });			
+        };
 
         // Process the market listings.
         function processMarketListings() {
-            $('.my_listing_section > .market_listing_row').each(function (index) {
-                var listing = $(this);
-
-                $('.market_listing_cancel_button', listing).after(
-                    '<div class="market_listing_select">' +
-                        '<input type="checkbox" class="market_select_item"/>' +
-                    '</div>');
-
-                $('.market_select_item').change(updateMarketSelectAllButton);
-
-                marketListingsQueue.push(listing);
-
-                injectJs(function () {
-                    g_bMarketWindowHidden = true; // Limit the number of requests made to Steam by stopping constant polling of popular listings.
-                })
-            });
+			var currentCount = 0;
+			var totalCount = parseInt($('#tabContentsMyActiveMarketListings_total').text());
+			var myMarketListings = $('#tabContentsMyActiveMarketListingsRows');
+			myMarketListings.html(''); // Clear the default listings.
+			$('#tabContentsMyActiveMarketListings_ctn').hide(); // Hide the page controls, we list all.
+			
+			$('.market_listing_row').each(function(){
+				$('.market_listing_cancel_button', $(this)).append('<div class="market_listing_select">' +
+																        '<input type="checkbox" class="market_select_item"/>' +
+																   '</div>');		
+			});
+			
+			while (currentCount < totalCount) {			
+				marketListingsItemsQueue.push(currentCount);
+				currentCount += 100;			
+			}
         }
 
         // Update the select/deselect all button on the market.
         function updateMarketSelectAllButton() {
-            var invert = $('.market_select_item:checked').length == $('.market_select_item').length;
-            $('.select_all > span').text(invert ? 'Deselect all' : 'Select all');
+			$('.market_listing_buttons').each(function() {
+				var selectionGroup = $(this).parent().parent();
+				var invert = $('.market_select_item:checked', selectionGroup).length == $('.market_select_item', selectionGroup).length;
+				$('.select_all > span', selectionGroup).text(invert ? 'Deselect all' : 'Select all');
+			});            
         }
 		
 		// Sort the market listings.
@@ -1594,7 +1640,8 @@
 
         // Initialize the market UI.
         function initializeMarketUI() {
-            $('.my_market_header').append(
+			// Sell orders.
+            $('.my_market_header').first().append(
                 '<div class="market_listing_buttons">' +
                     '<a class="item_market_action_button item_market_action_button_green select_overpriced market_listing_button">' +
                         '<span class="item_market_action_button_contents" style="text-transform:none">Select overpriced</span>' +
@@ -1612,6 +1659,17 @@
                         '<input id="market_listing_relist" class="market_relist_auto" type="checkbox" ' + (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked=""' : '') + '>Automatically relist overpriced listings' +
                     '</label>' +
                 '</div>');
+				
+			// Listings confirmations and buy orders.
+			$('.my_market_header').slice(1).append(
+                '<div class="market_listing_buttons">' +
+                    '<a class="item_market_action_button item_market_action_button_green select_all market_listing_button">' +
+                        '<span class="item_market_action_button_contents" style="text-transform:none">Select all</span>' +
+                    '</a>' +
+                    '<a class="item_market_action_button item_market_action_button_green remove_selected market_listing_button">' +
+                        '<span class="item_market_action_button_contents" style="text-transform:none">Remove selected</span>' +
+                    '</a>' +                    
+                '</div>');
 
             $('.market_listing_table_header').on('click', 'span', function () {
                 if ($(this).hasClass('market_listing_edit_buttons') || $(this).hasClass('item_market_action_button_contents'))
@@ -1628,9 +1686,10 @@
             });
 			
             $('.select_all').on('click', '*', function () {
-                var invert = $('.market_select_item:checked').length == $('.market_select_item').length;
-
-                $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
+				var selectionGroup = $(this).parent().parent().parent().parent();
+				var invert = $('.market_select_item:checked', selectionGroup).length == $('.market_select_item', selectionGroup).length;
+				
+                $('.market_listing_row', selectionGroup).each(function (index) {
                     $('.market_select_item', $(this)).prop('checked', !invert);
                 });
 
@@ -1638,7 +1697,9 @@
             });
 
             $('.select_overpriced').on('click', '*', function () {
-                $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
+                var selectionGroup = $(this).parent().parent().parent().parent();
+				
+				$('.market_listing_row', selectionGroup).each(function (index) {
                     if ($(this).hasClass('overpriced'))
                         $('.market_select_item', $(this)).prop('checked', true);
                 });
@@ -1647,9 +1708,10 @@
             });
 
             $('.remove_selected').on('click', '*', function () {
-                var filteredItems = [];
+                var selectionGroup = $(this).parent().parent().parent().parent();				
+				var filteredItems = [];
 
-                $('.market_listing_row', $(this).parent().parent().parent().parent()).each(function (index) {
+                $('.market_listing_row', selectionGroup).each(function (index) {
                     if ($('.market_select_item', $(this)).prop('checked')) {
                         var id = $('.market_listing_item_name', $(this)).attr('id').replace('mylisting_', '').replace('_name', '');
                         marketRemoveQueue.push(id);
@@ -1669,7 +1731,6 @@
                 });
             });
 			
-			sortMarketListings(false, false, true);
 			processMarketListings();            
         }
     }
