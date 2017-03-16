@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     2.8.0
+// @version     2.9.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -40,6 +40,7 @@
 
     var queuedItems = [];
     var lastSort = 0;
+	var spinnerBlock = '<div class="spinner"><div class="rect1"></div>&nbsp;<div class="rect2"></div>&nbsp;<div class="rect3"></div>&nbsp;<div class="rect4"></div>&nbsp;<div class="rect5"></div>&nbsp;</div>';
 
     var enableConsoleLog = false;
 
@@ -850,6 +851,10 @@
                 next();
             });
         }, 1);
+		
+		sellQueue.drain = function() {
+			$('#inventory_items_spinner').remove();
+		}
 
         function sellAllItems(appId) {
             market.getInventory(appId, function (err, items) {
@@ -935,7 +940,13 @@
 
         function sellItems(items) {
             var numberOfFailedItems = 0;
-
+			
+			$('#inventory_items_spinner').remove();
+			$('#inventory_price_buttons').append('<div id="inventory_items_spinner">' + 
+												     spinnerBlock +
+													 '<div style="text-align:center">Selling items</div>' +
+												 '</div>');
+			
             var itemQueue = async.queue(function (item, next) {
                 itemQueueWorker(item, item.ignoreErrors, function (success, cached) {
                     if (success) {
@@ -962,9 +973,9 @@
                     }
                 });
             }, 1);
-
+			
             items = items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-
+			
             items.forEach(function (item, index, array) {
                 var itemId = item.assetid || item.id;
                 if (queuedItems.indexOf(itemId) == -1) {
@@ -1526,6 +1537,8 @@
         }, 1);
 		
         marketListingsItemsQueue.drain = function () {
+			$('#market_listings_spinner').remove();
+			
 			$('.market_select_item').change(function(e){
 				updateMarketSelectAllButton();
 			});
@@ -1548,12 +1561,18 @@
 			var myMarketListings = $('#tabContentsMyActiveMarketListingsRows');
 			myMarketListings.html(''); // Clear the default listings.
 			$('#tabContentsMyActiveMarketListings_ctn').hide(); // Hide the page controls, we list all.
+			$('.market_pagesize_options').hide(); // Hide the page controls, we list all.
 			
 			$('.market_listing_row').each(function(){
 				$('.market_listing_cancel_button', $(this)).append('<div class="market_listing_select">' +
 																        '<input type="checkbox" class="market_select_item"/>' +
 																   '</div>');		
 			});
+			
+			$('.my_market_header').eq(0).append('<div id="market_listings_spinner">' +
+													spinnerBlock +
+													'<div style="text-align:center">Loading market listings</div>' +
+												'</div>');
 			
 			while (currentCount < totalCount) {			
 				marketListingsItemsQueue.push(currentCount);
@@ -1847,7 +1866,8 @@
            '.pick_and_sell_button > a { vertical-align: middle; }' +
            '.market_relist_auto { margin-bottom: 8px;  }' +
            '.market_relist_auto_label { margin-right: 6px;  }' +
-           '.quick_sell { margin-right: 4px; }');
+           '.quick_sell { margin-right: 4px; }' +
+		   '.spinner{margin:10px auto;width:50px;height:40px;text-align:center;font-size:10px;}.spinner > div{background-color:#ccc;height:100%;width:6px;display:inline-block;-webkit-animation:sk-stretchdelay 1.2s infinite ease-in-out;animation:sk-stretchdelay 1.2s infinite ease-in-out}.spinner .rect2{-webkit-animation-delay:-1.1s;animation-delay:-1.1s}.spinner .rect3{-webkit-animation-delay:-1s;animation-delay:-1s}.spinner .rect4{-webkit-animation-delay:-.9s;animation-delay:-.9s}.spinner .rect5{-webkit-animation-delay:-.8s;animation-delay:-.8s}@-webkit-keyframes sk-stretchdelay{0%,40%,100%{-webkit-transform:scaleY(0.4)}20%{-webkit-transform:scaleY(1.0)}}@keyframes sk-stretchdelay{0%,40%,100%{transform:scaleY(0.4);-webkit-transform:scaleY(0.4)}20%{transform:scaleY(1.0);-webkit-transform:scaleY(1.0)}}');
 
     $(document).ready(function () {
         // Make sure the user is logged in, there's not much we can do otherwise.
