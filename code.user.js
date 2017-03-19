@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     2.9.0
+// @version     3.0.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -24,8 +24,9 @@
     const STEAM_INVENTORY_ID = 753;
 
     const PAGE_MARKET = 0;
-    const PAGE_TRADEOFFER = 1;
-    const PAGE_INVENTORY = 2;
+    const PAGE_MARKET_LISTING = 1;
+    const PAGE_TRADEOFFER = 2;
+    const PAGE_INVENTORY = 3;
 
     const COLOR_ERROR = '#8A4243';
     const COLOR_SUCCESS = '#407736';
@@ -46,7 +47,14 @@
 
     var isLoggedIn = typeof g_rgWalletInfo !== 'undefined' || (typeof g_bLoggedIn !== 'undefined' && g_bLoggedIn);
 
-    var currentPage = window.location.href.includes('.com/market') ? PAGE_MARKET : (window.location.href.includes('.com/tradeoffer') ? PAGE_TRADEOFFER : PAGE_INVENTORY);
+    var currentPage = window.location.href.includes('.com/market') 
+		? (window.location.href.includes('market/listings')
+			? PAGE_MARKET_LISTING
+			: PAGE_MARKET)
+		: (window.location.href.includes('.com/tradeoffer') 
+			? PAGE_TRADEOFFER 
+			: PAGE_INVENTORY);
+			
     var market = new SteamMarket(g_rgAppContextData, typeof g_strInventoryLoadURL !== 'undefined' ? g_strInventoryLoadURL : location.protocol + '//steamcommunity.com/my/inventory/json/', isLoggedIn ? g_rgWalletInfo : undefined);
     var user_currency = GetCurrencySymbol(GetCurrencyCode(isLoggedIn ? market.walletInfo.wallet_currency : 1));
 
@@ -853,7 +861,9 @@
         }, 1);
 		
 		sellQueue.drain = function() {
-			$('#inventory_items_spinner').remove();
+			if (itemQueue.length() == 0) {
+				$('#inventory_items_spinner').remove();
+			}
 		}
 
         function sellAllItems(appId) {
@@ -938,41 +948,12 @@
             });
         }
 
-        function sellItems(items) {
-            var numberOfFailedItems = 0;
-			
+        function sellItems(items) {			
 			$('#inventory_items_spinner').remove();
 			$('#inventory_price_buttons').append('<div id="inventory_items_spinner">' + 
 												     spinnerBlock +
 													 '<div style="text-align:center">Selling items</div>' +
 												 '</div>');
-			
-            var itemQueue = async.queue(function (item, next) {
-                itemQueueWorker(item, item.ignoreErrors, function (success, cached) {
-                    if (success) {
-                        if (numberOfFailedItems > 0)
-                            numberOfFailedItems--;
-
-                        setTimeout(function () {
-                            next();
-                        }, cached ? 0 : getRandomInt(500, 1000));
-                    } else {
-                        if (!item.ignoreErrors) {
-                            item.ignoreErrors = true;
-                            itemQueue.push(item);
-                        }
-
-                        if (numberOfFailedItems < 2)
-                            numberOfFailedItems++;
-
-                        var delay = numberOfFailedItems > 1 || itemQueue.length < 2 ? getRandomInt(30000, 45000) : getRandomInt(500, 1000);
-
-                        setTimeout(function () {
-                            next();
-                        }, cached ? 0 : delay);
-                    }
-                });
-            }, 1);
 			
             items = items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 			
@@ -986,6 +967,35 @@
                 }
             });
         }
+		
+		var itemQueue = async.queue(function (item, next) {
+			var numberOfFailedItems = 0;
+			
+			itemQueueWorker(item, item.ignoreErrors, function (success, cached) {
+				if (success) {
+					if (numberOfFailedItems > 0)
+						numberOfFailedItems--;
+
+					setTimeout(function () {
+						next();
+					}, cached ? 0 : getRandomInt(500, 1000));
+				} else {
+					if (!item.ignoreErrors) {
+						item.ignoreErrors = true;
+						itemQueue.push(item);
+					}
+
+					if (numberOfFailedItems < 2)
+						numberOfFailedItems++;
+
+					var delay = numberOfFailedItems > 1 || itemQueue.length < 2 ? getRandomInt(30000, 45000) : getRandomInt(500, 1000);
+
+					setTimeout(function () {
+						next();
+					}, cached ? 0 : delay);
+				}
+			});
+		}, 1);
 
         function itemQueueWorker(item, ignoreErrors, callback) {
             var priceInfo = getPriceInformationFromInventoryItem(item);
@@ -1281,9 +1291,8 @@
     //#endregion
 
     //#region Market
-    if (currentPage == PAGE_MARKET) {
-
-        var marketListingsQueue = async.queue(function (listing, next) {
+    if (currentPage == PAGE_MARKET || currentPage == PAGE_MARKET_LISTING) {
+		var marketListingsQueue = async.queue(function (listing, next) {
             marketListingsQueueWorker(listing, false, function (success, cached) {
                 if (success) {
                     setTimeout(function () {
@@ -1527,6 +1536,17 @@
 																		   						
 					});
 					myMarketListings.append(cells);		
+					
+					
+					// Sometimes the Steam API is returning duplicate entries (especially during item listing), filter these.
+					var seen = {};
+					$('.market_listing_row', myMarketListings).each(function() {
+						var item_id = $(this).attr('id');
+						if (seen[item_id])
+							$(this).remove();
+						else
+							seen[item_id] = true;
+					});
 
 					next();
 				}, 'json')
@@ -1553,31 +1573,37 @@
                 g_bmarketwindowhidden = true; // limit the number of requests made to steam by stopping constant polling of popular listings.
             });			
         };
-
-        // Process the market listings.
+		
+		// Process the market listings.
         function processMarketListings() {
-			var currentCount = 0;
-			var totalCount = parseInt($('#tabContentsMyActiveMarketListings_total').text());
-			var myMarketListings = $('#tabContentsMyActiveMarketListingsRows');
-			myMarketListings.html(''); // Clear the default listings.
-			$('#tabContentsMyActiveMarketListings_ctn').hide(); // Hide the page controls, we list all.
-			$('.market_pagesize_options').hide(); // Hide the page controls, we list all.
+			if (currentPage == PAGE_MARKET) {
+				var currentCount = 0;
+				var totalCount = parseInt($('#tabContentsMyActiveMarketListings_total').text());
+				var myMarketListings = $('#tabContentsMyActiveMarketListingsRows');
+				myMarketListings.html(''); // Clear the default listings.
+				$('#tabContentsMyActiveMarketListings_ctn').hide(); // Hide the page controls, we list all.
+				$('.market_pagesize_options').hide(); // Hide the page controls, we list all.
+				
+				$('.my_market_header').eq(0).append('<div id="market_listings_spinner">' +
+														spinnerBlock +
+														'<div style="text-align:center">Loading market listings</div>' +
+													'</div>');
+				
+				while (currentCount < totalCount) {			
+					marketListingsItemsQueue.push(currentCount);
+					currentCount += 100;			
+				}
+			} else {				
+				$('#tabContentsMyActiveMarketListingsRows > .market_listing_row').each(function() {
+					marketListingsQueue.push($(this));
+				});
+			}
 			
 			$('.market_listing_row').each(function(){
 				$('.market_listing_cancel_button', $(this)).append('<div class="market_listing_select">' +
 																        '<input type="checkbox" class="market_select_item"/>' +
 																   '</div>');		
 			});
-			
-			$('.my_market_header').eq(0).append('<div id="market_listings_spinner">' +
-													spinnerBlock +
-													'<div style="text-align:center">Loading market listings</div>' +
-												'</div>');
-			
-			while (currentCount < totalCount) {			
-				marketListingsItemsQueue.push(currentCount);
-				currentCount += 100;			
-			}
         }
 
         // Update the select/deselect all button on the market.
@@ -1585,6 +1611,8 @@
 			$('.market_listing_buttons').each(function() {
 				var selectionGroup = $(this).parent().parent();
 				var invert = $('.market_select_item:checked', selectionGroup).length == $('.market_select_item', selectionGroup).length;
+				if ($('.market_select_item', selectionGroup).length == 0) // If there are no items to select, keep it at Select all.
+					invert = false;
 				$('.select_all > span', selectionGroup).text(invert ? 'Deselect all' : 'Select all');
 			});            
         }
@@ -1879,7 +1907,7 @@
             initializeInventoryUI();
         }
 
-        if (currentPage == PAGE_MARKET) {
+        if (currentPage == PAGE_MARKET || currentPage == PAGE_MARKET_LISTING) {
             initializeMarketUI();
         }
 
