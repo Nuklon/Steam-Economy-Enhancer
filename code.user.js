@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     3.1.0
+// @version     3.2.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -73,6 +73,7 @@
     const SETTING_MAX_MISC_PRICE = 'SETTING_MAX_MISC_PRICE';
     const SETTING_PRICE_OFFSET = 'SETTING_PRICE_OFFSET';
     const SETTING_PRICE_ALGORITHM = 'SETTING_PRICE_ALGORITHM';
+    const SETTING_PRICE_IGNORE_LOWEST_Q = 'SETTING_PRICE_IGNORE_LOWEST_Q';
     const SETTING_LAST_CACHE = 'SETTING_LAST_CACHE';
     const SETTING_RELIST_AUTOMATICALLY = 'SETTING_RELIST_AUTOMATICALLY';
 
@@ -86,6 +87,7 @@
             SETTING_MAX_MISC_PRICE: 10,
             SETTING_PRICE_OFFSET: -0.01,
             SETTING_PRICE_ALGORITHM: 1,
+            SETTING_PRICE_IGNORE_LOWEST_Q: 1,
             SETTING_LAST_CACHE: 0,
             SETTING_RELIST_AUTOMATICALLY: 0
         };
@@ -109,7 +111,7 @@
 
     var currentUrl = new URL(window.location.href);
     var noCache = currentUrl.searchParams.get('no-cache') != null;
-    
+
     // This does not work the same as the 'normal' session storage because opening a new browser session/tab will clear the cache.
     // For this reason, a rolling cache is used.
     if (getSessionStorageItem('SESSION') == null || noCache) {
@@ -246,10 +248,40 @@
         if (histogram == null || typeof histogram.lowest_sell_order === 'undefined' || typeof histogram.sell_order_graph === 'undefined')
             return historyPrice;
 
+
+        var listingPrice = market.getPriceBeforeFees(histogram.lowest_sell_order);
+        var oldListingPrice = listingPrice;
+        var ignoreLowestWithLowQuantity = getSettingWithDefault(SETTING_PRICE_IGNORE_LOWEST_Q) == 1;
+
+        if (ignoreLowestWithLowQuantity && histogram.sell_order_graph.length >= 2) {
+            var numberOfListingsForCheapest = histogram.sell_order_graph[0][1];
+            var numberOfListingsFor2ndCheapest = histogram.sell_order_graph[1][1];
+
+            var priceFor2ndCheapest = market.getPriceBeforeFees(histogram.sell_order_graph[1][0] * 100);
+
+            if (priceFor2ndCheapest > listingPrice) {
+                var percentageLower = (100 * (numberOfListingsForCheapest / numberOfListingsFor2ndCheapest));
+
+                // The percentage should change based on the quantity (for example, 1200 listings vs 5, or 1 vs 25).
+                if (numberOfListingsFor2ndCheapest >= 1000 && percentageLower <= 5) {
+                    listingPrice = priceFor2ndCheapest;
+                } else if (numberOfListingsFor2ndCheapest < 1000 && percentageLower <= 10) {
+                    listingPrice = priceFor2ndCheapest;
+                } else if (numberOfListingsFor2ndCheapest < 100 && percentageLower <= 15) {
+                    listingPrice = priceFor2ndCheapest;
+                } else if (numberOfListingsFor2ndCheapest < 50 && percentageLower <= 20) {
+                    listingPrice = priceFor2ndCheapest;
+                } else if (numberOfListingsFor2ndCheapest < 25 && percentageLower <= 25) {
+                    listingPrice = priceFor2ndCheapest;
+                } else if (numberOfListingsFor2ndCheapest < 10 && percentageLower <= 30) {
+                    listingPrice = priceFor2ndCheapest;
+                }
+            }
+        }
+
         if (histogram.lowest_sell_order == null) // This means that we did managed to retrieve the histogram, but there are no current listings.
             return 0; // In this case we should return 0 so the price can be determined by its minimum and maximum value.
 
-        var listingPrice = market.getPriceBeforeFees(histogram.lowest_sell_order);
         var useAverage = getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1;
 
         // If the highest average price is lower than the first listing, return the offset + that listing.
@@ -258,8 +290,13 @@
             if (applyOffset) {
                 return listingPrice + (getSettingWithDefault(SETTING_PRICE_OFFSET) * 100);
             }
+
             return listingPrice;
         } else {
+            if (applyOffset) {
+                return historyPrice = (getSettingWithDefault(SETTING_PRICE_OFFSET) * 100);
+            }
+
             return historyPrice;
         }
     }
@@ -953,7 +990,7 @@
 
         function sellItems(items) {
             $('#inventory_items_spinner').remove();
-            $('#inventory_price_buttons').append('<div id="inventory_items_spinner">' +
+            $('#price_options').append('<div id="inventory_items_spinner">' +
                 spinnerBlock +
                 '<div style="text-align:center">Selling items</div>' +
                 '</div>');
@@ -1193,14 +1230,12 @@
     function updateInventoryUI() {
         // Remove previous containers (e.g., when a user changes inventory).
         $('#inventory_sell_buttons').remove();
-        $('#inventory_price_buttons').remove();
+        $('#price_options').remove();
         $('#inventory_reload_button').remove();
 
-        var isSteamInventory = $('.games_list_tabs .active').attr('href').endsWith('#753');
+        var showCardOptions = $('.games_list_tabs .active').attr('href').endsWith('#753');
 
-
-        // Initialize the extra buttons.
-        var priceButtons = $('<div id="inventory_price_buttons">' +
+        var price_options = $('<div id="price_options">' +
             '<div class="filter_tag_button_ctn">' +
             '<div class="btn_black btn_details btn_small">' +
             '<span>Default pricing... ' +
@@ -1208,47 +1243,44 @@
             '</span>' +
             '</div>' +
             '</div>' +
+            '<div style="margin-top:6px">' +
+            (showCardOptions ?
+                '<div style="margin-bottom:6px;">' +
+                'Minimum:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
+                'and maximum:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;for normal cards' +
+                '<br/>' +
+                '</div>' +
+                '<div style="margin-bottom:6px;">' +
+                'Minimum:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
+                'and maximum:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_FOIL_PRICE) + '>&nbsp;for foil cards' +
+                '<br/>' +
+                '</div>' : '') +
+            '<div style="margin-bottom:6px;">' +
+            'Minimum:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
+            'and maximum:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;for items' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-bottom:6px;">' +
+            'Price calculation:&nbsp;<select class="price_option_input" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
+            '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>Maximum of average (12 hours) and lowest listing</option>' +
+            '<option value="2" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : '') + '>Lowest listing</option>' +
+            '</select>' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-bottom:6px;">' +
+            'The amount to add to the calculated price (minimum and maximum are always respected):&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
+            '<br/>' +
+            '</div>' +
             '<div>' +
-            (isSteamInventory ?
-                '<div style="margin-bottom:6px;margin-top:6px">' +
-                'Minimum:&nbsp;<input class="price_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
-                'and maximum:&nbsp;<input class="price_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;for normal cards' +
-                '<br/>' +
-                '</div>' +
-                '<div style="margin-bottom:6px;">' +
-                'Minimum:&nbsp;<input class="price_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
-                'and maximum:&nbsp;<input class="price_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_FOIL_PRICE) + '>&nbsp;for foil cards' +
-                '<br/>' +
-                '</div>' +
-                '<div style="margin-bottom:6px;">' +
-                'Minimum:&nbsp;<input class="price_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
-                'and maximum:&nbsp;<input class="price_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;for items' +
-                '<br/>' +
-                '</div>' +
-                '<div style="margin-bottom:6px;">' +
-                'Algorithm:&nbsp;<select class="price_input" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
-                '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>Maximum of average price (12 hours) and lowest listing</option>' +
-                '<option value="2" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : '') + '>Lowest listing</option>' +
-                '</select>' +
-                '<br/>' +
-                '</div>' +
-                '<div>' +
-                'Difference when the lowest listing is used:&nbsp;<input class="price_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
-                '<br/>' +
-                '</div>' :
-                '<div style="margin-bottom:6px;margin-top:6px">' +
-                'Minimum:&nbsp;<input class="price_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
-                'Maximum:&nbsp;<input class="price_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;for items' +
-                '<br/>' +
-                '</div>'
-            ) +
+            'Use the second lowest listing price when the lowest listing price has a low quantity:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_PRICE_IGNORE_LOWEST_Q + '" ' + (getSettingWithDefault(SETTING_PRICE_IGNORE_LOWEST_Q) == 1 ? 'checked=""' : '') + '>' +
+            '<br/>' +
             '</div>' +
             '</div>');
 
         var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
             '<a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>Sell All Items</span></a>&nbsp;&nbsp;&nbsp;' +
             '<a class="btn_green_white_innerfade btn_medium_wide sell_selected"><span>Sell Selected Items</span></a>&nbsp;&nbsp;&nbsp;' +
-            (isSteamInventory ? '<a class="btn_darkblue_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>&nbsp;&nbsp;&nbsp;' : '') +
+            (showCardOptions ? '<a class="btn_darkblue_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>&nbsp;&nbsp;&nbsp;' : '') +
             '</div>');
 
         var reloadButton = $('<a id="inventory_reload_button" class="btn_darkblue_white_innerfade btn_medium_wide reload_inventory" style="margin-right:12px"><span>Reload Inventory</span></a>');
@@ -1257,7 +1289,7 @@
 
         $('#inventory_applogo').hide(); // Hide the Steam/game logo, we don't need to see it twice.
         $('#inventory_applogo').after(logger);
-        $('#inventory_applogo').after(priceButtons);
+        $('#inventory_applogo').after(price_options);
         $('#inventory_applogo').after(sellButtons);
 
         $('.inventory_rightnav').prepend(reloadButton);
@@ -1275,7 +1307,7 @@
             window.location.reload();
         });
 
-        $('.price_input').change(function () {
+        $('.price_option_input').change(function () {
             setSetting(SETTING_MIN_NORMAL_PRICE, $('#' + SETTING_MIN_NORMAL_PRICE).val());
             setSetting(SETTING_MAX_NORMAL_PRICE, $('#' + SETTING_MAX_NORMAL_PRICE).val());
             setSetting(SETTING_MIN_FOIL_PRICE, $('#' + SETTING_MIN_FOIL_PRICE).val());
@@ -1284,9 +1316,10 @@
             setSetting(SETTING_MAX_MISC_PRICE, $('#' + SETTING_MAX_MISC_PRICE).val());
             setSetting(SETTING_PRICE_OFFSET, $('#' + SETTING_PRICE_OFFSET).val());
             setSetting(SETTING_PRICE_ALGORITHM, $('#' + SETTING_PRICE_ALGORITHM).val());
+            setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $('#' + SETTING_PRICE_IGNORE_LOWEST_Q).prop('checked') ? 1 : 0);
         });
 
-        $('#inventory_price_buttons').accordion({
+        $('#price_options').accordion({
             collapsible: true,
             active: true,
         });
