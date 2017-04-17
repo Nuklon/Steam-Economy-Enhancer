@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     3.2.0
+// @version     3.2.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -250,7 +250,6 @@
 
 
         var listingPrice = market.getPriceBeforeFees(histogram.lowest_sell_order);
-        var oldListingPrice = listingPrice;
         var ignoreLowestWithLowQuantity = getSettingWithDefault(SETTING_PRICE_IGNORE_LOWEST_Q) == 1;
 
         if (ignoreLowestWithLowQuantity && histogram.sell_order_graph.length >= 2) {
@@ -294,7 +293,7 @@
             return listingPrice;
         } else {
             if (applyOffset) {
-                return historyPrice = (getSettingWithDefault(SETTING_PRICE_OFFSET) * 100);
+                return historyPrice + (getSettingWithDefault(SETTING_PRICE_OFFSET) * 100);
             }
 
             return historyPrice;
