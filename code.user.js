@@ -3,14 +3,14 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     3.5.6
+// @version     3.5.7
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
 // @include     *://steamcommunity.com/market*
 // @include     *://steamcommunity.com/tradeoffer*
-// @require     https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
 // @require     https://code.jquery.com/jquery-3.2.1.min.js
+// @require     https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
 // @require     https://raw.githubusercontent.com/kapetan/jquery-observe/master/jquery-observe.js
 // @require     https://raw.githubusercontent.com/superRaytin/paginationjs/master/dist/pagination.js
 // @require     https://raw.githubusercontent.com/caolan/async/master/dist/async.min.js
@@ -24,9 +24,9 @@
 // ==/UserScript==
 
 // jQuery is already added by Steam, force no conflict mode.
-$.noConflict(true);
-
 (function ($, async) {
+    $.noConflict(true);
+
     const STEAM_INVENTORY_ID = 753;
 
     const PAGE_MARKET = 0;
