@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     3.5.7
+// @version     3.5.8
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1683,7 +1683,11 @@
 
         // Gets the asset info (appid/contextid/assetid) based on a listingid.
         function getAssetInfoFromListingId(listingid) {
-            var actionButton = $('.item_market_action_button', getListingFromLists(listingid).elm).attr('href');
+            var listing = getListingFromLists(listingid);
+            if (typeof listing === "undefined")
+                return {};
+
+            var actionButton = $('.item_market_action_button', listing.elm).attr('href');
             if (typeof actionButton === "undefined")
                 return {};
 
