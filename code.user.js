@@ -3,24 +3,28 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     3.5.5
+// @version     3.5.6
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
 // @include     *://steamcommunity.com/market*
 // @include     *://steamcommunity.com/tradeoffer*
+// @require     https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
+// @require     https://code.jquery.com/jquery-3.2.1.min.js
+// @require     https://raw.githubusercontent.com/kapetan/jquery-observe/master/jquery-observe.js
+// @require     https://raw.githubusercontent.com/superRaytin/paginationjs/master/dist/pagination.js
 // @require     https://raw.githubusercontent.com/caolan/async/master/dist/async.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.4.3/localforage.min.js
-// @require     https://raw.githubusercontent.com/kapetan/jquery-observe/master/jquery-observe.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min.js
-// @require     https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
-// @require     https://raw.githubusercontent.com/superRaytin/paginationjs/master/dist/pagination.js
 // @require     https://raw.githubusercontent.com/javve/list.js/v1.5.0/dist/list.min.js
 // @homepageURL https://github.com/Nuklon/Steam-Economy-Enhancer
 // @supportURL  https://github.com/Nuklon/Steam-Economy-Enhancer/issues
 // @downloadURL https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
 // @updateURL   https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
 // ==/UserScript==
+
+// jQuery is already added by Steam, force no conflict mode.
+$.noConflict(true);
 
 (function ($, async) {
     const STEAM_INVENTORY_ID = 753;
