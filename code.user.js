@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     3.5.0
+// @version     3.5.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -861,15 +861,27 @@
     //#endregion
 
     //#region Logging
+    var userScrolled = false;
     var logger = document.createElement('div');
     logger.setAttribute('id', 'logger');
-
+    
+    function updateScroll() {
+        if (!userScrolled) {
+            var element = document.getElementById("logger");
+            element.scrollTop = element.scrollHeight;
+        }
+    }
+    
     function logDOM(text) {
         logger.innerHTML += text + '<br/>';
+
+        updateScroll();
     }
 
     function clearLogDOM() {
         logger.innerHTML = '';
+
+        updateScroll();
     }
 
     function logConsole(text) {
@@ -1285,6 +1297,12 @@
 
         $('#inventory_applogo').hide(); // Hide the Steam/game logo, we don't need to see it twice.
         $('#inventory_applogo').after(logger);
+
+        $("#logger").on('scroll', function () {
+            var hasUserScrolledToBottom = $("#logger").prop('scrollHeight') - $("#logger").prop('clientHeight') <= $("#logger").prop('scrollTop') + 1;
+            userScrolled = !hasUserScrolledToBottom;
+        });
+
         $('#inventory_applogo').after(price_options);
         $('#inventory_applogo').after(sellButtons);
 
@@ -2076,7 +2094,7 @@
 
     //#region UI
     injectCss('.ui-selected { outline: 1px groove #FFFFFF; } ' +
-        '#logger { color: #767676; font-size: 12px;margin-top:16px; }' +
+        '#logger { color: #767676; font-size: 12px;margin-top:16px; max-height: 200px; overflow-y: auto; }' +
         '.trade_offer_sum { color: #767676; font-size: 12px;margin-top:8px; }' +
         '.trade_offer_buttons { margin-top: 12px; }' +
         '.market_commodity_orders_table { font-size:12px; font-family: "Motiva Sans", Sans-serif; font-weight: 300; }' +
