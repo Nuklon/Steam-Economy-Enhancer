@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     3.5.8
+// @version     4.0.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -277,30 +277,31 @@
 
         // If the highest average price is lower than the first listing, return the offset + that listing.
         // Otherwise, use the highest average price instead.
-
         var calculatedPrice = 0;
 
         if (historyPrice < listingPrice || !shouldUseAverage) {
-            if (applyOffset) {
-                calculatedPrice = listingPrice + (getSettingWithDefault(SETTING_PRICE_OFFSET) * 100);
-            } else {
-                calculatedPrice = listingPrice;
-            }
+            calculatedPrice = listingPrice;
         } else {
-            if (applyOffset) {
-                calculatedPrice = historyPrice + (getSettingWithDefault(SETTING_PRICE_OFFSET) * 100);
-            } else {
-                calculatedPrice = historyPrice;
-            }
+            calculatedPrice = historyPrice;
         }
 
+        var changedToMax = false;
         // List for the maximum price if there are no listings yet.
         if (calculatedPrice == 0) {
             calculatedPrice = maxPriceBeforeFees;
+            changedToMax = true;
         }
+
+
+        // Apply the offset to the calculated price, but only if the price wasn't changed to the max (as otherwise it's impossible to list for this price).
+        if (!changedToMax && applyOffset) {
+            calculatedPrice = calculatedPrice + (getSettingWithDefault(SETTING_PRICE_OFFSET) * 100);
+        }
+
 
         // Keep our minimum and maximum in mind.
         calculatedPrice = clamp(calculatedPrice, minPriceBeforeFees, maxPriceBeforeFees);
+
 
         // In case there's a buy order higher than the calculated price.
         if (histogram != null && typeof histogram.highest_buy_order !== 'undefined') {
@@ -868,14 +869,14 @@
     var userScrolled = false;
     var logger = document.createElement('div');
     logger.setAttribute('id', 'logger');
-    
+
     function updateScroll() {
         if (!userScrolled) {
             var element = document.getElementById("logger");
             element.scrollTop = element.scrollHeight;
         }
     }
-    
+
     function logDOM(text) {
         logger.innerHTML += text + '<br/>';
 
@@ -959,7 +960,7 @@
                     var filteredItems = [];
 
                     items.forEach(function (item) {
-                        if (!getIsTradingCard(item)) {
+                        if (!getIsTradingCard(item) || !item.marketable) {
                             return;
                         }
 
@@ -1014,6 +1015,12 @@
         }
 
         function sellItems(items) {
+            if (items.length == 0) {
+                logDOM('These items cannot be added to the market...');
+
+                return;
+            }
+
             $('#inventory_items_spinner').remove();
             $('#price_options').append('<div id="inventory_items_spinner">' +
                 spinnerBlock +
@@ -1207,7 +1214,7 @@
                 prices.push(priceInformation.minPrice);
                 prices.push(priceInformation.maxPrice);
 
-                prices = prices.filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
+                prices = prices.filter((v, i) => prices.indexOf(v) === i).sort((a, b) => a - b);
 
                 var buttons = '<br/>';
                 prices.forEach(function (e) {
@@ -1238,6 +1245,56 @@
             });
     }
 
+    function openSettings() {
+        var price_options = $('<div id="price_options">' +
+            '<div style="margin-bottom:6px;">' +
+            'Calculate prices as the:&nbsp;<select class="price_option_input" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
+            '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>maximum of the average (12 hours) and lowest listing</option>' +
+            '<option value="2" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : '') + '>lowest listing</option>' +
+            '</select>' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-bottom:6px;">' +
+            'The value to add to the calculated price (minimum and maximum are respected):&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-top:6px">' +
+            'Use the second lowest listing when the lowest listing has a low quantity:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_PRICE_IGNORE_LOWEST_Q + '" ' + (getSettingWithDefault(SETTING_PRICE_IGNORE_LOWEST_Q) == 1 ? 'checked=""' : '') + '>' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-top:24px">' +
+            '<div style="margin-bottom:6px;">' +
+            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
+            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;price for normal cards' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-bottom:6px;">' +
+            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
+            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_FOIL_PRICE) + '>&nbsp;price for foil cards' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-bottom:6px;">' +
+            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
+            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;price for other items' +
+            '<br/>' +
+            '</div>' +
+            '</div>');
+        
+        var dialog = ShowConfirmDialog('Steam Economy Enhancer', price_options).done(function () {
+            setSetting(SETTING_MIN_NORMAL_PRICE, $('#' + SETTING_MIN_NORMAL_PRICE, price_options).val());
+            setSetting(SETTING_MAX_NORMAL_PRICE, $('#' + SETTING_MAX_NORMAL_PRICE, price_options).val());
+            setSetting(SETTING_MIN_FOIL_PRICE, $('#' + SETTING_MIN_FOIL_PRICE, price_options).val());
+            setSetting(SETTING_MAX_FOIL_PRICE, $('#' + SETTING_MAX_FOIL_PRICE, price_options).val());
+            setSetting(SETTING_MIN_MISC_PRICE, $('#' + SETTING_MIN_MISC_PRICE, price_options).val());
+            setSetting(SETTING_MAX_MISC_PRICE, $('#' + SETTING_MAX_MISC_PRICE, price_options).val());
+            setSetting(SETTING_PRICE_OFFSET, $('#' + SETTING_PRICE_OFFSET, price_options).val());
+            setSetting(SETTING_PRICE_ALGORITHM, $('#' + SETTING_PRICE_ALGORITHM, price_options).val());
+            setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $('#' + SETTING_PRICE_IGNORE_LOWEST_Q, price_options).prop('checked') ? 1 : 0);
+
+            window.location.reload();
+        });
+    }
+
     // Update the inventory UI.
     function updateInventoryUI() {
         // Remove previous containers (e.g., when a user changes inventory).
@@ -1245,49 +1302,10 @@
         $('#price_options').remove();
         $('#inventory_reload_button').remove();
 
-        var showCardOptions = $('.games_list_tabs .active').attr('href').endsWith('#753');
+        $('#global_action_menu').prepend('<span id="see_settings"><a href="javascript:void(0)">⬖ Steam Economy Enhancer</a></span>');
+        $('#see_settings').on('click', '*', () => openSettings());
 
-        var price_options = $('<div id="price_options">' +
-            '<div class="filter_tag_button_ctn">' +
-            '<div class="btn_black btn_details btn_small">' +
-            '<span>Default pricing... ' +
-            '<span class="btn_details_arrow down"></span>' +
-            '</span>' +
-            '</div>' +
-            '</div>' +
-            '<div style="margin-top:6px">' +
-            (showCardOptions ?
-                '<div style="margin-bottom:6px;">' +
-                'Minimum:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
-                'and maximum:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;for normal cards' +
-                '<br/>' +
-                '</div>' +
-                '<div style="margin-bottom:6px;">' +
-                'Minimum:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
-                'and maximum:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_FOIL_PRICE) + '>&nbsp;for foil cards' +
-                '<br/>' +
-                '</div>' : '') +
-            '<div style="margin-bottom:6px;">' +
-            'Minimum:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
-            'and maximum:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;for items' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-bottom:6px;">' +
-            'Price calculation:&nbsp;<select class="price_option_input" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
-            '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>Maximum of average (12 hours) and lowest listing</option>' +
-            '<option value="2" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : '') + '>Lowest listing</option>' +
-            '</select>' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-bottom:6px;">' +
-            'The amount to add to the calculated price (minimum and maximum are always respected):&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
-            '<br/>' +
-            '</div>' +
-            '<div>' +
-            'Use the second lowest listing price when the lowest listing price has a low quantity:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_PRICE_IGNORE_LOWEST_Q + '" ' + (getSettingWithDefault(SETTING_PRICE_IGNORE_LOWEST_Q) == 1 ? 'checked=""' : '') + '>' +
-            '<br/>' +
-            '</div>' +
-            '</div>');
+        var showCardOptions = $('.games_list_tabs .active').attr('href').endsWith('#753');
 
         var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
             '<a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>Sell All Items</span></a>&nbsp;&nbsp;&nbsp;' +
@@ -1307,7 +1325,6 @@
             userScrolled = !hasUserScrolledToBottom;
         });
 
-        $('#inventory_applogo').after(price_options);
         $('#inventory_applogo').after(sellButtons);
 
         $('.inventory_rightnav').prepend(reloadButton);
@@ -1323,23 +1340,6 @@
 
         $('.reload_inventory').on('click', '*', function () {
             window.location.reload();
-        });
-
-        $('.price_option_input').change(function () {
-            setSetting(SETTING_MIN_NORMAL_PRICE, $('#' + SETTING_MIN_NORMAL_PRICE).val());
-            setSetting(SETTING_MAX_NORMAL_PRICE, $('#' + SETTING_MAX_NORMAL_PRICE).val());
-            setSetting(SETTING_MIN_FOIL_PRICE, $('#' + SETTING_MIN_FOIL_PRICE).val());
-            setSetting(SETTING_MAX_FOIL_PRICE, $('#' + SETTING_MAX_FOIL_PRICE).val());
-            setSetting(SETTING_MIN_MISC_PRICE, $('#' + SETTING_MIN_MISC_PRICE).val());
-            setSetting(SETTING_MAX_MISC_PRICE, $('#' + SETTING_MAX_MISC_PRICE).val());
-            setSetting(SETTING_PRICE_OFFSET, $('#' + SETTING_PRICE_OFFSET).val());
-            setSetting(SETTING_PRICE_ALGORITHM, $('#' + SETTING_PRICE_ALGORITHM).val());
-            setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $('#' + SETTING_PRICE_IGNORE_LOWEST_Q).prop('checked') ? 1 : 0);
-        });
-
-        $('#price_options').accordion({
-            collapsible: true,
-            active: true,
         });
     }
     //#endregion
@@ -1625,8 +1625,12 @@
                     else
                         seen[item_id] = true;
 
-                    // Remove listings awaiting confirmations here, they are already listed separately.
+                    // Remove listings awaiting confirmations, they are already listed separately.
                     if ($('.item_market_action_button', this).attr('href').toLowerCase().includes('CancelMarketListingConfirmation'.toLowerCase()))
+                        $(this).remove();
+
+                    // Remove buy order listings, they are already listed separately.
+                    if ($('.item_market_action_button', this).attr('href').toLowerCase().includes('CancelMarketBuyOrder'.toLowerCase()))
                         $(this).remove();
                 });
 
@@ -1765,11 +1769,34 @@
                 });
 
                 $('.market_home_listing_table').each(function (e) {
+                    // Not on 'x requests to buy at y,yy or lower'.
+                    if ($('#market_buyorder_info_show_details', $(this)).length > 0)
+                        return;
+
                     $(this).children().last().addClass("market_listing_see");
 
                     addMarketPagination($('.market_listing_see', this).last());
                     sortMarketListings($(this), false, false, true);
                 });
+
+                $('#tabContentsMyActiveMarketListingsRows > .market_listing_row').each(function () {
+                    var listingid = $(this).attr('id').replace('mylisting_', '');
+                    var assetInfo = getAssetInfoFromListingId(listingid);
+
+                    // There's only one item in the g_rgAssets on a market listing page.
+                    var existingAsset = null;
+                    for (var appid in g_rgAssets) {
+                        for (var contextid in g_rgAssets[appid]) {
+                            for (var assetid in g_rgAssets[appid][contextid]) {
+                                existingAsset = g_rgAssets[appid][contextid][assetid];
+                                break;
+                            }
+                        }
+                    }
+                    // appid and contextid are identical, only the assetid is different for each asset.
+                    g_rgAssets[appid][contextid][assetInfo.assetid] = existingAsset;
+                    marketListingsQueue.push({ listingid, appid: assetInfo.appid, contextid: assetInfo.contextid, assetid: assetInfo.assetid });
+                })
             }
 
             // This is for buy orders and listings confirmations (this is not loaded async).
@@ -1826,6 +1853,9 @@
                 market_listing_selector = $('.market_listing_table_header', elem).children().eq(3);
             }
             market_listing_selector.text(market_listing_selector.text() + ' ' + (asc ? arrow_up : arrow_down));
+
+            if (typeof list.sort === 'undefined')
+                return;
 
             if (isName) {
                 list.sort('market_listing_item_name_link', { order: asc ? "asc" : "desc" });
@@ -1929,9 +1959,6 @@
                 if ($(this).hasClass('market_listing_edit_buttons') || $(this).hasClass('item_market_action_button_contents'))
                     return;
 
-                if ($('#es_progress').length > 0) // Enhanced Steam.
-                    return;
-
                 var isPrice = $('.market_listing_table_header', $(this).parent().parent()).children().eq(1).text() == $(this).text();
                 var isDate = $('.market_listing_table_header', $(this).parent().parent()).children().eq(2).text() == $(this).text();
                 var isName = $('.market_listing_table_header', $(this).parent().parent()).children().eq(3).text() == $(this).text();
@@ -1953,7 +1980,7 @@
             });
 
 
-            $('#market_removelisting_dialog_accept').on('click', '*', function() {
+            $('#market_removelisting_dialog_accept').on('click', '*', function () {
                 // This is when a user removed an item through the Remove/Cancel button.
                 // Ideally, it should remove this item from the list (instead of just the UI element which Steam does), but I'm not sure how to get the current item yet.
                 window.location.reload();
@@ -2004,6 +2031,9 @@
                     }
                 }
             });
+
+            $('#global_action_menu').prepend('<span id="see_settings"><a href="javascript:void(0)">⬖ Steam Economy Enhancer</a></span>');
+            $('#see_settings').on('click', '*', () => openSettings());
 
             processMarketListings();
         }
@@ -2124,6 +2154,8 @@
         '.quick_sell { margin-right: 4px; }' +
         '.spinner{margin:10px auto;width:50px;height:40px;text-align:center;font-size:10px;}.spinner > div{background-color:#ccc;height:100%;width:6px;display:inline-block;-webkit-animation:sk-stretchdelay 1.2s infinite ease-in-out;animation:sk-stretchdelay 1.2s infinite ease-in-out}.spinner .rect2{-webkit-animation-delay:-1.1s;animation-delay:-1.1s}.spinner .rect3{-webkit-animation-delay:-1s;animation-delay:-1s}.spinner .rect4{-webkit-animation-delay:-.9s;animation-delay:-.9s}.spinner .rect5{-webkit-animation-delay:-.8s;animation-delay:-.8s}@-webkit-keyframes sk-stretchdelay{0%,40%,100%{-webkit-transform:scaleY(0.4)}20%{-webkit-transform:scaleY(1.0)}}@keyframes sk-stretchdelay{0%,40%,100%{transform:scaleY(0.4);-webkit-transform:scaleY(0.4)}20%{transform:scaleY(1.0);-webkit-transform:scaleY(1.0)}}' +
         '#market_name_search { float: right; background: rgba(0, 0, 0, 0.25); color: white; border: none;height: 25px; padding-left: 6px;}' +
+        '.price_option_price { width: 100px }' +
+        '#see_settings { background: #26566c; margin-right: 10px; height: 21px; line-height:21px; display:inline-block; padding: 0px 6px; }' +
         '.pagination { padding-left: 0px; }' +
         '.pagination li { display:inline-block; padding: 5px 10px;background: rgba(255, 255, 255, 0.10); margin-right: 6px; border: 1px solid #666666; }' +
         '.pagination li.active { background: rgba(255, 255, 255, 0.25); }');
