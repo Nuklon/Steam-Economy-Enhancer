@@ -38,7 +38,6 @@ The pricing can be based on the lowest listed price, the price history and your 
 ![Inventory](http://i.imgur.com/8H1ueGF.png)
 
 *Options*
-
 ![Options](http://i.imgur.com/eShpvEO.png)
 
 *Trade offers*
