@@ -35,10 +35,10 @@ The pricing can be based on the lowest listed price, the price history and your 
 ![Market](http://i.imgur.com/A9Q7I9I.png)
 
 *Inventory*
-![Inventory](http://i.imgur.com/yI9btgr.png)
+![Inventory](http://i.imgur.com/8H1ueGF.png)
 
-*Default pricing*
-![Inventory pricing](http://i.imgur.com/RyO8ZBY.png)
+*Options*
+![Options](http://i.imgur.com/eShpvEO.png)
 
 *Trade offers*
 ![Tradeoffers](http://i.imgur.com/vdVeXHi.png)
