@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     4.0.0
+// @version     4.0.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -745,6 +745,19 @@
         }
 
         // This is available on the market page.
+        if (typeof item.owner_actions !== 'undefined') {
+            for (var i = 0; i < item.owner_actions.length; i++) {
+                if (typeof item.owner_actions[i].link === "undefined")
+                    continue;
+
+                // Cards include a link to the gamecard page.
+                // For example: // For example: "http://steamcommunity.com/my/gamecards/503820/".
+                if (item.owner_actions[i].link.toString().toLowerCase().includes('gamecards'))
+                    return true;
+            }
+        }
+
+        // A fallback for the market page (only works with language on English).
         if (typeof item.type !== 'undefined' && item.type.toLowerCase().includes('trading card'))
             return true;
 
@@ -769,6 +782,20 @@
         }
 
         // This is available on the market page.
+        if (typeof item.owner_actions !== 'undefined') {
+            for (var i = 0; i < item.owner_actions.length; i++) {
+                if (typeof item.owner_actions[i].link === "undefined")
+                    continue;
+
+                // Cards include a link to the gamecard page.
+                // The border parameter specifies the foil cards.
+                // For example: "http://steamcommunity.com/my/gamecards/503820/?border=1".
+                if (item.owner_actions[i].link.toString().toLowerCase().includes('gamecards') && item.owner_actions[i].link.toString().toLowerCase().includes('border'))
+                    return true;
+            }
+        }
+
+        // A fallback for the market page (only works with language on English).
         if (typeof item.type !== 'undefined' && item.type.toLowerCase().includes('foil trading card'))
             return true;
 
