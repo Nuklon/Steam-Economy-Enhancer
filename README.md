@@ -31,16 +31,24 @@ The pricing can be based on the lowest listed price, the price history and your 
 
 **Screenshots**
 
+
 *Market*
+
 ![Market](http://i.imgur.com/cQx5J9e.png)
 
+
 *Inventory*
+
 ![Inventory](http://i.imgur.com/8H1ueGF.png)
 
+
 *Options*
+
 ![Options](http://i.imgur.com/eShpvEO.png)
 
+
 *Trade offers*
+
 ![Tradeoffers](http://i.imgur.com/vdVeXHi.png)
 
 **License**
