@@ -22,6 +22,7 @@ It adds the following features to the Steam Tradeoffers:
 *    Select all items of the current page.
 
 The pricing can be based on the lowest listed price, the price history and your own minimum and maximum prices.
+This can be defined in Steam Economy Enhancer's settings, which you can find at the top of the page near the *Install Steam* button.
 
 **Download**
 
