@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     4.0.5
+// @version     4.1.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1329,6 +1329,7 @@
         $('#price_options').remove();
         $('#inventory_reload_button').remove();
 
+        $('#see_settings').remove();
         $('#global_action_menu').prepend('<span id="see_settings"><a href="javascript:void(0)">⬖ Steam Economy Enhancer</a></span>');
         $('#see_settings').on('click', '*', () => openSettings());
 
@@ -2059,6 +2060,7 @@
                 }
             });
 
+            $('#see_settings').remove();
             $('#global_action_menu').prepend('<span id="see_settings"><a href="javascript:void(0)">⬖ Steam Economy Enhancer</a></span>');
             $('#see_settings').on('click', '*', () => openSettings());
 
