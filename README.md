@@ -15,11 +15,13 @@ It adds the following features to the Steam Inventory:
 *    Select multiple items simultaneously with *Shift* or *Ctrl*.
 *    Market sell and buy listings added to the item details.
 *    Quick sell buttons to sell an item without confirmations.
+*    Shows the lowest listed price for each item.
 
 It adds the following features to the Steam Tradeoffers:
 
 *    A summary of all items from both parties.
 *    Select all items of the current page.
+*    Shows the lowest listed price for each inventory item.
 
 The pricing can be based on the lowest listed price, the price history and your own minimum and maximum prices.
 This can be defined in Steam Economy Enhancer's settings, which you can find at the top of the page near the *Install Steam* button.
@@ -40,7 +42,7 @@ This can be defined in Steam Economy Enhancer's settings, which you can find at 
 
 *Inventory*
 
-![Inventory](http://i.imgur.com/8H1ueGF.png)
+![Inventory](http://i.imgur.com/9BuLN78.png)
 
 
 *Options*
