@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     4.1.0
+// @version     4.5.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1306,7 +1306,7 @@
             '<br/>' +
             '</div>' +
             '</div>');
-        
+
         var dialog = ShowConfirmDialog('Steam Economy Enhancer', price_options).done(function () {
             setSetting(SETTING_MIN_NORMAL_PRICE, $('#' + SETTING_MIN_NORMAL_PRICE, price_options).val());
             setSetting(SETTING_MAX_NORMAL_PRICE, $('#' + SETTING_MAX_NORMAL_PRICE, price_options).val());
@@ -1357,10 +1357,10 @@
 
         $('.inventory_rightnav').prepend(reloadButton);
 
+        var appId = $('.games_list_tabs .active')[0].hash.replace(/^#/, '');
 
         // Add bindings to all extra buttons.
         $('.sell_all').on('click', '*', function () {
-            var appId = $('.games_list_tabs .active')[0].hash.replace(/^#/, '');
             sellAllItems(appId);
         });
         $('.sell_selected').on('click', '*', sellSelectedItems);
@@ -1369,7 +1369,107 @@
         $('.reload_inventory').on('click', '*', function () {
             window.location.reload();
         });
+
+        var inventoryItems = null;
+
+        // Load the inventory prices.
+        market.getInventory(appId, function (err, items) {
+            if (err)
+                return logDOM('Something went wrong fetching inventory, try again...');
+            else {
+                inventoryItems = items;
+                setInventoryPrices(items);
+            }
+        });
+
+        // The inventory is loaded async, so the item prices need to be set after a change as well.
+        $('#inventory_pagecontrols').on('click', '*.pagebtn', function () {
+            // Load the inventory prices.
+            if (inventoryItems != null) {
+                setInventoryPrices(inventoryItems);
+            } else {
+                market.getInventory(appId, function (err, items) {
+                    if (err)
+                        return logDOM('Something went wrong fetching inventory, try again...');
+                    else {
+                        setInventoryPrices(items);
+                    }
+                });
+            }
+        });
     }
+
+    // Sets the prices for the items.
+    function setInventoryPrices(items) {
+        var inventoryPriceQueue = async.queue(function (item, next) {
+            var numberOfFailedItems = 0;
+
+            inventoryPriceQueueWorker(item, item.ignoreErrors, function (success, cached) {
+                if (success) {
+                    if (numberOfFailedItems > 0)
+                        numberOfFailedItems--;
+
+                    setTimeout(function () {
+                        next();
+                    }, cached ? 0 : getRandomInt(500, 1000));
+                } else {
+                    if (!item.ignoreErrors) {
+                        item.ignoreErrors = true;
+                        inventoryPriceQueue.push(item);
+                    }
+
+                    if (numberOfFailedItems < 2)
+                        numberOfFailedItems++;
+
+                    var delay = numberOfFailedItems > 1 || itemQueue.length < 2 ? getRandomInt(30000, 45000) : getRandomInt(500, 1000);
+
+                    setTimeout(function () {
+                        next();
+                    }, cached ? 0 : delay);
+                }
+            });
+        }, 1);
+
+        function inventoryPriceQueueWorker(item, ignoreErrors, callback) {
+
+            var priceInfo = getPriceInformationFromItem(item);
+
+            var failed = 0;
+            var itemName = item.name || item.description.name;
+
+            // Only get the market orders here, the history is not important to visualize the current prices.
+            market.getItemOrdersHistogram(item, true, function (err, histogram, cachedListings) {
+                if (err) {
+                    logConsole('Failed to get orders histogram for ' + itemName);
+
+                    if (err == ERROR_FAILED)
+                        failed += 1;
+                }
+
+                if (failed > 0 && !ignoreErrors) {
+                    return callback(false, cachedListings);
+                }
+
+                var sellPrice = calculateSellPriceBeforeFees(null, histogram, false, 0, 65535);
+                var elementName = (currentPage == PAGE_TRADEOFFER ? '#item' : '#') + item.appid + '_' + item.contextid + '_' + item.id;
+                var element = $(elementName);
+                $('.inventory_item_price', element).remove();
+                element.append('<span class="inventory_item_price">' + (market.getPriceIncludingFees(sellPrice) / 100.0).toFixed(2) + user_currency + '</span>');
+
+                return callback(true, cachedListings);
+            });
+        }
+
+        items.forEach(function (item) {
+            if (!item.marketable) {
+                return;
+            }
+
+            inventoryPriceQueue.push(item);
+        });
+    }
+
+
     //#endregion
 
     //#region Market
@@ -2134,9 +2234,17 @@
         if (!window.location.href.includes('tradeoffer/new'))
             return;
 
-        $('.trade_box_contents').observe('childlist', '.inventory_page:visible', function (record) { // Fixes a rendering bug from Steam.
+        $('.trade_box_contents').observe('childlist', '.inventory_page:visible', function (record) {
+            // Fixes a rendering bug from Steam.
             ShowTagFilters();
             setTimeout(HideTagFilters, 10);
+
+            // Loads the prices for the inventory items.
+            var tradeOfferItems = [];
+            for (var i = 0; i < g_ActiveInventory.rgItemElements.length; i++) {
+                tradeOfferItems.push(g_ActiveInventory.rgItemElements[i].rgItem);
+            }
+            setInventoryPrices(tradeOfferItems);
         });
 
         $('#inventory_displaycontrols').append(
@@ -2185,6 +2293,7 @@
         '#market_name_search { float: right; background: rgba(0, 0, 0, 0.25); color: white; border: none;height: 25px; padding-left: 6px;}' +
         '.price_option_price { width: 100px }' +
         '#see_settings { background: #26566c; margin-right: 10px; height: 21px; line-height:21px; display:inline-block; padding: 0px 6px; }' +
+        '.inventory_item_price { top: 0px;position: absolute;right: 0;background: #3571a5;padding: 2px;color: white; font-size:11px; border: 1px solid #666666;}' +
         '.pagination { padding-left: 0px; }' +
         '.pagination li { display:inline-block; padding: 5px 10px;background: rgba(255, 255, 255, 0.10); margin-right: 6px; border: 1px solid #666666; }' +
         '.pagination li.active { background: rgba(255, 255, 255, 0.25); }');
