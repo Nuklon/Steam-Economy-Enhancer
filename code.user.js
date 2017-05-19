@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     4.5.0
+// @version     4.5.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1683,7 +1683,7 @@
                 if (success) {
                     setTimeout(function () {
                         next();
-                    }, getRandomInt(500, 1000));
+                    }, getRandomInt(50, 100));
                 } else {
                     setTimeout(function () {
                         marketRemoveQueueWorker(listingid, true, function (success) {
@@ -1692,7 +1692,7 @@
                     }, getRandomInt(30000, 45000));
                 }
             });
-        }, 1);
+        }, 10);
 
         function marketRemoveQueueWorker(listingid, ignoreErrors, callback) {
             var listingUI = getListingFromLists(listingid).elm;
@@ -1867,7 +1867,9 @@
         function processMarketListings() {
             if (currentPage == PAGE_MARKET) {
                 var currentCount = 0;
-                var totalCount = parseInt(replaceNonNumbers($('#tabContentsMyActiveMarketListings_total').text()));
+                var totalCount = parseInt(replaceNonNumbers($('#my_market_selllistings_number').text()));
+                if (isNaN(totalCount) || totalCount == 0)
+                    return;
 
                 $('#tabContentsMyActiveMarketListingsRows').html(''); // Clear the default listings.
                 $('#tabContentsMyActiveMarketListingsRows').hide(); // Hide the listings until everything has been loaded.
