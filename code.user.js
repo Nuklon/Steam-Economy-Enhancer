@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     4.5.5
+// @version     4.6.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -82,6 +82,7 @@
     const SETTING_PRICE_IGNORE_LOWEST_Q = 'SETTING_PRICE_IGNORE_LOWEST_Q';
     const SETTING_LAST_CACHE = 'SETTING_LAST_CACHE';
     const SETTING_RELIST_AUTOMATICALLY = 'SETTING_RELIST_AUTOMATICALLY';
+    const SETTING_MARKET_PAGE_COUNT = 'SETTING_MARKET_PAGE_COUNT';
 
     var settingDefaults =
         {
@@ -95,7 +96,8 @@
             SETTING_PRICE_ALGORITHM: 1,
             SETTING_PRICE_IGNORE_LOWEST_Q: 1,
             SETTING_LAST_CACHE: 0,
-            SETTING_RELIST_AUTOMATICALLY: 0
+            SETTING_RELIST_AUTOMATICALLY: 0,
+            SETTING_MARKET_PAGE_COUNT: 100
         };
 
     function getSettingWithDefault(name) {
@@ -1077,7 +1079,7 @@
 
                     setTimeout(function () {
                         next();
-                    }, cached ? 0 : getRandomInt(500, 1000));
+                    }, cached ? 0 : getRandomInt(250, 500));
                 } else {
                     if (!item.ignoreErrors) {
                         item.ignoreErrors = true;
@@ -1305,6 +1307,10 @@
             'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;price for other items' +
             '<br/>' +
             '</div>' +
+            '<div style="margin-top:24px;">' +
+            'Market items per page:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MARKET_PAGE_COUNT + '" value=' + getSettingWithDefault(SETTING_MARKET_PAGE_COUNT) + '>' +
+            '<br/>' +
+            '</div>' +
             '</div>');
 
         var dialog = ShowConfirmDialog('Steam Economy Enhancer', price_options).done(function () {
@@ -1316,6 +1322,7 @@
             setSetting(SETTING_MAX_MISC_PRICE, $('#' + SETTING_MAX_MISC_PRICE, price_options).val());
             setSetting(SETTING_PRICE_OFFSET, $('#' + SETTING_PRICE_OFFSET, price_options).val());
             setSetting(SETTING_PRICE_ALGORITHM, $('#' + SETTING_PRICE_ALGORITHM, price_options).val());
+            setSetting(SETTING_MARKET_PAGE_COUNT, $('#' + SETTING_MARKET_PAGE_COUNT, price_options).val());
             setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $('#' + SETTING_PRICE_IGNORE_LOWEST_Q, price_options).prop('checked') ? 1 : 0);
 
             window.location.reload();
@@ -1856,7 +1863,7 @@
                     left: 100,
                     right: 100
                 }],
-                page: 100
+                page: parseInt(getSettingWithDefault(SETTING_MARKET_PAGE_COUNT))
             };
 
             var list = new List(market_listing_see.parent().attr('id'), options);
