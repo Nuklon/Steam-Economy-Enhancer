@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     4.6.0
+// @version     4.6.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1056,7 +1056,7 @@
                 '<div style="text-align:center">Selling items</div>' +
                 '</div>');
 
-            items = items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+           // items = items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
             items.forEach(function (item, index, array) {
                 var itemId = item.assetid || item.id;
@@ -1584,27 +1584,32 @@
                     logConsole(game_name + ': ' + asset.name);
                     logConsole('Current price: ' + price / 100.0);
 
-                    var sellPrice = calculateSellPriceBeforeFees(history, histogram, false, priceInfo.minPriceBeforeFees, priceInfo.maxPriceBeforeFees);
+                    // Calculate two prices here, one without the offset and one with the offset.
+                    // The price without the offset is required to not relist the item constantly when you have the lowest price (i.e., with a negative offset).
+                    // The price with the offset should be used for relisting so it will still apply the user-set offset.
 
-                    logConsole('Calculated price: ' + market.getPriceIncludingFees(sellPrice) / 100.0 + ' (' + sellPrice / 100.0 + ')');
+                    var sellPriceWithoutOffset = calculateSellPriceBeforeFees(history, histogram, false, priceInfo.minPriceBeforeFees, priceInfo.maxPriceBeforeFees);
+                    var sellPriceWithOffset = calculateSellPriceBeforeFees(history, histogram, true, priceInfo.minPriceBeforeFees, priceInfo.maxPriceBeforeFees);
 
-                    var sellPriceIncludingFees = market.getPriceIncludingFees(sellPrice);
-                    listingUI.addClass('price_' + sellPrice);
+                    var sellPriceWithoutOffsetWithFees = market.getPriceIncludingFees(sellPriceWithoutOffset);
+                    
+                    logConsole('Calculated price: ' + sellPriceWithoutOffsetWithFees / 100.0 + ' (' + sellPriceWithoutOffset / 100.0 + ')');
+                    
+                    listingUI.addClass('price_' + sellPriceWithOffset);
 
-                    $('.market_listing_my_price', listingUI).last().prop('title', 'Best price is ' + (sellPriceIncludingFees / 100.0) + user_currency);
+                    $('.market_listing_my_price', listingUI).last().prop('title', 'Best price is ' + (sellPriceWithoutOffsetWithFees / 100.0) + user_currency);
 
-                    if (sellPriceIncludingFees < price) {
+                    if (sellPriceWithoutOffsetWithFees < price) {
                         logConsole('Sell price is too high.');
 
                         $('.market_listing_my_price', listingUI).last().css('background', COLOR_PRICE_EXPENSIVE);
                         listingUI.addClass('overpriced');
 
-                        // TODO: CHECK IF THIS IS STILL WORKING :-)
                         if (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1) {
                             queueOverpricedItemListing(listing.listingid);
                         }
                     }
-                    else if (sellPriceIncludingFees > price) {
+                    else if (sellPriceWithoutOffsetWithFees > price) {
                         logConsole('Sell price is too low.');
 
                         $('.market_listing_my_price', listingUI).last().css('background', COLOR_PRICE_CHEAP);
