@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     4.6.5
+// @version     4.7.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -62,7 +62,9 @@
             : PAGE_INVENTORY);
 
     var market = new SteamMarket(g_rgAppContextData, typeof g_strInventoryLoadURL !== 'undefined' ? g_strInventoryLoadURL : location.protocol + '//steamcommunity.com/my/inventory/json/', isLoggedIn ? g_rgWalletInfo : undefined);
-    var user_currency = GetCurrencySymbol(GetCurrencyCode(isLoggedIn ? market.walletInfo.wallet_currency : 1));
+
+    var currencyId = isLoggedIn && typeof market !== 'undefined' && typeof market.walletInfo !== 'undefined' && typeof market.walletInfo.wallet_currency !== 'undefined' ? market.walletInfo.wallet_currency : 3;
+    var currencySymbol = GetCurrencySymbol(GetCurrencyCode(currencyId));
 
     function SteamMarket(appContext, inventoryUrl, walletInfo) {
         this.appContext = appContext;
@@ -274,6 +276,9 @@
     function calculateSellPriceBeforeFees(history, histogram, applyOffset, minPriceBeforeFees, maxPriceBeforeFees) {
         var historyPrice = calculateAverageHistoryPriceBeforeFees(history);
         var listingPrice = calculateListingPriceBeforeFees(histogram);
+
+        console.log(histogram);
+        console.log(listingPrice);
 
         var shouldUseAverage = getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1;
 
@@ -649,8 +654,7 @@
                     return;
                 }
 
-                var currency = market.walletInfo.wallet_currency;
-                var url = window.location.protocol + '//steamcommunity.com/market/itemordershistogram?language=english&currency=' + currency + '&item_nameid=' + item_nameid + '&two_factor=0';
+                var url = window.location.protocol + '//steamcommunity.com/market/itemordershistogram?language=english&currency=' + currencyId + '&item_nameid=' + item_nameid + '&two_factor=0';
 
                 $.get(url,
                     function (pageHistogram) {
@@ -669,18 +673,23 @@
     // Calculate the price before fees (seller price) from the buyer price
     SteamMarket.prototype.getPriceBeforeFees = function (price, item) {
         var publisherFee = -1;
+
         if (typeof item !== 'undefined') {
             if (typeof item.market_fee !== 'undefined')
                 publisherFee = item.market_fee;
             else if (typeof item.description !== 'undefined' && typeof item.description.market_fee !== 'undefined')
                 publisherFee = item.description.market_fee;
         }
-        if (publisherFee == -1)
-            publisherFee = this.walletInfo['wallet_publisher_fee_percent_default'];
+
+        if (publisherFee == -1) {
+            if (typeof this.walletInfo !== 'undefined')
+                publisherFee = this.walletInfo['wallet_publisher_fee_percent_default'];
+            else
+                publisherFee = 0.10;
+        }
 
         price = Math.round(price);
         var feeInfo = CalculateFeeAmount(price, publisherFee, this.walletInfo);
-
         return price - feeInfo.fees;
     };
 
@@ -693,12 +702,15 @@
             else if (typeof item.description !== 'undefined' && typeof item.description.market_fee !== 'undefined')
                 publisherFee = item.description.market_fee;
         }
-        if (publisherFee == -1)
-            publisherFee = this.walletInfo['wallet_publisher_fee_percent_default'];
+        if (publisherFee == -1) {
+            if (typeof this.walletInfo !== 'undefined')
+                publisherFee = this.walletInfo['wallet_publisher_fee_percent_default'];
+            else
+                publisherFee = 0.10;
+        }
 
         price = Math.round(price);
         var feeInfo = CalculateAmountToSendForDesiredReceivedAmount(price, publisherFee, this.walletInfo);
-
         return feeInfo.amount;
     };
     //#endregion
@@ -805,8 +817,10 @@
     }
 
     function CalculateFeeAmount(amount, publisherFee, walletInfo) {
-        if (!walletInfo['wallet_fee'])
-            return 0;
+        if (typeof walletInfo === 'undefined' || !walletInfo['wallet_fee']) {
+            return { fees: 0 };
+        }
+
         publisherFee = (typeof publisherFee == 'undefined') ? 0 : publisherFee;
         // Since CalculateFeeAmount has a Math.floor, we could be off a cent or two. Let's check:
         var iterations = 0; // shouldn't be needed, but included to be sure nothing unforseen causes us to get stuck
@@ -848,9 +862,10 @@
 
     // Strangely named function, it actually works out the fees and buyer price for a seller price
     function CalculateAmountToSendForDesiredReceivedAmount(receivedAmount, publisherFee, walletInfo) {
-        if (!walletInfo['wallet_fee']) {
-            return receivedAmount;
+        if (typeof walletInfo === 'undefined' || !walletInfo['wallet_fee']) {
+            return { amount: receivedAmount };
         }
+
         publisherFee = (typeof publisherFee == 'undefined') ? 0 : publisherFee;
         var nSteamFee = parseInt(Math.floor(Math.max(receivedAmount * parseFloat(walletInfo['wallet_fee_percent']), walletInfo['wallet_fee_minimum']) + parseInt(walletInfo['wallet_fee_base'])));
         var nPublisherFee = parseInt(Math.floor(publisherFee > 0 ? Math.max(receivedAmount * publisherFee, 1) : 0));
@@ -939,7 +954,7 @@
                 var padLeft = padLeftZero('' + numberOfProcessedItemsInSellQueue, digits) + ' / ' + queuedItems.length;
 
                 if (!err) {
-                    logDOM(padLeft + ' - ' + itemName + ' added to market for ' + (market.getPriceIncludingFees(task.sellPrice) / 100.0).toFixed(2) + user_currency + '.');
+                    logDOM(padLeft + ' - ' + itemName + ' added to market for ' + (market.getPriceIncludingFees(task.sellPrice) / 100.0).toFixed(2) + currencySymbol + '.');
 
                     $('#' + task.item.appid + '_' + task.item.contextid + '_' + itemId).css('background', COLOR_SUCCESS);
                 } else {
@@ -1056,7 +1071,7 @@
                 '<div style="text-align:center">Selling items</div>' +
                 '</div>');
 
-           // items = items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+            // items = items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
             items.forEach(function (item, index, array) {
                 var itemId = item.assetid || item.id;
@@ -1249,7 +1264,7 @@
                 prices.forEach(function (e) {
                     buttons += '<a class="item_market_action_button item_market_action_button_green quick_sell" id="quick_sell' + e + '">' +
                         '<span class="item_market_action_button_edge item_market_action_button_left"></span>' +
-                        '<span class="item_market_action_button_contents">' + (e / 100.0) + user_currency + '</span>' +
+                        '<span class="item_market_action_button_contents">' + (e / 100.0) + currencySymbol + '</span>' +
                         '<span class="item_market_action_button_edge item_market_action_button_right"></span>' +
                         '<span class="item_market_action_button_preload"></span>' +
                         '</a>'
@@ -1458,10 +1473,12 @@
                 }
 
                 var sellPrice = calculateSellPriceBeforeFees(null, histogram, false, 0, 65535);
+                var itemPrice = sellPrice == 65535 ? '∞' : (market.getPriceIncludingFees(sellPrice) / 100.0).toFixed(2) + currencySymbol;
+
                 var elementName = (currentPage == PAGE_TRADEOFFER ? '#item' : '#') + item.appid + '_' + item.contextid + '_' + item.id;
                 var element = $(elementName);
                 $('.inventory_item_price', element).remove();
-                element.append('<span class="inventory_item_price">' + (market.getPriceIncludingFees(sellPrice) / 100.0).toFixed(2) + user_currency + '</span>');
+                element.append('<span class="inventory_item_price">' + itemPrice + '</span>');
 
                 return callback(true, cachedListings);
             });
@@ -1592,12 +1609,12 @@
                     var sellPriceWithOffset = calculateSellPriceBeforeFees(history, histogram, true, priceInfo.minPriceBeforeFees, priceInfo.maxPriceBeforeFees);
 
                     var sellPriceWithoutOffsetWithFees = market.getPriceIncludingFees(sellPriceWithoutOffset);
-                    
+
                     logConsole('Calculated price: ' + sellPriceWithoutOffsetWithFees / 100.0 + ' (' + sellPriceWithoutOffset / 100.0 + ')');
-                    
+
                     listingUI.addClass('price_' + sellPriceWithOffset);
 
-                    $('.market_listing_my_price', listingUI).last().prop('title', 'Best price is ' + (sellPriceWithoutOffsetWithFees / 100.0) + user_currency);
+                    $('.market_listing_my_price', listingUI).last().prop('title', 'Best price is ' + (sellPriceWithoutOffsetWithFees / 100.0) + currencySymbol);
 
                     if (sellPriceWithoutOffsetWithFees < price) {
                         logConsole('Sell price is too high.');
@@ -2232,7 +2249,7 @@
     }
 
     function initializeTradeOfferUI() {
-        $('.trade_item_box').observe('childlist subtree', function (record) {
+        $('.trade_right > div > div > div > .trade_item_box').observe('childlist subtree', function (record) {
             $('#trade_offer_your_sum').remove();
             $('#trade_offer_their_sum').remove();
 
@@ -2248,16 +2265,16 @@
         if (!window.location.href.includes('tradeoffer/new'))
             return;
 
-        $('.trade_box_contents').observe('childlist', '.inventory_page:visible', function (record) {
+        $('#inventories').observe('childlist', '.inventory_page:visible', function (record) {
             // Fixes a rendering bug from Steam.
             ShowTagFilters();
             setTimeout(HideTagFilters, 10);
 
-            // Loads the prices for the inventory items.
             var tradeOfferItems = [];
             for (var i = 0; i < g_ActiveInventory.rgItemElements.length; i++) {
                 tradeOfferItems.push(g_ActiveInventory.rgItemElements[i].rgItem);
             }
+
             setInventoryPrices(tradeOfferItems);
         });
 
@@ -2273,6 +2290,9 @@
             $('.inventory_ctn:visible > .inventory_page:visible > .itemHolder:visible').delayedEach(250, function (i, it) {
                 var item = it.rgItem;
                 if (item.is_stackable)
+                    return;
+
+                if (!item.tradable)
                     return;
 
                 MoveItemToTrade(it);
