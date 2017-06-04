@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     4.8.0
+// @version     4.8.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -50,7 +50,7 @@
     var queuedItems = [];
     var spinnerBlock = '<div class="spinner"><div class="rect1"></div>&nbsp;<div class="rect2"></div>&nbsp;<div class="rect3"></div>&nbsp;<div class="rect4"></div>&nbsp;<div class="rect5"></div>&nbsp;</div>';
 
-    var enableConsoleLog = false;
+    var enableConsoleLog = true;
 
     var isLoggedIn = typeof g_rgWalletInfo !== 'undefined' || (typeof g_bLoggedIn !== 'undefined' && g_bLoggedIn);
 
@@ -1158,7 +1158,6 @@
     // Initialize the inventory UI.
     function initializeInventoryUI() {
         var isOwnInventory = g_ActiveUser.strSteamId == g_steamID;
-
         var previousSelection = -1; // To store the index of the previous selection.
         updateInventoryUI(isOwnInventory);
 
@@ -1170,7 +1169,7 @@
         if (!isOwnInventory)
             return;
 
-        var filter = ".itemHolder";
+        var filter = ".itemHolder:not([style*=none])"; // Steam adds 'display:none' to items while searching. These should not be selected while using shift/ctrl.
         $('#inventories').selectable({
             filter: filter,
             selecting: function (e, ui) {
@@ -1181,7 +1180,7 @@
                             $(this).addClass('ui-selected');
                         }
                     });
-                    previousSelection = 0; // Reset previous.
+                    previousSelection = -1; // Reset previous.
                 } else {
                     previousSelection = selectedIndex; // Save previous.					
                 }
@@ -1361,7 +1360,7 @@
 
         var appId = g_ActiveInventory.m_appid;
         var showCardOptions = appId == 753;
-        
+
         var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
             '<a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>Sell All Items</span></a>&nbsp;&nbsp;&nbsp;' +
             '<a class="btn_green_white_innerfade btn_medium_wide sell_selected"><span>Sell Selected Items</span></a>&nbsp;&nbsp;&nbsp;' +
@@ -1396,7 +1395,7 @@
         $('.reload_inventory').on('click', '*', function () {
             window.location.reload();
         });
-        
+
         var inventoryItems = null;
         var updateInventoryPrices = _.debounce(function () {
             if (inventoryItems != null) {
@@ -1449,22 +1448,22 @@
         }, 1);
 
         function inventoryPriceQueueWorker(item, ignoreErrors, callback) {
-            
+
             var priceInfo = getPriceInformationFromItem(item);
 
             var failed = 0;
             var itemName = item.name || item.description.name;
-            
-            
+
+
             // Only get the market orders here, the history is not important to visualize the current prices.
             market.getItemOrdersHistogram(item, true, function (err, histogram, cachedListings) {
                 if (err) {
                     logConsole('Failed to get orders histogram for ' + itemName);
-                    
+
                     if (err == ERROR_FAILED)
                         failed += 1;
                 }
-                
+
                 if (failed > 0 && !ignoreErrors) {
                     return callback(false, cachedListings);
                 }
