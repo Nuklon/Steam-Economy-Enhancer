@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     4.7.5
+// @version     4.8.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -17,6 +17,7 @@
 // @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.4.3/localforage.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min.js
 // @require     https://raw.githubusercontent.com/javve/list.js/v1.5.0/dist/list.min.js
+// @require     http://underscorejs.org/underscore-min.js
 // @homepageURL https://github.com/Nuklon/Steam-Economy-Enhancer
 // @supportURL  https://github.com/Nuklon/Steam-Economy-Enhancer/issues
 // @downloadURL https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
@@ -627,8 +628,9 @@
                     .then(function (value) {
                         if (value != null)
                             callback(ERROR_SUCCESS, value, true);
-                        else
+                        else {
                             market.getCurrentItemOrdersHistogram(item, market_name, callback);
+                        }
                     })
                     .catch(function (error) {
                         market.getCurrentItemOrdersHistogram(item, market_name, callback);
@@ -650,7 +652,6 @@
                     callback(ERROR_DATA);
                     return;
                 }
-
                 var url = window.location.protocol + '//steamcommunity.com/market/itemordershistogram?language=english&currency=' + currencyId + '&item_nameid=' + item_nameid + '&two_factor=0';
 
                 $.get(url,
@@ -1156,12 +1157,18 @@
 
     // Initialize the inventory UI.
     function initializeInventoryUI() {
+        var isOwnInventory = g_ActiveUser.strSteamId == g_steamID;
+
         var previousSelection = -1; // To store the index of the previous selection.
-        updateInventoryUI();
+        updateInventoryUI(isOwnInventory);
 
         $('.games_list_tabs').on('click', '*', function () {
-            updateInventoryUI();
+            updateInventoryUI(isOwnInventory);
         });
+
+        // Ignore selection on other user's inventories.
+        if (!isOwnInventory)
+            return;
 
         var filter = ".itemHolder";
         $('#inventories').selectable({
@@ -1342,7 +1349,7 @@
     }
 
     // Update the inventory UI.
-    function updateInventoryUI() {
+    function updateInventoryUI(isOwnInventory) {
         // Remove previous containers (e.g., when a user changes inventory).
         $('#inventory_sell_buttons').remove();
         $('#price_options').remove();
@@ -1352,8 +1359,9 @@
         $('#global_action_menu').prepend('<span id="see_settings"><a href="javascript:void(0)">⬖ Steam Economy Enhancer</a></span>');
         $('#see_settings').on('click', '*', () => openSettings());
 
-        var showCardOptions = $('.games_list_tabs .active').attr('href').endsWith('#753');
-
+        var appId = g_ActiveInventory.m_appid;
+        var showCardOptions = appId == 753;
+        
         var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
             '<a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>Sell All Items</span></a>&nbsp;&nbsp;&nbsp;' +
             '<a class="btn_green_white_innerfade btn_medium_wide sell_selected"><span>Sell Selected Items</span></a>&nbsp;&nbsp;&nbsp;' +
@@ -1372,38 +1380,25 @@
             userScrolled = !hasUserScrolledToBottom;
         });
 
-        $('#inventory_applogo').after(sellButtons);
+        // Only add buttons on the user's inventory.
+        if (isOwnInventory) {
+            $('#inventory_applogo').after(sellButtons);
+
+            // Add bindings to sell buttons.
+            $('.sell_all').on('click', '*', function () {
+                sellAllItems(appId);
+            });
+            $('.sell_selected').on('click', '*', sellSelectedItems);
+            $('.sell_all_cards').on('click', '*', sellAllCards);
+        }
 
         $('.inventory_rightnav').prepend(reloadButton);
-
-        var appId = $('.games_list_tabs .active')[0].hash.replace(/^#/, '');
-
-        // Add bindings to all extra buttons.
-        $('.sell_all').on('click', '*', function () {
-            sellAllItems(appId);
-        });
-        $('.sell_selected').on('click', '*', sellSelectedItems);
-        $('.sell_all_cards').on('click', '*', sellAllCards);
-
         $('.reload_inventory').on('click', '*', function () {
             window.location.reload();
         });
-
+        
         var inventoryItems = null;
-
-        // Load the inventory prices.
-        market.getInventory(appId, function (err, items) {
-            if (err)
-                return logDOM('Something went wrong fetching inventory, try again...');
-            else {
-                inventoryItems = items;
-                setInventoryPrices(items);
-            }
-        });
-
-        // The inventory is loaded async, so the item prices need to be set after a change as well.
-        $('#inventory_pagecontrols').on('click', '*.pagebtn', function () {
-            // Load the inventory prices.
+        var updateInventoryPrices = _.debounce(function () {
             if (inventoryItems != null) {
                 setInventoryPrices(inventoryItems);
             } else {
@@ -1415,6 +1410,10 @@
                     }
                 });
             }
+        }, 500);
+
+        $('#inventory_pagecontrols').observe('childlist', '*', function (record) {
+            updateInventoryPrices();
         });
     }
 
@@ -1423,7 +1422,7 @@
         var inventoryPriceQueue = async.queue(function (item, next) {
             var numberOfFailedItems = 0;
 
-            inventoryPriceQueueWorker(item, item.ignoreErrors, function (success, cached) {
+            inventoryPriceQueueWorker(item, false, function (success, cached) {
                 if (success) {
                     if (numberOfFailedItems > 0)
                         numberOfFailedItems--;
@@ -1450,21 +1449,22 @@
         }, 1);
 
         function inventoryPriceQueueWorker(item, ignoreErrors, callback) {
-
+            
             var priceInfo = getPriceInformationFromItem(item);
 
             var failed = 0;
             var itemName = item.name || item.description.name;
-
+            
+            
             // Only get the market orders here, the history is not important to visualize the current prices.
             market.getItemOrdersHistogram(item, true, function (err, histogram, cachedListings) {
                 if (err) {
                     logConsole('Failed to get orders histogram for ' + itemName);
-
+                    
                     if (err == ERROR_FAILED)
                         failed += 1;
                 }
-
+                
                 if (failed > 0 && !ignoreErrors) {
                     return callback(false, cachedListings);
                 }
@@ -2246,7 +2246,7 @@
     }
 
     function initializeTradeOfferUI() {
-        
+
         $('.trade_right > div > div > div > .trade_item_box').observe('childlist subtree', function (record) {
             $('#trade_offer_your_sum').remove();
             $('#trade_offer_their_sum').remove();
@@ -2263,19 +2263,18 @@
         if (!window.location.href.includes('tradeoffer/new'))
             return;
 
-        $('#inventory_pagecontrols').observe('childlist', '*', function (record) {
-            // Fixes a rendering bug from Steam.
-            ShowTagFilters();
-            setTimeout(HideTagFilters, 10);
-
+        var updateInventoryPrices = _.debounce(function () {
             var tradeOfferItems = [];
             for (var i = 0; i < g_ActiveInventory.rgItemElements.length; i++) {
                 tradeOfferItems.push(g_ActiveInventory.rgItemElements[i].rgItem);
             }
 
             setInventoryPrices(tradeOfferItems);
-        });
+        }, 500);
 
+        $('#inventory_pagecontrols').observe('childlist', '*', function (record) {
+            updateInventoryPrices();
+        });
 
         $('#inventory_displaycontrols').append(
             '<br/>' +
