@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     4.7.0
+// @version     4.7.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -2246,6 +2246,7 @@
     }
 
     function initializeTradeOfferUI() {
+        
         $('.trade_right > div > div > div > .trade_item_box').observe('childlist subtree', function (record) {
             $('#trade_offer_your_sum').remove();
             $('#trade_offer_their_sum').remove();
@@ -2262,7 +2263,7 @@
         if (!window.location.href.includes('tradeoffer/new'))
             return;
 
-        $('#inventories').observe('childlist', '.inventory_page:visible', function (record) {
+        $('#inventory_pagecontrols').observe('childlist', '*', function (record) {
             // Fixes a rendering bug from Steam.
             ShowTagFilters();
             setTimeout(HideTagFilters, 10);
@@ -2274,6 +2275,7 @@
 
             setInventoryPrices(tradeOfferItems);
         });
+
 
         $('#inventory_displaycontrols').append(
             '<br/>' +
