@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     4.8.5
+// @version     4.9.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -339,83 +339,7 @@
     //#endregion
 
     //#region Steam Market
-    // Gets all items in your inventory for a game
-    // e.g.
-    // [: { // An item
-    //          id: 1000,
-    //          market_name: "Bloodstone of the Ancestor",
-    //          ....
-    //    }
-    // ]
-    //
-    // Item:
-    //{"id":"60967810",
-    //	"classid":"171856304",
-    //	"instanceid":"256346122",
-    //	"amount":"1",
-    //	"pos":5,
-    //	"appid":"753",
-    //	"icon_url":"hARaDSYycBddc2R60GxSGDxIkLxiQn5JmLy_bHmWA7dZDHTtcWUnD_Srfoj0TQCLLRODrTUIMlueveFte5cJr00FeKRtJSMM8PdzzfpTH48wAdb4bV1mCsqtt3V2nFOKXgtu9mZgBRL67HKf_kAbwD1Rhas9UGNY1O7sNynAVuwbAy_9aX58Ufi8eI6jGwyHMFjd9WFdMlvbv-o4e8xAqkIFO_tnOSAF69tyhvpECttnXoCtbF1oDdrs7DF7z17iSVMuqDx8dQb6sC-Po0AL32xa3fVrDmcDwqmwZjyPU-s=",
-    //	"icon_url_large":"hARaDSYycBddc2R60GxSGDxIkLxiQn5JmLy_bHmWA7dZDHTtcWUnD_Srfoj0TQCLLRODrTUIMlueveFte5cJr00FeKRtJSMM8PdzzfpTH48wAdb4bV1mCsqtt3V2nFOKXgtu9mZgBRL67HKf_kAbwD1Rhas9UGNY1O7sNynAVuwbAy_9aX58Ufi8eI6jGwyHMFjd9WFdMlvbv-o4e8xAqkIFO_tnOSAF69tyhvpECttnXoCtbF1oDdrs7DF7z17iSVMuqDx8dQb6sC-Po0AL32xa3fVrDmcDwqmwZjyPU-s=",
-    //	"icon_drag_url":"",
-    //	"name":"Prison Architect",
-    //	"market_hash_name":"245070-Prison Architect",
-    //	"market_name":"Prison Architect",
-    //	"name_color":"",
-    //	"background_color":"",
-    //	"type":"Steam Summer Getaway Trading Card",
-    //	"tradable":1,
-    //	"marketable":1,
-    //	"market_fee_app":"233450",
-    //	"descriptions":[{"value":""}],
-    //	"owner_actions":[{"name":"View badge progress","link":"http://steamcommunity.com/my/gamecards/245070/"}],
-    //	"tags":[{"internal_name":"droprate_0","name":"Common","category":"droprate","category_name":"Rarity"},{"internal_name":"app_245070","name":"Steam Summer Getaway","category":"Game","category_name":"Game"},{"internal_name":"item_class_2","name":"Trading Card","category":"item_class","category_name":"Item Type"}],
-    //	"contextid":"6"}
-    SteamMarket.prototype.getInventory = function (gameId, callback/*(error, inventory)*/) {
-        var self = this;
-        var game = this.getGames()[gameId];
-        var contextId;
-        var tasks = {};
-
-        // Build the requests for each inventory context as tasks for async
-        for (contextId in game.rgContexts) {
-            tasks[contextId] = (function (contextId) {
-                return function (next) {
-                    $.get(self.inventoryUrl + gameId + '/' + contextId + '/', function (data) {
-                        if (!data && !data.success) {
-                            return next(true);
-                        }
-
-                        next(null, data);
-                    }, 'json');
-                }
-            })(contextId);
-        }
-
-        // Request all the inventories
-        async.parallel(tasks, function (err, results) {
-            if (err) {
-                return callback(err);
-            }
-
-            var items = [];
-
-            for (var id in results) {
-                if (results[id].rgInventory.length === 0) {
-                    continue;
-                }
-                results[id] = denormalizeItems(results[id], id);
-
-                for (var i in results[id]) {
-                    results[id][i].contextid = id;
-                    items.push(results[id][i]);
-                }
-            }
-
-            callback(ERROR_SUCCESS, items);
-        });
-    };
-
+   
     // Sell an item with a price in cents.
     // Price is before fees.
     SteamMarket.prototype.sellItem = function (item, price, callback/*err, data*/) {
@@ -975,42 +899,40 @@
         }
 
         function sellAllItems(appId) {
-            market.getInventory(appId, function (err, items) {
-                if (err)
-                    return logDOM('Something went wrong fetching inventory, try again...');
-                else {
-                    var filteredItems = [];
+            g_ActiveInventory.LoadCompleteInventory().then(function () {
+                var items = getInventoryItems();
+                var filteredItems = [];
 
-                    items.forEach(function (item) {
-                        if (!item.marketable) {
-                            return;
-                        }
+                items.forEach(function (item) {
+                    if (!item.marketable) {
+                        return;
+                    }
 
-                        filteredItems.push(item);
-                    });
+                    filteredItems.push(item);
+                });
 
-                    sellItems(filteredItems);
-                }
+                sellItems(filteredItems);
+            }, function () {
+                logDOM('Could not retrieve the inventory...');
             });
         }
 
         function sellAllCards() {
-            market.getInventory(STEAM_INVENTORY_ID, function (err, items) {
-                if (err)
-                    return logDOM('Something went wrong fetching inventory, try again...');
-                else {
-                    var filteredItems = [];
+            g_ActiveInventory.LoadCompleteInventory().then(function () {
+                var items = getInventoryItems();
+                var filteredItems = [];
 
-                    items.forEach(function (item) {
-                        if (!getIsTradingCard(item) || !item.marketable) {
-                            return;
-                        }
+                items.forEach(function (item) {
+                    if (!getIsTradingCard(item) || !item.marketable) {
+                        return;
+                    }
 
-                        filteredItems.push(item);
-                    });
+                    filteredItems.push(item);
+                });
 
-                    sellItems(filteredItems);
-                }
+                sellItems(filteredItems);
+            }, function () {
+                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -1034,11 +956,8 @@
                 });
             });
 
-            var appId = $('.games_list_tabs .active')[0].hash.replace(/^#/, '');
-            market.getInventory(appId, function (err, items) {
-                if (err)
-                    return logDOM('Something went wrong fetching inventory, try again...');
-
+            g_ActiveInventory.LoadCompleteInventory().then(function () {
+                var items = getInventoryItems();
                 var filteredItems = [];
 
                 items.forEach(function (item) {
@@ -1051,8 +970,10 @@
                         filteredItems.push(item);
                     }
                 });
-
+                
                 sellItems(filteredItems);
+            }, function () {
+                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -1068,9 +989,7 @@
                 spinnerBlock +
                 '<div style="text-align:center">Selling items</div>' +
                 '</div>');
-
-            // items = items.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-
+            
             items.forEach(function (item, index, array) {
                 var itemId = item.assetid || item.id;
                 if (queuedItems.indexOf(itemId) == -1) {
@@ -1292,61 +1211,6 @@
             });
     }
 
-    function openSettings() {
-        var price_options = $('<div id="price_options">' +
-            '<div style="margin-bottom:6px;">' +
-            'Calculate prices as the:&nbsp;<select class="price_option_input" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
-            '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>maximum of the average (12 hours) and lowest listing</option>' +
-            '<option value="2" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : '') + '>lowest listing</option>' +
-            '</select>' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-bottom:6px;">' +
-            'The value to add to the calculated price (minimum and maximum are respected):&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-top:6px">' +
-            'Use the second lowest listing when the lowest listing has a low quantity:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_PRICE_IGNORE_LOWEST_Q + '" ' + (getSettingWithDefault(SETTING_PRICE_IGNORE_LOWEST_Q) == 1 ? 'checked=""' : '') + '>' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-top:24px">' +
-            '<div style="margin-bottom:6px;">' +
-            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
-            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;price for normal cards' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-bottom:6px;">' +
-            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
-            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_FOIL_PRICE) + '>&nbsp;price for foil cards' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-bottom:6px;">' +
-            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
-            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;price for other items' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-top:24px;">' +
-            'Market items per page:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MARKET_PAGE_COUNT + '" value=' + getSettingWithDefault(SETTING_MARKET_PAGE_COUNT) + '>' +
-            '<br/>' +
-            '</div>' +
-            '</div>');
-
-        var dialog = ShowConfirmDialog('Steam Economy Enhancer', price_options).done(function () {
-            setSetting(SETTING_MIN_NORMAL_PRICE, $('#' + SETTING_MIN_NORMAL_PRICE, price_options).val());
-            setSetting(SETTING_MAX_NORMAL_PRICE, $('#' + SETTING_MAX_NORMAL_PRICE, price_options).val());
-            setSetting(SETTING_MIN_FOIL_PRICE, $('#' + SETTING_MIN_FOIL_PRICE, price_options).val());
-            setSetting(SETTING_MAX_FOIL_PRICE, $('#' + SETTING_MAX_FOIL_PRICE, price_options).val());
-            setSetting(SETTING_MIN_MISC_PRICE, $('#' + SETTING_MIN_MISC_PRICE, price_options).val());
-            setSetting(SETTING_MAX_MISC_PRICE, $('#' + SETTING_MAX_MISC_PRICE, price_options).val());
-            setSetting(SETTING_PRICE_OFFSET, $('#' + SETTING_PRICE_OFFSET, price_options).val());
-            setSetting(SETTING_PRICE_ALGORITHM, $('#' + SETTING_PRICE_ALGORITHM, price_options).val());
-            setSetting(SETTING_MARKET_PAGE_COUNT, $('#' + SETTING_MARKET_PAGE_COUNT, price_options).val());
-            setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $('#' + SETTING_PRICE_IGNORE_LOWEST_Q, price_options).prop('checked') ? 1 : 0);
-
-            window.location.reload();
-        });
-    }
-
     // Update the inventory UI.
     function updateInventoryUI(isOwnInventory) {
         // Remove previous containers (e.g., when a user changes inventory).
@@ -1396,28 +1260,44 @@
             window.location.reload();
         });
 
-        var inventoryItems = null;
-        var updateInventoryPrices = _.debounce(function () {
-            if (inventoryItems != null) {
-                setInventoryPrices(inventoryItems);
-            } else {
-                market.getInventory(appId, function (err, items) {
-                    if (err)
-                        return logDOM('Something went wrong fetching inventory, try again...');
-                    else {
-                        setInventoryPrices(items);
-                    }
-                });
-            }
-        }, 500);
+        g_ActiveInventory.LoadCompleteInventory().then(function () {
+            var inventoryItems = null;
+            var updateInventoryPrices = _.debounce(function () {
+                setInventoryPrices(getInventoryItems());
+            }, 500);
 
-        $('#inventory_pagecontrols').observe('childlist', '*', function (record) {
+            // Load after the inventory is loaded.
             updateInventoryPrices();
+
+            $('#inventory_pagecontrols').observe('childlist', '*', function (record) {
+                updateInventoryPrices();
+            });
+        }, function () {
+            logDOM('Could not retrieve the inventory...');
         });
+    }
+
+    // Gets the inventory items from the active inventory.
+    function getInventoryItems() {
+        var arr = [];
+
+        for (var key in g_ActiveInventory.m_rgAssets) {
+            var value = g_ActiveInventory.m_rgAssets[key];
+            if (typeof value === 'object') {
+                // Merges the description in the normal object, this is done to keep the layout consistent with the market page, which is also flattened.
+                Object.assign(value, value.description);
+                // Includes the id of the inventory item.
+                value['id'] = key;
+                arr.push(value);
+            }
+        }
+
+        return arr;
     }
 
     // Sets the prices for the items.
     function setInventoryPrices(items) {
+
         var inventoryPriceQueue = async.queue(function (item, next) {
             var numberOfFailedItems = 0;
 
@@ -1448,7 +1328,6 @@
         }, 1);
 
         function inventoryPriceQueueWorker(item, ignoreErrors, callback) {
-
             var priceInfo = getPriceInformationFromItem(item);
 
             var failed = 0;
@@ -1473,6 +1352,7 @@
 
                 var elementName = (currentPage == PAGE_TRADEOFFER ? '#item' : '#') + item.appid + '_' + item.contextid + '_' + item.id;
                 var element = $(elementName);
+
                 $('.inventory_item_price', element).remove();
                 element.append('<span class="inventory_item_price">' + itemPrice + '</span>');
 
@@ -2294,6 +2174,63 @@
 
                 MoveItemToTrade(it);
             });
+        });
+    }
+    //#endregion
+
+    //#region Settings
+    function openSettings() {
+        var price_options = $('<div id="price_options">' +
+            '<div style="margin-bottom:6px;">' +
+            'Calculate prices as the:&nbsp;<select class="price_option_input" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
+            '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>maximum of the average (12 hours) and lowest listing</option>' +
+            '<option value="2" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : '') + '>lowest listing</option>' +
+            '</select>' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-bottom:6px;">' +
+            'The value to add to the calculated price (minimum and maximum are respected):&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-top:6px">' +
+            'Use the second lowest listing when the lowest listing has a low quantity:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_PRICE_IGNORE_LOWEST_Q + '" ' + (getSettingWithDefault(SETTING_PRICE_IGNORE_LOWEST_Q) == 1 ? 'checked=""' : '') + '>' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-top:24px">' +
+            '<div style="margin-bottom:6px;">' +
+            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
+            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;price for normal cards' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-bottom:6px;">' +
+            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
+            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_FOIL_PRICE) + '>&nbsp;price for foil cards' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-bottom:6px;">' +
+            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
+            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;price for other items' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-top:24px;">' +
+            'Market items per page:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MARKET_PAGE_COUNT + '" value=' + getSettingWithDefault(SETTING_MARKET_PAGE_COUNT) + '>' +
+            '<br/>' +
+            '</div>' +
+            '</div>');
+
+        var dialog = ShowConfirmDialog('Steam Economy Enhancer', price_options).done(function () {
+            setSetting(SETTING_MIN_NORMAL_PRICE, $('#' + SETTING_MIN_NORMAL_PRICE, price_options).val());
+            setSetting(SETTING_MAX_NORMAL_PRICE, $('#' + SETTING_MAX_NORMAL_PRICE, price_options).val());
+            setSetting(SETTING_MIN_FOIL_PRICE, $('#' + SETTING_MIN_FOIL_PRICE, price_options).val());
+            setSetting(SETTING_MAX_FOIL_PRICE, $('#' + SETTING_MAX_FOIL_PRICE, price_options).val());
+            setSetting(SETTING_MIN_MISC_PRICE, $('#' + SETTING_MIN_MISC_PRICE, price_options).val());
+            setSetting(SETTING_MAX_MISC_PRICE, $('#' + SETTING_MAX_MISC_PRICE, price_options).val());
+            setSetting(SETTING_PRICE_OFFSET, $('#' + SETTING_PRICE_OFFSET, price_options).val());
+            setSetting(SETTING_PRICE_ALGORITHM, $('#' + SETTING_PRICE_ALGORITHM, price_options).val());
+            setSetting(SETTING_MARKET_PAGE_COUNT, $('#' + SETTING_MARKET_PAGE_COUNT, price_options).val());
+            setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $('#' + SETTING_PRICE_IGNORE_LOWEST_Q, price_options).prop('checked') ? 1 : 0);
+
+            window.location.reload();
         });
     }
     //#endregion
