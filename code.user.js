@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.0.0
+// @version     5.0.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1468,6 +1468,10 @@
                         return callback(false, cachedHistory && cachedListings);
                     }
 
+                    // Shows the highest buy order price on the market listings.
+                    // The 'histogram.highest_buy_order' is not reliable as Steam is caching this value, but it gives some idea for older titles/listings.
+                    $('.market_table_value > span:nth-child(1) > span:nth-child(1) > span:nth-child(1)', listingUI).append(' ➤ <span title="This is likely the highest buy order price.">' + (histogram.highest_buy_order == null ? '-' : ((histogram.highest_buy_order / 100) + currencySymbol)) + '</span>');
+                    
                     logConsole('============================')
                     logConsole(JSON.stringify(listing));
                     logConsole(game_name + ': ' + asset.name);
@@ -1486,7 +1490,7 @@
 
                     listingUI.addClass('price_' + sellPriceWithOffset);
 
-                    $('.market_listing_my_price', listingUI).last().prop('title', 'Best price is ' + (sellPriceWithoutOffsetWithFees / 100.0) + currencySymbol);
+                    $('.market_listing_my_price', listingUI).last().prop('title', 'The best price is ' + (sellPriceWithoutOffsetWithFees / 100.0) + currencySymbol +'.');
 
                     if (sellPriceWithoutOffsetWithFees < price) {
                         logConsole('Sell price is too high.');
@@ -1696,6 +1700,7 @@
                 sortMarketListings($(this), false, false, true);
             });
 
+            // Add the listings to the queue to be checked for the price.
             for (var i = 0; i < marketLists.length; i++) {
                 for (var j = 0; j < marketLists[i].items.length; j++) {
                     var listingid = replaceNonNumbers(marketLists[i].items[j].values().market_listing_item_name);
