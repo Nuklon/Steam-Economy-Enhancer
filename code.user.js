@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     4.9.0
+// @version     5.0.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -50,7 +50,7 @@
     var queuedItems = [];
     var spinnerBlock = '<div class="spinner"><div class="rect1"></div>&nbsp;<div class="rect2"></div>&nbsp;<div class="rect3"></div>&nbsp;<div class="rect4"></div>&nbsp;<div class="rect5"></div>&nbsp;</div>';
 
-    var enableConsoleLog = true;
+    var enableConsoleLog = false;
 
     var isLoggedIn = typeof g_rgWalletInfo !== 'undefined' || (typeof g_bLoggedIn !== 'undefined' && g_bLoggedIn);
 
@@ -339,7 +339,7 @@
     //#endregion
 
     //#region Steam Market
-   
+
     // Sell an item with a price in cents.
     // Price is before fees.
     SteamMarket.prototype.sellItem = function (item, price, callback/*err, data*/) {
@@ -388,10 +388,6 @@
             xhrFields: { withCredentials: true },
             dataType: 'json'
         });
-    };
-
-    SteamMarket.prototype.getGames = function () {
-        return this.appContext;
     };
 
     // Get the price history for an item.
@@ -970,7 +966,7 @@
                         filteredItems.push(item);
                     }
                 });
-                
+
                 sellItems(filteredItems);
             }, function () {
                 logDOM('Could not retrieve the inventory...');
@@ -989,7 +985,7 @@
                 spinnerBlock +
                 '<div style="text-align:center">Selling items</div>' +
                 '</div>');
-            
+
             items.forEach(function (item, index, array) {
                 var itemId = item.assetid || item.id;
                 if (queuedItems.indexOf(itemId) == -1) {
@@ -1637,35 +1633,11 @@
                 var myMarketListings = $('#tabContentsMyActiveMarketListingsRows');
 
                 var nodes = $.parseHTML(data.results_html);
-                var cells = $('.market_listing_row', nodes);
-                cells.each(function (index) {
-                    $('.market_listing_cancel_button', $(this)).append('<div class="market_listing_select">' +
-                        '<input type="checkbox" class="market_select_item"/>' +
-                        '</div>');
-                });
-
-                myMarketListings.append(cells);
+                var rows = $('.market_listing_row', nodes);
+                myMarketListings.append(rows);
 
                 // g_rgAssets
                 MergeWithAssetArray(data.assets); // This is a method from Steam.
-
-                // Sometimes the Steam API is returning duplicate entries (especially during item listing), filter these.
-                var seen = {};
-                $('.market_listing_row', myMarketListings).each(function () {
-                    var item_id = $(this).attr('id');
-                    if (seen[item_id])
-                        $(this).remove();
-                    else
-                        seen[item_id] = true;
-
-                    // Remove listings awaiting confirmations, they are already listed separately.
-                    if ($('.item_market_action_button', this).attr('href').toLowerCase().includes('CancelMarketListingConfirmation'.toLowerCase()))
-                        $(this).remove();
-
-                    // Remove buy order listings, they are already listed separately.
-                    if ($('.item_market_action_button', this).attr('href').toLowerCase().includes('CancelMarketBuyOrder'.toLowerCase()))
-                        $(this).remove();
-                });
 
                 next();
             }, 'json')
@@ -1676,6 +1648,29 @@
         }, 1);
 
         marketListingsItemsQueue.drain = function () {
+            var myMarketListings = $('#tabContentsMyActiveMarketListingsRows');
+
+            // Sometimes the Steam API is returning duplicate entries (especially during item listing), filter these.
+            var seen = {};
+            $('.market_listing_row', myMarketListings).each(function () {
+                var item_id = $(this).attr('id');
+                if (seen[item_id])
+                    $(this).remove();
+                else
+                    seen[item_id] = true;
+
+                // Remove listings awaiting confirmations, they are already listed separately.
+                if ($('.item_market_action_button', this).attr('href').toLowerCase().includes('CancelMarketListingConfirmation'.toLowerCase()))
+                    $(this).remove();
+
+                // Remove buy order listings, they are already listed separately.
+                if ($('.item_market_action_button', this).attr('href').toLowerCase().includes('CancelMarketBuyOrder'.toLowerCase()))
+                    $(this).remove();
+            });
+
+            // Now add the market checkboxes.
+            addMarketCheckboxes();
+
             $('#market_listings_spinner').remove();
 
             $('.market_select_item').change(function (e) {
@@ -1711,7 +1706,7 @@
             }
 
             // Show the listings again, rendering is done.
-            $('#tabContentsMyActiveMarketListingsRows').show();
+            myMarketListings.show();
 
             injectJs(function () {
                 g_bMarketWindowHidden = true; // limit the number of requests made to steam by stopping constant polling of popular listings.
@@ -1768,16 +1763,31 @@
             marketLists.push(list);
         }
 
+        // Adds checkboxes to market listings.
+        function addMarketCheckboxes() {
+            $('.market_listing_row').each(function () {
+                // Don't add it again, one time is enough.
+                if ($('.market_listing_select', this).length == 0) {
+                    $('.market_listing_cancel_button', $(this)).append('<div class="market_listing_select">' +
+                        '<input type="checkbox" class="market_select_item"/>' +
+                        '</div>');
+                }
+            });
+        }
+
         // Process the market listings.
         function processMarketListings() {
+            addMarketCheckboxes();
+
             if (currentPage == PAGE_MARKET) {
+                // Load the market listings.
                 var currentCount = 0;
-                var totalCount = parseInt(replaceNonNumbers($('#my_market_selllistings_number').text()));
+                var totalCount = g_oMyListings.m_cTotalCount;
                 if (isNaN(totalCount) || totalCount == 0)
                     return;
 
                 $('#tabContentsMyActiveMarketListingsRows').html(''); // Clear the default listings.
-                $('#tabContentsMyActiveMarketListingsRows').hide(); // Hide the listings until everything has been loaded.
+                $('#tabContentsMyActiveMarketListingsRows').hide(); // Hide all listings until everything has been loaded.
 
                 // Hide Steam's paging controls.
                 $('#tabContentsMyActiveMarketListings_ctn').hide();
@@ -1795,14 +1805,6 @@
                 }
             } else {
                 // This is on a market item page.
-
-                var cells = $('.market_listing_row');
-                cells.each(function (index) {
-                    $('.market_listing_cancel_button', $(this)).append('<div class="market_listing_select">' +
-                        '<input type="checkbox" class="market_select_item"/>' +
-                        '</div>');
-                });
-
                 $('.market_home_listing_table').each(function (e) {
                     // Not on 'x requests to buy at y,yy or lower'.
                     if ($('#market_buyorder_info_show_details', $(this)).length > 0)
@@ -1828,18 +1830,12 @@
                             }
                         }
                     }
+
                     // appid and contextid are identical, only the assetid is different for each asset.
                     g_rgAssets[appid][contextid][assetInfo.assetid] = existingAsset;
                     marketListingsQueue.push({ listingid, appid: assetInfo.appid, contextid: assetInfo.contextid, assetid: assetInfo.assetid });
                 })
             }
-
-            // This is for buy orders and listings confirmations (this is not loaded async).
-            $('.market_listing_row').each(function () {
-                $('.market_listing_cancel_button', $(this)).append('<div class="market_listing_select">' +
-                    '<input type="checkbox" class="market_select_item"/>' +
-                    '</div>');
-            });
         }
 
         // Update the select/deselect all button on the market.
@@ -1893,7 +1889,21 @@
                 return;
 
             if (isName) {
-                list.sort('market_listing_item_name_link', { order: asc ? "asc" : "desc" });
+                list.sort('',
+                    {
+                        order: asc ? "asc" : "desc",
+                        sortFunction:
+                        function (a, b) {
+                            if (a.values().market_listing_game_name.toLowerCase()
+                                .localeCompare(b.values().market_listing_game_name.toLowerCase()) ==
+                                0) {
+                                return a.values().market_listing_item_name_link.toLowerCase()
+                                    .localeCompare(b.values().market_listing_item_name_link.toLowerCase());
+                            }
+                            return a.values().market_listing_game_name.toLowerCase()
+                                .localeCompare(b.values().market_listing_game_name.toLowerCase());
+                        }
+                    });
             } else if (isDate) {
                 var currentMonth = parseInt(Date.today().toString('M'));
 
