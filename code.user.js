@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.0.5
+// @version     5.1.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -17,6 +17,7 @@
 // @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.4.3/localforage.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min.js
 // @require     https://raw.githubusercontent.com/javve/list.js/v1.5.0/dist/list.min.js
+// @require     https://github.com/rmariuzzo/checkboxes.js/releases/download/v1.2.0/jquery.checkboxes-1.2.0.min.js
 // @require     http://underscorejs.org/underscore-min.js
 // @homepageURL https://github.com/Nuklon/Steam-Economy-Enhancer
 // @supportURL  https://github.com/Nuklon/Steam-Economy-Enhancer/issues
@@ -1653,6 +1654,7 @@
 
         marketListingsItemsQueue.drain = function () {
             var myMarketListings = $('#tabContentsMyActiveMarketListingsRows');
+            myMarketListings.checkboxes('range', true);
 
             // Sometimes the Steam API is returning duplicate entries (especially during item listing), filter these.
             var seen = {};
