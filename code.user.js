@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.1.0
+// @version     5.1.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -50,6 +50,7 @@
     var marketLists = [];
     var queuedItems = [];
     var spinnerBlock = '<div class="spinner"><div class="rect1"></div>&nbsp;<div class="rect2"></div>&nbsp;<div class="rect3"></div>&nbsp;<div class="rect4"></div>&nbsp;<div class="rect5"></div>&nbsp;</div>';
+    var numberOfFailedRequests = 0;
 
     var enableConsoleLog = false;
 
@@ -510,8 +511,8 @@
 
                 callback(ERROR_SUCCESS, item_nameid);
             })
-            .fail(function () {
-                return callback(ERROR_FAILED);
+            .fail(function (e) {
+                return callback(ERROR_FAILED, e.status);
             });
     };
 
@@ -570,7 +571,10 @@
         market.getMarketItemNameId(item,
             function (error, item_nameid) {
                 if (error) {
-                    callback(ERROR_DATA);
+                    if (item_nameid != 429) // 429 = Too many requests made.
+                        callback(ERROR_DATA);
+                    else
+                        callback(ERROR_FAILED);
                     return;
                 }
                 var url = window.location.protocol + '//steamcommunity.com/market/itemordershistogram?language=english&currency=' + currencyId + '&item_nameid=' + item_nameid + '&two_factor=0';
@@ -999,26 +1003,21 @@
         }
 
         var itemQueue = async.queue(function (item, next) {
-            var numberOfFailedItems = 0;
-
             itemQueueWorker(item, item.ignoreErrors, function (success, cached) {
                 if (success) {
-                    if (numberOfFailedItems > 0)
-                        numberOfFailedItems--;
-
                     setTimeout(function () {
                         next();
-                    }, cached ? 0 : getRandomInt(250, 500));
+                    }, cached ? 0 : getRandomInt(1000, 1500));
                 } else {
                     if (!item.ignoreErrors) {
                         item.ignoreErrors = true;
                         itemQueue.push(item);
                     }
 
-                    if (numberOfFailedItems < 2)
-                        numberOfFailedItems++;
+                    var delay = numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : getRandomInt(1000, 1500);
 
-                    var delay = numberOfFailedItems > 1 || itemQueue.length < 2 ? getRandomInt(30000, 45000) : getRandomInt(500, 1000);
+                    if (numberOfFailedRequests > 3)
+                        numberOfFailedRequests = 0;
 
                     setTimeout(function () {
                         next();
@@ -1296,26 +1295,23 @@
     function setInventoryPrices(items) {
 
         var inventoryPriceQueue = async.queue(function (item, next) {
-            var numberOfFailedItems = 0;
-
             inventoryPriceQueueWorker(item, false, function (success, cached) {
                 if (success) {
-                    if (numberOfFailedItems > 0)
-                        numberOfFailedItems--;
-
                     setTimeout(function () {
                         next();
-                    }, cached ? 0 : getRandomInt(500, 1000));
+                    }, cached ? 0 : getRandomInt(1000, 1500));
                 } else {
                     if (!item.ignoreErrors) {
                         item.ignoreErrors = true;
                         inventoryPriceQueue.push(item);
                     }
 
-                    if (numberOfFailedItems < 2)
-                        numberOfFailedItems++;
+                    numberOfFailedRequests++;
 
-                    var delay = numberOfFailedItems > 1 || itemQueue.length < 2 ? getRandomInt(30000, 45000) : getRandomInt(500, 1000);
+                    var delay = numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : getRandomInt(1000, 1500);
+
+                    if (numberOfFailedRequests > 3)
+                        numberOfFailedRequests = 0;
 
                     setTimeout(function () {
                         next();
@@ -1362,11 +1358,12 @@
                 return;
             }
 
+            if (!$(item.element).is(":visible"))
+                return;
+
             inventoryPriceQueue.push(item);
         });
     }
-
-
     //#endregion
 
     //#region Market
@@ -1376,7 +1373,7 @@
                 if (success) {
                     setTimeout(function () {
                         next();
-                    }, cached ? 0 : getRandomInt(500, 1000));
+                    }, cached ? 0 : getRandomInt(1000, 1500));
                 } else {
                     setTimeout(function () {
                         marketListingsQueueWorker(listing, true, function (success, cached) {
@@ -1472,7 +1469,7 @@
                     // Shows the highest buy order price on the market listings.
                     // The 'histogram.highest_buy_order' is not reliable as Steam is caching this value, but it gives some idea for older titles/listings.
                     $('.market_table_value > span:nth-child(1) > span:nth-child(1) > span:nth-child(1)', listingUI).append(' ➤ <span title="This is likely the highest buy order price.">' + (histogram.highest_buy_order == null ? '-' : ((histogram.highest_buy_order / 100) + currencySymbol)) + '</span>');
-                    
+
                     logConsole('============================')
                     logConsole(JSON.stringify(listing));
                     logConsole(game_name + ': ' + asset.name);
@@ -1491,7 +1488,7 @@
 
                     listingUI.addClass('price_' + sellPriceWithOffset);
 
-                    $('.market_listing_my_price', listingUI).last().prop('title', 'The best price is ' + (sellPriceWithoutOffsetWithFees / 100.0) + currencySymbol +'.');
+                    $('.market_listing_my_price', listingUI).last().prop('title', 'The best price is ' + (sellPriceWithoutOffsetWithFees / 100.0) + currencySymbol + '.');
 
                     if (sellPriceWithoutOffsetWithFees < price) {
                         logConsole('Sell price is too high.');
@@ -1526,7 +1523,7 @@
                 if (success) {
                     setTimeout(function () {
                         next();
-                    }, getRandomInt(500, 1000));
+                    }, getRandomInt(1000, 1500));
                 } else {
                     setTimeout(function () {
                         marketOverpricedQueueWorker(item, true, function (success) {
@@ -1558,7 +1555,7 @@
                                 return callback(false);
                             }
                         });
-                    }, getRandomInt(500, 1000)); // Wait a little to make sure the item is returned to inventory.
+                    }, getRandomInt(1000, 1500)); // Wait a little to make sure the item is returned to inventory.
                 } else {
                     $('.actual_content', listingUI).css('background', COLOR_ERROR);
 
