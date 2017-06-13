@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.1.5
+// @version     5.2.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1162,11 +1162,11 @@
 
                 var prices = [];
 
-                if (listings.highest_buy_order != null) {
+                if (typeof listings.highest_buy_order !== 'undefined' && listings.highest_buy_order != null) {
                     prices.push(parseInt(listings.highest_buy_order));
                 }
 
-                if (listings.lowest_sell_order != null) {
+                if (typeof listings.lowest_sell_order !== 'undefined' && listings.lowest_sell_order != null) {
                     prices.push(parseInt(listings.lowest_sell_order) - 1);
                     prices.push(parseInt(listings.lowest_sell_order));
                     prices.push(parseInt(listings.lowest_sell_order) + 1);
@@ -1468,7 +1468,10 @@
 
                     // Shows the highest buy order price on the market listings.
                     // The 'histogram.highest_buy_order' is not reliable as Steam is caching this value, but it gives some idea for older titles/listings.
-                    $('.market_table_value > span:nth-child(1) > span:nth-child(1) > span:nth-child(1)', listingUI).append(' ➤ <span title="This is likely the highest buy order price.">' + (histogram.highest_buy_order == null ? '-' : ((histogram.highest_buy_order / 100) + currencySymbol)) + '</span>');
+                    var highestBuyOrderPrice = (typeof histogram.highest_buy_order === 'undefined' || histogram.highest_buy_order == null
+                        ? '-'
+                        : ((histogram.highest_buy_order / 100) + currencySymbol));
+                    $('.market_table_value > span:nth-child(1) > span:nth-child(1) > span:nth-child(1)', listingUI).append(' ➤ <span title="This is likely the highest buy order price.">' + highestBuyOrderPrice + '</span>');
 
                     logConsole('============================')
                     logConsole(JSON.stringify(listing));
