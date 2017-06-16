@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.3.0
+// @version     5.3.1
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1476,8 +1476,8 @@
             var game_name = asset.type;
             var priceLabel = $('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text().trim().replace('--', '00');
             if (priceLabel.indexOf('.') === -1 && priceLabel.indexOf(',') === -1)
-                priceLabel = priceLabel + '00';
-            var price = parseInt(priceLabel);
+                priceLabel = priceLabel + ',00';
+            var price = parseInt(replaceNonNumbers(priceLabel));
 
             var priceInfo = getPriceInformationFromItem(asset);
             var item = { appid: parseInt(appid), description: { market_hash_name: market_hash_name } };
@@ -1530,7 +1530,7 @@
                     listingUI.addClass('price_' + sellPriceWithOffset);
 
                     $('.market_listing_my_price', listingUI).last().prop('title', 'The best price is ' + (sellPriceWithoutOffsetWithFees / 100.0) + currencySymbol + '.');
-
+                    
                     if (sellPriceWithoutOffsetWithFees < price) {
                         logConsole('Sell price is too high.');
 
