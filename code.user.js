@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.2.0
+// @version     5.3.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -18,7 +18,6 @@
 // @require     https://cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min.js
 // @require     https://raw.githubusercontent.com/javve/list.js/v1.5.0/dist/list.min.js
 // @require     https://github.com/rmariuzzo/checkboxes.js/releases/download/v1.2.0/jquery.checkboxes-1.2.0.min.js
-// @require     http://underscorejs.org/underscore-min.js
 // @homepageURL https://github.com/Nuklon/Steam-Economy-Enhancer
 // @supportURL  https://github.com/Nuklon/Steam-Economy-Enhancer/issues
 // @downloadURL https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
@@ -49,7 +48,8 @@
 
     var marketLists = [];
     var queuedItems = [];
-    var spinnerBlock = '<div class="spinner"><div class="rect1"></div>&nbsp;<div class="rect2"></div>&nbsp;<div class="rect3"></div>&nbsp;<div class="rect4"></div>&nbsp;<div class="rect5"></div>&nbsp;</div>';
+    var spinnerBlock =
+        '<div class="spinner"><div class="rect1"></div>&nbsp;<div class="rect2"></div>&nbsp;<div class="rect3"></div>&nbsp;<div class="rect4"></div>&nbsp;<div class="rect5"></div>&nbsp;</div>';
     var numberOfFailedRequests = 0;
 
     var enableConsoleLog = false;
@@ -64,9 +64,19 @@
             ? PAGE_TRADEOFFER
             : PAGE_INVENTORY);
 
-    var market = new SteamMarket(g_rgAppContextData, typeof g_strInventoryLoadURL !== 'undefined' ? g_strInventoryLoadURL : location.protocol + '//steamcommunity.com/my/inventory/json/', isLoggedIn ? g_rgWalletInfo : undefined);
+    var market = new SteamMarket(g_rgAppContextData,
+        typeof g_strInventoryLoadURL !== 'undefined'
+            ? g_strInventoryLoadURL
+            : location.protocol + '//steamcommunity.com/my/inventory/json/',
+        isLoggedIn ? g_rgWalletInfo : undefined);
 
-    var currencyId = isLoggedIn && typeof market !== 'undefined' && typeof market.walletInfo !== 'undefined' && typeof market.walletInfo.wallet_currency !== 'undefined' ? market.walletInfo.wallet_currency : 3;
+    var currencyId =
+        isLoggedIn &&
+            typeof market !== 'undefined' &&
+            typeof market.walletInfo !== 'undefined' &&
+            typeof market.walletInfo.wallet_currency !== 'undefined'
+            ? market.walletInfo.wallet_currency
+            : 3;
     var currencySymbol = GetCurrencySymbol(GetCurrencyCode(currencyId));
 
     function SteamMarket(appContext, inventoryUrl, walletInfo) {
@@ -198,8 +208,12 @@
             maxPrice = getSettingWithDefault(SETTING_MAX_MISC_PRICE);
             minPrice = getSettingWithDefault(SETTING_MIN_MISC_PRICE);
         } else {
-            maxPrice = isFoilTradingCard ? getSettingWithDefault(SETTING_MAX_FOIL_PRICE) : getSettingWithDefault(SETTING_MAX_NORMAL_PRICE);
-            minPrice = isFoilTradingCard ? getSettingWithDefault(SETTING_MIN_FOIL_PRICE) : getSettingWithDefault(SETTING_MIN_NORMAL_PRICE);
+            maxPrice = isFoilTradingCard
+                ? getSettingWithDefault(SETTING_MAX_FOIL_PRICE)
+                : getSettingWithDefault(SETTING_MAX_NORMAL_PRICE);
+            minPrice = isFoilTradingCard
+                ? getSettingWithDefault(SETTING_MIN_FOIL_PRICE)
+                : getSettingWithDefault(SETTING_MIN_NORMAL_PRICE);
         }
 
         maxPrice = maxPrice * 100.0;
@@ -238,7 +252,9 @@
 
     // Calculates the listing price, before the fee.    
     function calculateListingPriceBeforeFees(histogram) {
-        if (histogram == null || typeof histogram.lowest_sell_order === 'undefined' || typeof histogram.sell_order_graph === 'undefined')
+        if (histogram == null ||
+            typeof histogram.lowest_sell_order === 'undefined' ||
+            typeof histogram.sell_order_graph === 'undefined')
             return 0;
 
         var listingPrice = market.getPriceBeforeFees(histogram.lowest_sell_order);
@@ -344,7 +360,7 @@
 
     // Sell an item with a price in cents.
     // Price is before fees.
-    SteamMarket.prototype.sellItem = function (item, price, callback/*err, data*/) {
+    SteamMarket.prototype.sellItem = function (item, price, callback /*err, data*/) {
         var sessionId = readCookie('sessionid');
         var itemId = item.assetid || item.id;
         $.ajax({
@@ -372,7 +388,7 @@
 
     // Removes an item.
     // Item is the unique item id.
-    SteamMarket.prototype.removeListing = function (item, callback/*err, data*/) {
+    SteamMarket.prototype.removeListing = function (item, callback /*err, data*/) {
         var sessionId = readCookie('sessionid');
         $.ajax({
             type: "POST",
@@ -430,7 +446,11 @@
 
     // Get the current price history for an item.
     SteamMarket.prototype.getCurrentPriceHistory = function (appid, market_name, callback) {
-        var url = window.location.protocol + '//steamcommunity.com/market/pricehistory/?appid=' + appid + '&market_hash_name=' + market_name;
+        var url = window.location.protocol +
+            '//steamcommunity.com/market/pricehistory/?appid=' +
+            appid +
+            '&market_hash_name=' +
+            market_name;
 
         $.get(url,
             function (data) {
@@ -450,7 +470,8 @@
                 storageSession.setItem(storage_hash, data.prices);
 
                 callback(ERROR_SUCCESS, data.prices, false);
-            }, 'json')
+            },
+            'json')
             .fail(function (data) {
                 if (!data || !data.responseJSON) {
                     return callback(ERROR_FAILED);
@@ -577,7 +598,12 @@
                         callback(ERROR_FAILED);
                     return;
                 }
-                var url = window.location.protocol + '//steamcommunity.com/market/itemordershistogram?language=english&currency=' + currencyId + '&item_nameid=' + item_nameid + '&two_factor=0';
+                var url = window.location.protocol +
+                    '//steamcommunity.com/market/itemordershistogram?language=english&currency=' +
+                    currencyId +
+                    '&item_nameid=' +
+                    item_nameid +
+                    '&two_factor=0';
 
                 $.get(url,
                     function (pageHistogram) {
@@ -669,7 +695,11 @@
             return false;
 
         // This is available on the inventory page.
-        var tags = typeof item.tags !== 'undefined' ? item.tags : (typeof item.description !== 'undefined' && typeof item.description.tags !== 'undefined' ? item.description.tags : null);
+        var tags = typeof item.tags !== 'undefined'
+            ? item.tags
+            : (typeof item.description !== 'undefined' && typeof item.description.tags !== 'undefined'
+                ? item.description.tags
+                : null);
         if (tags != null) {
             var isTaggedAsTradingCard = false;
             tags.forEach(function (arrayItem) {
@@ -706,7 +736,11 @@
             return false;
 
         // This is available on the inventory page.
-        var tags = typeof item.tags !== 'undefined' ? item.tags : (typeof item.description !== 'undefined' && typeof item.description.tags !== 'undefined' ? item.description.tags : null);
+        var tags = typeof item.tags !== 'undefined'
+            ? item.tags
+            : (typeof item.description !== 'undefined' && typeof item.description.tags !== 'undefined'
+                ? item.description.tags
+                : null);
         if (tags != null) {
             var isTaggedAsFoilTradingCard = false;
             tags.forEach(function (arrayItem) {
@@ -727,7 +761,8 @@
                 // Cards include a link to the gamecard page.
                 // The border parameter specifies the foil cards.
                 // For example: "http://steamcommunity.com/my/gamecards/503820/?border=1".
-                if (item.owner_actions[i].link.toString().toLowerCase().includes('gamecards') && item.owner_actions[i].link.toString().toLowerCase().includes('border'))
+                if (item.owner_actions[i].link.toString().toLowerCase().includes('gamecards') &&
+                    item.owner_actions[i].link.toString().toLowerCase().includes('border'))
                     return true;
             }
         }
@@ -747,13 +782,20 @@
         publisherFee = (typeof publisherFee == 'undefined') ? 0 : publisherFee;
         // Since CalculateFeeAmount has a Math.floor, we could be off a cent or two. Let's check:
         var iterations = 0; // shouldn't be needed, but included to be sure nothing unforseen causes us to get stuck
-        var nEstimatedAmountOfWalletFundsReceivedByOtherParty = parseInt((amount - parseInt(walletInfo['wallet_fee_base'])) / (parseFloat(walletInfo['wallet_fee_percent']) + parseFloat(publisherFee) + 1));
+        var nEstimatedAmountOfWalletFundsReceivedByOtherParty =
+            parseInt((amount - parseInt(walletInfo['wallet_fee_base'])) /
+                (parseFloat(walletInfo['wallet_fee_percent']) + parseFloat(publisherFee) + 1));
         var bEverUndershot = false;
-        var fees = CalculateAmountToSendForDesiredReceivedAmount(nEstimatedAmountOfWalletFundsReceivedByOtherParty, publisherFee, walletInfo);
+        var fees = CalculateAmountToSendForDesiredReceivedAmount(nEstimatedAmountOfWalletFundsReceivedByOtherParty,
+            publisherFee,
+            walletInfo);
         while (fees.amount != amount && iterations < 10) {
             if (fees.amount > amount) {
                 if (bEverUndershot) {
-                    fees = CalculateAmountToSendForDesiredReceivedAmount(nEstimatedAmountOfWalletFundsReceivedByOtherParty - 1, publisherFee, walletInfo);
+                    fees = CalculateAmountToSendForDesiredReceivedAmount(
+                        nEstimatedAmountOfWalletFundsReceivedByOtherParty - 1,
+                        publisherFee,
+                        walletInfo);
                     fees.steam_fee += (amount - fees.amount);
                     fees.fees += (amount - fees.amount);
                     fees.amount = amount;
@@ -765,7 +807,9 @@
                 bEverUndershot = true;
                 nEstimatedAmountOfWalletFundsReceivedByOtherParty++;
             }
-            fees = CalculateAmountToSendForDesiredReceivedAmount(nEstimatedAmountOfWalletFundsReceivedByOtherParty, publisherFee, walletInfo);
+            fees = CalculateAmountToSendForDesiredReceivedAmount(nEstimatedAmountOfWalletFundsReceivedByOtherParty,
+                publisherFee,
+                walletInfo);
             iterations++;
         }
         // fees.amount should equal the passed in amount
@@ -790,7 +834,9 @@
         }
 
         publisherFee = (typeof publisherFee == 'undefined') ? 0 : publisherFee;
-        var nSteamFee = parseInt(Math.floor(Math.max(receivedAmount * parseFloat(walletInfo['wallet_fee_percent']), walletInfo['wallet_fee_minimum']) + parseInt(walletInfo['wallet_fee_base'])));
+        var nSteamFee = parseInt(Math.floor(Math.max(receivedAmount * parseFloat(walletInfo['wallet_fee_percent']),
+            walletInfo['wallet_fee_minimum']) +
+            parseInt(walletInfo['wallet_fee_base'])));
         var nPublisherFee = parseInt(Math.floor(publisherFee > 0 ? Math.max(receivedAmount * publisherFee, 1) : 0));
         var nAmountToSend = receivedAmount + nSteamFee + nPublisherFee;
         return {
@@ -799,23 +845,6 @@
             fees: nSteamFee + nPublisherFee,
             amount: parseInt(nAmountToSend)
         };
-    }
-
-    // Get a list of items with description data from the inventory json
-    function denormalizeItems(inventory) {
-        var id;
-        var item;
-        var description;
-
-        for (id in inventory.rgInventory) {
-            item = inventory.rgInventory[id];
-            description = inventory.rgDescriptions[item.classid + '_' + item.instanceid];
-            for (var key in description) {
-                item[key] = description[key];
-            }
-        }
-
-        return inventory.rgInventory;
     }
 
     function readCookie(name) {
@@ -900,7 +929,7 @@
         }
 
         function sellAllItems(appId) {
-            g_ActiveInventory.LoadCompleteInventory().then(function () {
+            getActiveInventory().LoadCompleteInventory().then(function () {
                 var items = getInventoryItems();
                 var filteredItems = [];
 
@@ -919,7 +948,7 @@
         }
 
         function sellAllCards() {
-            g_ActiveInventory.LoadCompleteInventory().then(function () {
+            getActiveInventory().LoadCompleteInventory().then(function () {
                 var items = getInventoryItems();
                 var filteredItems = [];
 
@@ -957,7 +986,7 @@
                 });
             });
 
-            g_ActiveInventory.LoadCompleteInventory().then(function () {
+            getActiveInventory().LoadCompleteInventory().then(function () {
                 var items = getInventoryItems();
                 var filteredItems = [];
 
@@ -1068,231 +1097,248 @@
                 });
             });
         }
-    }
 
-    // Initialize the inventory UI.
-    function initializeInventoryUI() {
-        var isOwnInventory = g_ActiveUser.strSteamId == g_steamID;
-        var previousSelection = -1; // To store the index of the previous selection.
-        updateInventoryUI(isOwnInventory);
-
-        $('.games_list_tabs').on('click', '*', function () {
+        // Initialize the inventory UI.
+        function initializeInventoryUI() {
+            var isOwnInventory = g_ActiveUser.strSteamId == g_steamID;
+            var previousSelection = -1; // To store the index of the previous selection.
             updateInventoryUI(isOwnInventory);
-        });
 
-        // Ignore selection on other user's inventories.
-        if (!isOwnInventory)
-            return;
+            $('.games_list_tabs').on('click', '*', function () {
+                updateInventoryUI(isOwnInventory);
+            });
 
-        var filter = ".itemHolder:not([style*=none])"; // Steam adds 'display:none' to items while searching. These should not be selected while using shift/ctrl.
-        $('#inventories').selectable({
-            filter: filter,
-            selecting: function (e, ui) {
-                var selectedIndex = $(ui.selecting.tagName, e.target).index(ui.selecting); // Get selected item index.
-                if (e.shiftKey && previousSelection > -1) { // If shift key was pressed and there is previous - select them all.
-                    $(ui.selecting.tagName, e.target).slice(Math.min(previousSelection, selectedIndex), 1 + Math.max(previousSelection, selectedIndex)).each(function () {
-                        if ($(this).is(filter)) {
-                            $(this).addClass('ui-selected');
-                        }
-                    });
-                    previousSelection = -1; // Reset previous.
-                } else {
-                    previousSelection = selectedIndex; // Save previous.					
+            // Ignore selection on other user's inventories.
+            if (!isOwnInventory)
+                return;
+
+            var filter = ".itemHolder:not([style*=none])"; // Steam adds 'display:none' to items while searching. These should not be selected while using shift/ctrl.
+            $('#inventories').selectable({
+                filter: filter,
+                selecting: function (e, ui) {
+                    var selectedIndex = $(ui.selecting.tagName, e.target).index(ui.selecting); // Get selected item index.
+                    if (e.shiftKey && previousSelection > -1) { // If shift key was pressed and there is previous - select them all.
+                        $(ui.selecting.tagName, e.target).slice(Math.min(previousSelection, selectedIndex), 1 + Math.max(previousSelection, selectedIndex)).each(function () {
+                            if ($(this).is(filter)) {
+                                $(this).addClass('ui-selected');
+                            }
+                        });
+                        previousSelection = -1; // Reset previous.
+                    } else {
+                        previousSelection = selectedIndex; // Save previous.					
+                    }
+                },
+                selected: function (e, ui) {
+                    updateInventorySelection(ui.selected);
                 }
-            },
-            selected: function (e, ui) {
-                updateInventorySelection(ui.selected);
-            }
-        });
-    }
-
-    function updateInventorySelection(item) {
-        // Wait until g_ActiveInventory.selectedItem is identical to the selected UI item.
-        // This also makes sure that the new - and correct - item_info (iteminfo0 or iteminfo1) is visible.
-        var selectedItemIdUI = $('div', item).attr('id');
-        var selectedItemIdInventory = g_ActiveInventory.selectedItem.appid + '_' + g_ActiveInventory.selectedItem.contextid + '_' + g_ActiveInventory.selectedItem.assetid;
-        if (selectedItemIdUI !== selectedItemIdInventory) {
-            setTimeout(function () {
-                updateInventorySelection(item);
-            }, 250);
-
-            return;
+            });
         }
 
-        var item_info = $('.inventory_iteminfo:visible').first();
-        if (item_info.html().indexOf('checkout/sendgift/') > -1) // Gifts have no market information.
-            return;
+        function updateInventorySelection(item) {
+            // Wait until g_ActiveInventory.selectedItem is identical to the selected UI item.
+            // This also makes sure that the new - and correct - item_info (iteminfo0 or iteminfo1) is visible.
+            var selectedItemIdUI = $('div', item).attr('id');
+            var selectedItemIdInventory = getActiveInventory().selectedItem.appid + '_' + getActiveInventory().selectedItem.contextid + '_' + getActiveInventory().selectedItem.assetid;
+            if (selectedItemIdUI !== selectedItemIdInventory) {
+                setTimeout(function () {
+                    updateInventorySelection(item);
+                }, 250);
 
-        // Use a 'hard' item id instead of relying on the selected item_info (sometimes Steam temporarily changes the correct item (?)).
-        var item_info_id = item_info.attr('id');
+                return;
+            }
 
-        // Move scrap to bottom, this is of little interest.
-        var scrap = $('#' + item_info_id + '_scrap_content');
-        scrap.next().insertBefore(scrap);
+            var item_info = $('.inventory_iteminfo:visible').first();
+            if (item_info.html().indexOf('checkout/sendgift/') > -1) // Gifts have no market information.
+                return;
 
-        // Starting at prices are already retrieved in the table.
-        $('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(2)').remove(); // Starting at: x,xx.
+            // Use a 'hard' item id instead of relying on the selected item_info (sometimes Steam temporarily changes the correct item (?)).
+            var item_info_id = item_info.attr('id');
 
-        var market_hash_name = getMarketHashName(g_ActiveInventory.selectedItem);
-        if (market_hash_name == null)
-            return;
+            // Move scrap to bottom, this is of little interest.
+            var scrap = $('#' + item_info_id + '_scrap_content');
+            scrap.next().insertBefore(scrap);
 
-        var appid = g_ActiveInventory.selectedItem.appid;
-        var item = { appid: parseInt(appid), description: { market_hash_name: market_hash_name } };
+            // Starting at prices are already retrieved in the table.
+            $('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(2)').remove(); // Starting at: x,xx.
 
-        market.getItemOrdersHistogram(item, false,
-            function (err, listings) {
-                if (err) {
-                    logConsole('Failed to get orders histogram for ' + (g_ActiveInventory.selectedItem.name || g_ActiveInventory.selectedItem.description.name));
-                    return;
-                }
+            var market_hash_name = getMarketHashName(getActiveInventory().selectedItem);
+            if (market_hash_name == null)
+                return;
 
-                var groupMain = $('<div id="listings_group">' +
-                    '<div><div id="listings_sell">Sell</div>' + listings.sell_order_table + '</div>' +
-                    '<div><div id="listings_buy">Buy</div>' + listings.buy_order_table + '</div>' +
-                    '</div>');
+            var appid = getActiveInventory().selectedItem.appid;
+            var item = { appid: parseInt(appid), description: { market_hash_name: market_hash_name } };
 
-                $('#' + item_info_id + '_item_market_actions > div').after(groupMain);
+            market.getItemOrdersHistogram(item, false,
+                function (err, listings) {
+                    if (err) {
+                        logConsole('Failed to get orders histogram for ' + (getActiveInventory().selectedItem.name || getActiveInventory().selectedItem.description.name));
+                        return;
+                    }
 
-                // Generate quick sell buttons.
-                var itemId = g_ActiveInventory.selectedItem.assetid || g_ActiveInventory.selectedItem.id;
-                if (queuedItems.indexOf(itemId) != -1) { // There's no need to add queued items again.
-                    return;
-                }
+                    var groupMain = $('<div id="listings_group">' +
+                        '<div><div id="listings_sell">Sell</div>' + listings.sell_order_table + '</div>' +
+                        '<div><div id="listings_buy">Buy</div>' + listings.buy_order_table + '</div>' +
+                        '</div>');
 
-                var prices = [];
+                    $('#' + item_info_id + '_item_market_actions > div').after(groupMain);
 
-                if (typeof listings.highest_buy_order !== 'undefined' && listings.highest_buy_order != null) {
-                    prices.push(parseInt(listings.highest_buy_order));
-                }
-
-                if (typeof listings.lowest_sell_order !== 'undefined' && listings.lowest_sell_order != null) {
-                    prices.push(parseInt(listings.lowest_sell_order) - 1);
-                    prices.push(parseInt(listings.lowest_sell_order));
-                    prices.push(parseInt(listings.lowest_sell_order) + 1);
-                }
-
-                var priceInformation = getPriceInformationFromItem(g_ActiveInventory.selectedItem);
-                prices.push(priceInformation.minPrice);
-                prices.push(priceInformation.maxPrice);
-
-                prices = prices.filter((v, i) => prices.indexOf(v) === i).sort((a, b) => a - b);
-
-                var buttons = '<br/>';
-                prices.forEach(function (e) {
-                    buttons += '<a class="item_market_action_button item_market_action_button_green quick_sell" id="quick_sell' + e + '">' +
-                        '<span class="item_market_action_button_edge item_market_action_button_left"></span>' +
-                        '<span class="item_market_action_button_contents">' + (e / 100.0) + currencySymbol + '</span>' +
-                        '<span class="item_market_action_button_edge item_market_action_button_right"></span>' +
-                        '<span class="item_market_action_button_preload"></span>' +
-                        '</a>'
-                });
-
-                $('#' + item_info_id + '_item_market_actions', item_info).append(buttons);
-
-                $('.quick_sell').on('click', function () {
+                    // Generate quick sell buttons.
+                    var itemId = getActiveInventory().selectedItem.assetid || getActiveInventory().selectedItem.id;
                     if (queuedItems.indexOf(itemId) != -1) { // There's no need to add queued items again.
                         return;
                     }
 
-                    var price = $(this).attr('id').replace('quick_sell', '');
-                    price = market.getPriceBeforeFees(price);
+                    var prices = [];
 
-                    queuedItems.push(itemId);
-                    sellQueue.push({
-                        item: g_ActiveInventory.selectedItem,
-                        sellPrice: price
+                    if (typeof listings.highest_buy_order !== 'undefined' && listings.highest_buy_order != null) {
+                        prices.push(parseInt(listings.highest_buy_order));
+                    }
+
+                    if (typeof listings.lowest_sell_order !== 'undefined' && listings.lowest_sell_order != null) {
+                        prices.push(parseInt(listings.lowest_sell_order) - 1);
+                        prices.push(parseInt(listings.lowest_sell_order));
+                        prices.push(parseInt(listings.lowest_sell_order) + 1);
+                    }
+
+                    var priceInformation = getPriceInformationFromItem(getActiveInventory().selectedItem);
+                    prices.push(priceInformation.minPrice);
+                    prices.push(priceInformation.maxPrice);
+
+                    prices = prices.filter((v, i) => prices.indexOf(v) === i).sort((a, b) => a - b);
+
+                    var buttons = '<br/>';
+                    prices.forEach(function (e) {
+                        buttons += '<a class="item_market_action_button item_market_action_button_green quick_sell" id="quick_sell' + e + '">' +
+                            '<span class="item_market_action_button_edge item_market_action_button_left"></span>' +
+                            '<span class="item_market_action_button_contents">' + (e / 100.0) + currencySymbol + '</span>' +
+                            '<span class="item_market_action_button_edge item_market_action_button_right"></span>' +
+                            '<span class="item_market_action_button_preload"></span>' +
+                            '</a>'
+                    });
+
+                    $('#' + item_info_id + '_item_market_actions', item_info).append(buttons);
+
+                    $('.quick_sell').on('click', function () {
+                        if (queuedItems.indexOf(itemId) != -1) { // There's no need to add queued items again.
+                            return;
+                        }
+
+                        var price = $(this).attr('id').replace('quick_sell', '');
+                        price = market.getPriceBeforeFees(price);
+
+                        queuedItems.push(itemId);
+                        sellQueue.push({
+                            item: getActiveInventory().selectedItem,
+                            sellPrice: price
+                        });
                     });
                 });
-            });
-    }
-
-    // Update the inventory UI.
-    function updateInventoryUI(isOwnInventory) {
-        // Remove previous containers (e.g., when a user changes inventory).
-        $('#inventory_sell_buttons').remove();
-        $('#price_options').remove();
-        $('#inventory_reload_button').remove();
-
-        $('#see_settings').remove();
-        $('#global_action_menu').prepend('<span id="see_settings"><a href="javascript:void(0)">⬖ Steam Economy Enhancer</a></span>');
-        $('#see_settings').on('click', '*', () => openSettings());
-
-        var appId = g_ActiveInventory.m_appid;
-        var showCardOptions = appId == 753;
-
-        var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
-            '<a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>Sell All Items</span></a>&nbsp;&nbsp;&nbsp;' +
-            '<a class="btn_green_white_innerfade btn_medium_wide sell_selected"><span>Sell Selected Items</span></a>&nbsp;&nbsp;&nbsp;' +
-            (showCardOptions ? '<a class="btn_darkblue_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>&nbsp;&nbsp;&nbsp;' : '') +
-            '</div>');
-
-        var reloadButton = $('<a id="inventory_reload_button" class="btn_darkblue_white_innerfade btn_medium_wide reload_inventory" style="margin-right:12px"><span>Reload Inventory</span></a>');
-
-        $('#inventory_logos')[0].style.height = 'auto';
-
-        $('#inventory_applogo').hide(); // Hide the Steam/game logo, we don't need to see it twice.
-        $('#inventory_applogo').after(logger);
-
-        $("#logger").on('scroll', function () {
-            var hasUserScrolledToBottom = $("#logger").prop('scrollHeight') - $("#logger").prop('clientHeight') <= $("#logger").prop('scrollTop') + 1;
-            userScrolled = !hasUserScrolledToBottom;
-        });
-
-        // Only add buttons on the user's inventory.
-        if (isOwnInventory) {
-            $('#inventory_applogo').after(sellButtons);
-
-            // Add bindings to sell buttons.
-            $('.sell_all').on('click', '*', function () {
-                sellAllItems(appId);
-            });
-            $('.sell_selected').on('click', '*', sellSelectedItems);
-            $('.sell_all_cards').on('click', '*', sellAllCards);
         }
 
-        $('.inventory_rightnav').prepend(reloadButton);
-        $('.reload_inventory').on('click', '*', function () {
-            window.location.reload();
-        });
+        // Update the inventory UI.
+        function updateInventoryUI(isOwnInventory) {
+            // Remove previous containers (e.g., when a user changes inventory).
+            $('#inventory_sell_buttons').remove();
+            $('#price_options').remove();
+            $('#inventory_reload_button').remove();
 
-        g_ActiveInventory.LoadCompleteInventory().then(function () {
-            var inventoryItems = null;
-            var updateInventoryPrices = _.debounce(function () {
-                setInventoryPrices(getInventoryItems());
-            }, 500);
+            $('#see_settings').remove();
+            $('#global_action_menu').prepend('<span id="see_settings"><a href="javascript:void(0)">⬖ Steam Economy Enhancer</a></span>');
+            $('#see_settings').on('click', '*', () => openSettings());
 
-            // Load after the inventory is loaded.
-            updateInventoryPrices();
+            var appId = getActiveInventory().m_appid;
+            var showCardOptions = appId == 753;
 
-            $('#inventory_pagecontrols').observe('childlist', '*', function (record) {
-                updateInventoryPrices();
+            var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
+                '<a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>Sell All Items</span></a>&nbsp;&nbsp;&nbsp;' +
+                '<a class="btn_green_white_innerfade btn_medium_wide sell_selected"><span>Sell Selected Items</span></a>&nbsp;&nbsp;&nbsp;' +
+                (showCardOptions ? '<a class="btn_darkblue_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>&nbsp;&nbsp;&nbsp;' : '') +
+                '</div>');
+
+            var reloadButton = $('<a id="inventory_reload_button" class="btn_darkblue_white_innerfade btn_medium_wide reload_inventory" style="margin-right:12px"><span>Reload Inventory</span></a>');
+
+            $('#inventory_logos')[0].style.height = 'auto';
+
+            $('#inventory_applogo').hide(); // Hide the Steam/game logo, we don't need to see it twice.
+            $('#inventory_applogo').after(logger);
+
+            $("#logger").on('scroll', function () {
+                var hasUserScrolledToBottom = $("#logger").prop('scrollHeight') - $("#logger").prop('clientHeight') <= $("#logger").prop('scrollTop') + 1;
+                userScrolled = !hasUserScrolledToBottom;
             });
-        }, function () {
-            logDOM('Could not retrieve the inventory...');
-        });
-    }
 
-    // Gets the inventory items from the active inventory.
-    function getInventoryItems() {
-        var arr = [];
+            // Only add buttons on the user's inventory.
+            if (isOwnInventory) {
+                $('#inventory_applogo').after(sellButtons);
 
-        for (var key in g_ActiveInventory.m_rgAssets) {
-            var value = g_ActiveInventory.m_rgAssets[key];
-            if (typeof value === 'object') {
-                // Merges the description in the normal object, this is done to keep the layout consistent with the market page, which is also flattened.
-                Object.assign(value, value.description);
-                // Includes the id of the inventory item.
-                value['id'] = key;
-                arr.push(value);
+                // Add bindings to sell buttons.
+                $('.sell_all').on('click', '*', function () {
+                    sellAllItems(appId);
+                });
+                $('.sell_selected').on('click', '*', sellSelectedItems);
+                $('.sell_all_cards').on('click', '*', sellAllCards);
             }
+
+            $('.inventory_rightnav').prepend(reloadButton);
+            $('.reload_inventory').on('click', '*', function () {
+                window.location.reload();
+            });
+
+            getActiveInventory().LoadCompleteInventory().then(function () {
+                var updateInventoryPrices = function () {
+                    setInventoryPrices(getInventoryItems());
+                };
+
+                // Load after the inventory is loaded.
+                updateInventoryPrices();
+
+                $('#inventory_pagecontrols').observe('childlist', '*', function (record) {
+                    updateInventoryPrices();
+                });
+            }, function () {
+                logDOM('Could not retrieve the inventory...');
+            });
         }
 
-        return arr;
-    }
+        // Sets the prices for the items.
+        function setInventoryPrices(items) {
+            inventoryPriceQueue.kill();
 
-    // Sets the prices for the items.
-    function setInventoryPrices(items) {
+            items.forEach(function (item) {
+                if (!item.marketable) {
+                    return;
+                }
+
+                if (!$(item.element).is(":visible"))
+                    return;
+
+                inventoryPriceQueue.push(item);
+            });
+        }
+        function getActiveInventory() {
+            var appid = g_ActiveInventory.m_appid;
+            var contextid = g_ActiveInventory.m_contextid;
+            return g_ActiveInventory.m_owner.rgContexts[appid][contextid].inventory;
+        }
+
+        // Gets the inventory items from the active inventory.
+        function getInventoryItems() {
+            var arr = [];
+            for (var child in getActiveInventory().m_rgChildInventories) {
+                for (var key in getActiveInventory().m_rgChildInventories[child].m_rgAssets) {
+                    var value = getActiveInventory().m_rgChildInventories[child].m_rgAssets[key];
+                    if (typeof value === 'object') {
+                        // Merges the description in the normal object, this is done to keep the layout consistent with the market page, which is also flattened.
+                        Object.assign(value, value.description);
+                        // Includes the id of the inventory item.
+                        value['id'] = key;
+                        arr.push(value);
+                    }
+                }
+            }
+
+            return arr;
+        }
 
         var inventoryPriceQueue = async.queue(function (item, next) {
             inventoryPriceQueueWorker(item, false, function (success, cached) {
@@ -1352,17 +1398,6 @@
                 return callback(true, cachedListings);
             });
         }
-
-        items.forEach(function (item) {
-            if (!item.marketable) {
-                return;
-            }
-
-            if (!$(item.element).is(":visible"))
-                return;
-
-            inventoryPriceQueue.push(item);
-        });
     }
     //#endregion
 
@@ -1439,7 +1474,10 @@
             var listingUI = $(getListingFromLists(listing.listingid).elm);
 
             var game_name = asset.type;
-            var price = parseInt(replaceNonNumbers($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text().trim().replace('--', '00')));
+            var priceLabel = $('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text().trim().replace('--', '00');
+            if (priceLabel.indexOf('.') === -1 && priceLabel.indexOf(',') === -1)
+                priceLabel = priceLabel + '00';
+            var price = parseInt(priceLabel);
 
             var priceInfo = getPriceInformationFromItem(asset);
             var item = { appid: parseInt(appid), description: { market_hash_name: market_hash_name } };
@@ -2159,14 +2197,14 @@
         if (!window.location.href.includes('tradeoffer/new'))
             return;
 
-        var updateInventoryPrices = _.debounce(function () {
+        var updateInventoryPrices = function () {
             var tradeOfferItems = [];
             for (var i = 0; i < g_ActiveInventory.rgItemElements.length; i++) {
                 tradeOfferItems.push(g_ActiveInventory.rgItemElements[i].rgItem);
             }
 
             setInventoryPrices(tradeOfferItems);
-        }, 500);
+        }
 
         $('#inventory_pagecontrols').observe('childlist', '*', function (record) {
             updateInventoryPrices();
