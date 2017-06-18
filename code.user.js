@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.3.6
+// @version     5.4.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -54,7 +54,7 @@
 
     var enableConsoleLog = false;
 
-    var isLoggedIn = typeof g_rgWalletInfo !== 'undefined' || (typeof g_bLoggedIn !== 'undefined' && g_bLoggedIn);
+    var isLoggedIn = typeof g_rgWalletInfo !== 'undefined' && g_rgWalletInfo != null || (typeof g_bLoggedIn !== 'undefined' && g_bLoggedIn);
 
     var currentPage = window.location.href.includes('.com/market')
         ? (window.location.href.includes('market/listings')
@@ -65,18 +65,19 @@
             : PAGE_INVENTORY);
 
     var market = new SteamMarket(g_rgAppContextData,
-        typeof g_strInventoryLoadURL !== 'undefined'
+        typeof g_strInventoryLoadURL !== 'undefined' && g_strInventoryLoadURL != null
             ? g_strInventoryLoadURL
             : location.protocol + '//steamcommunity.com/my/inventory/json/',
         isLoggedIn ? g_rgWalletInfo : undefined);
 
     var currencyId =
         isLoggedIn &&
-            typeof market !== 'undefined' &&
-            typeof market.walletInfo !== 'undefined' &&
-            typeof market.walletInfo.wallet_currency !== 'undefined'
+            market != null &&
+            market.walletInfo != null &&
+            market.walletInfo.wallet_currency != null
             ? market.walletInfo.wallet_currency
             : 3;
+
     var currencySymbol = GetCurrencySymbol(GetCurrencyCode(currencyId));
 
     function SteamMarket(appContext, inventoryUrl, walletInfo) {
@@ -253,8 +254,8 @@
     // Calculates the listing price, before the fee.    
     function calculateListingPriceBeforeFees(histogram) {
         if (histogram == null ||
-            typeof histogram.lowest_sell_order === 'undefined' ||
-            typeof histogram.sell_order_graph === 'undefined')
+            histogram.lowest_sell_order == null ||
+            histogram.sell_order_graph == null)
             return 0;
 
         var listingPrice = market.getPriceBeforeFees(histogram.lowest_sell_order);
@@ -327,7 +328,7 @@
 
 
         // In case there's a buy order higher than the calculated price.
-        if (histogram != null && typeof histogram.highest_buy_order !== 'undefined') {
+        if (histogram != null && histogram.highest_buy_order != null) {
             var buyOrderPrice = market.getPriceBeforeFees(histogram.highest_buy_order);
             if (buyOrderPrice > calculatedPrice)
                 calculatedPrice = buyOrderPrice;
@@ -623,15 +624,15 @@
     SteamMarket.prototype.getPriceBeforeFees = function (price, item) {
         var publisherFee = -1;
 
-        if (typeof item !== 'undefined') {
-            if (typeof item.market_fee !== 'undefined')
+        if (item != null) {
+            if (item.market_fee != null)
                 publisherFee = item.market_fee;
-            else if (typeof item.description !== 'undefined' && typeof item.description.market_fee !== 'undefined')
+            else if (item.description != null && item.description.market_fee != null)
                 publisherFee = item.description.market_fee;
         }
 
         if (publisherFee == -1) {
-            if (typeof this.walletInfo !== 'undefined')
+            if (this.walletInfo != null)
                 publisherFee = this.walletInfo['wallet_publisher_fee_percent_default'];
             else
                 publisherFee = 0.10;
@@ -645,14 +646,14 @@
     // Calculate the buyer price from the seller price
     SteamMarket.prototype.getPriceIncludingFees = function (price, item) {
         var publisherFee = -1;
-        if (typeof item !== 'undefined') {
-            if (typeof item.market_fee !== 'undefined')
+        if (item != null) {
+            if (item.market_fee != null)
                 publisherFee = item.market_fee;
-            else if (typeof item.description !== 'undefined' && typeof item.description.market_fee !== 'undefined')
+            else if (item.description != null && item.description.market_fee != null)
                 publisherFee = item.description.market_fee;
         }
         if (publisherFee == -1) {
-            if (typeof this.walletInfo !== 'undefined')
+            if (this.walletInfo != null)
                 publisherFee = this.walletInfo['wallet_publisher_fee_percent_default'];
             else
                 publisherFee = 0.10;
@@ -672,32 +673,32 @@
 
     //#region Steam Market / Inventory helpers
     function getMarketHashName(item) {
-        if (typeof item === 'undefined')
+        if (item == null)
             return null;
 
-        if (typeof item.description !== 'undefined' && typeof item.description.market_hash_name !== 'undefined')
+        if (item.description != null && item.description.market_hash_name != null)
             return escapeURI(item.description.market_hash_name);
 
-        if (typeof item.description !== 'undefined' && typeof item.description.name !== 'undefined')
+        if (item.description != null && item.description.name != null)
             return escapeURI(item.description.name);
 
-        if (typeof item.market_hash_name !== 'undefined')
+        if (item.market_hash_name != null)
             return escapeURI(item.market_hash_name);
 
-        if (typeof item.name !== 'undefined')
+        if (item.name != null)
             return escapeURI(item.name);
 
         return null;
     }
 
     function getIsTradingCard(item) {
-        if (typeof item === 'undefined')
+        if (item == null)
             return false;
 
         // This is available on the inventory page.
-        var tags = typeof item.tags !== 'undefined'
+        var tags = item.tags != null
             ? item.tags
-            : (typeof item.description !== 'undefined' && typeof item.description.tags !== 'undefined'
+            : (item.description != null && item.description.tags != null
                 ? item.description.tags
                 : null);
         if (tags != null) {
@@ -712,9 +713,9 @@
         }
 
         // This is available on the market page.
-        if (typeof item.owner_actions !== 'undefined') {
+        if (item.owner_actions != null) {
             for (var i = 0; i < item.owner_actions.length; i++) {
-                if (typeof item.owner_actions[i].link === "undefined")
+                if (item.owner_actions[i].link == null)
                     continue;
 
                 // Cards include a link to the gamecard page.
@@ -725,7 +726,7 @@
         }
 
         // A fallback for the market page (only works with language on English).
-        if (typeof item.type !== 'undefined' && item.type.toLowerCase().includes('trading card'))
+        if (item.type != null && item.type.toLowerCase().includes('trading card'))
             return true;
 
         return false;
@@ -736,9 +737,9 @@
             return false;
 
         // This is available on the inventory page.
-        var tags = typeof item.tags !== 'undefined'
+        var tags = item.tags != null
             ? item.tags
-            : (typeof item.description !== 'undefined' && typeof item.description.tags !== 'undefined'
+            : (item.description != null && item.description.tags != null
                 ? item.description.tags
                 : null);
         if (tags != null) {
@@ -753,9 +754,9 @@
         }
 
         // This is available on the market page.
-        if (typeof item.owner_actions !== 'undefined') {
+        if (item.owner_actions != null) {
             for (var i = 0; i < item.owner_actions.length; i++) {
-                if (typeof item.owner_actions[i].link === "undefined")
+                if (item.owner_actions[i].link == null)
                     continue;
 
                 // Cards include a link to the gamecard page.
@@ -768,18 +769,18 @@
         }
 
         // A fallback for the market page (only works with language on English).
-        if (typeof item.type !== 'undefined' && item.type.toLowerCase().includes('foil trading card'))
+        if (item.type != null && item.type.toLowerCase().includes('foil trading card'))
             return true;
 
         return false;
     }
 
     function CalculateFeeAmount(amount, publisherFee, walletInfo) {
-        if (typeof walletInfo === 'undefined' || !walletInfo['wallet_fee']) {
+        if (walletInfo == null || !walletInfo['wallet_fee']) {
             return { fees: 0 };
         }
 
-        publisherFee = (typeof publisherFee == 'undefined') ? 0 : publisherFee;
+        publisherFee = (publisherFee == null) ? 0 : publisherFee;
         // Since CalculateFeeAmount has a Math.floor, we could be off a cent or two. Let's check:
         var iterations = 0; // shouldn't be needed, but included to be sure nothing unforseen causes us to get stuck
         var nEstimatedAmountOfWalletFundsReceivedByOtherParty =
@@ -829,11 +830,11 @@
 
     // Strangely named function, it actually works out the fees and buyer price for a seller price
     function CalculateAmountToSendForDesiredReceivedAmount(receivedAmount, publisherFee, walletInfo) {
-        if (typeof walletInfo === 'undefined' || !walletInfo['wallet_fee']) {
+        if (walletInfo == null || !walletInfo['wallet_fee']) {
             return { amount: receivedAmount };
         }
 
-        publisherFee = (typeof publisherFee == 'undefined') ? 0 : publisherFee;
+        publisherFee = (publisherFee == null) ? 0 : publisherFee;
         var nSteamFee = parseInt(Math.floor(Math.max(receivedAmount * parseFloat(walletInfo['wallet_fee_percent']),
             walletInfo['wallet_fee_minimum']) +
             parseInt(walletInfo['wallet_fee_base'])));
@@ -921,7 +922,7 @@
                         $('#' + task.item.appid + '_' + task.item.contextid + '_' + itemId)
                             .css('background', COLOR_SUCCESS);
                     } else {
-                        if (typeof data.responseJSON.message != 'undefined')
+                        if (data.responseJSON.message != null)
                             logDOM(padLeft +
                                 ' - ' +
                                 itemName +
@@ -947,7 +948,7 @@
         }
 
         function sellAllItems(appId) {
-            loadChildInventories().then(function () {
+            loadAllInventories().then(function () {
                 var items = getInventoryItems();
                 var filteredItems = [];
 
@@ -967,7 +968,7 @@
         }
 
         function sellAllCards() {
-            loadChildInventories().then(function () {
+            loadAllInventories().then(function () {
                 var items = getInventoryItems();
                 var filteredItems = [];
 
@@ -1006,7 +1007,7 @@
                 });
             });
 
-            loadChildInventories().then(function () {
+            loadAllInventories().then(function () {
                 var items = getInventoryItems();
                 var filteredItems = [];
 
@@ -1250,11 +1251,11 @@
 
                     var prices = [];
 
-                    if (typeof listings.highest_buy_order !== 'undefined' && listings.highest_buy_order != null) {
+                    if (listings != null && listings.highest_buy_order != null) {
                         prices.push(parseInt(listings.highest_buy_order));
                     }
 
-                    if (typeof listings.lowest_sell_order !== 'undefined' && listings.lowest_sell_order != null) {
+                    if (listings != null && listings.lowest_sell_order != null) {
                         prices.push(parseInt(listings.lowest_sell_order) - 1);
                         prices.push(parseInt(listings.lowest_sell_order));
                         prices.push(parseInt(listings.lowest_sell_order) + 1);
@@ -1363,7 +1364,7 @@
                     window.location.reload();
                 });
 
-            loadChildInventories().then(function () {
+            loadAllInventories().then(function () {
                 var updateInventoryPrices = function () {
                     setInventoryPrices(getInventoryItems());
                 };
@@ -1412,12 +1413,15 @@
             });
         }
 
-        // Loads all child inventories.
-        function loadChildInventories() {
+        // Loads all inventories.
+        function loadAllInventories() {
             var items = [];
+
             for (var child in getActiveInventory().m_rgChildInventories) {
                 items.push(getActiveInventory().m_rgChildInventories[child]);
             }
+            items.push(getActiveInventory());
+
             return loadInventories(items);
         }
 
@@ -1429,6 +1433,7 @@
         // Gets the inventory items from the active inventory.
         function getInventoryItems() {
             var arr = [];
+
             for (var child in getActiveInventory().m_rgChildInventories) {
                 for (var key in getActiveInventory().m_rgChildInventories[child].m_rgAssets) {
                     var value = getActiveInventory().m_rgChildInventories[child].m_rgAssets[key];
@@ -1439,6 +1444,18 @@
                         value['id'] = key;
                         arr.push(value);
                     }
+                }
+            }
+
+            // Some inventories (e.g. BattleBlock Theater) do not have child inventories, they have just one.
+            for (var key in getActiveInventory().m_rgAssets) {
+                var value = getActiveInventory().m_rgAssets[key];
+                if (typeof value === 'object') {
+                    // Merges the description in the normal object, this is done to keep the layout consistent with the market page, which is also flattened.
+                    Object.assign(value, value.description);
+                    // Includes the id of the inventory item.
+                    value['id'] = key;
+                    arr.push(value);
                 }
             }
 
@@ -1602,10 +1619,17 @@
             var listingUI = $(getListingFromLists(listing.listingid).elm);
 
             var game_name = asset.type;
-            var priceLabel = $('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text().trim()
-                .replace('--', '00');
-            if (priceLabel.indexOf('.') === -1 && priceLabel.indexOf(',') === -1)
+            var priceLabel = $('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text().trim().replace('--', '00');
+
+            // Fixes RUB, which has a dot at the end.
+            if (priceLabel[priceLabel.length - 1] === '.' || priceLabel[priceLabel.length - 1] === ",")
+                priceLabel = priceLabel.slice(0, -1);
+
+            // For round numbers (e.g., 100 EUR).
+            if (priceLabel.indexOf('.') === -1 && priceLabel.indexOf(',') === -1) {
                 priceLabel = priceLabel + ',00';
+            }
+            
             var price = parseInt(replaceNonNumbers(priceLabel));
 
             var priceInfo = getPriceInformationFromItem(asset);
@@ -1639,8 +1663,7 @@
 
                             // Shows the highest buy order price on the market listings.
                             // The 'histogram.highest_buy_order' is not reliable as Steam is caching this value, but it gives some idea for older titles/listings.
-                            var highestBuyOrderPrice = (typeof histogram.highest_buy_order === 'undefined' ||
-                                histogram.highest_buy_order == null
+                            var highestBuyOrderPrice = (histogram.highest_buy_order == null
                                 ? '-'
                                 : ((histogram.highest_buy_order / 100) + currencySymbol));
                             $('.market_table_value > span:nth-child(1) > span:nth-child(1) > span:nth-child(1)',
@@ -1776,7 +1799,7 @@
                 if (items[i].toString().includes('price_'))
                     price = parseInt(items[i].toString().replace('price_', ''));
             }
-
+            
             if (price > 0) {
                 marketOverpricedQueue.push({
                     listing: listingid,
@@ -1895,13 +1918,22 @@
             // Now add the market checkboxes.
             addMarketCheckboxes();
 
+            // Show the listings again, rendering is done.
             $('#market_listings_spinner').remove();
+            myMarketListings.show();
 
-            $('.market_select_item').change(function (e) {
-                updateMarketSelectAllButton();
+            fillMarketListingsQueue();
+            
+            injectJs(function () {
+                g_bMarketWindowHidden =
+                    true; // Limits the number of requests made to steam by stopping constant polling of popular listings.
             });
+        };
 
+
+        function fillMarketListingsQueue() {
             $('.market_home_listing_table').each(function (e) {
+
                 // Not for popular / new / recently sold items (bottom of page).
                 if ($('.my_market_header', $(this)).length == 0)
                     return;
@@ -1915,7 +1947,7 @@
                 } else {
                     $(this).children().last().addClass("market_listing_see");
                 }
-
+                
                 addMarketPagination($('.market_listing_see', this).last());
                 sortMarketListings($(this), false, false, true);
             });
@@ -1925,7 +1957,7 @@
                 for (var j = 0; j < marketLists[i].items.length; j++) {
                     var listingid = replaceNonNumbers(marketLists[i].items[j].values().market_listing_item_name);
                     var assetInfo = getAssetInfoFromListingId(listingid);
-
+                    
                     marketListingsQueue.push({
                         listingid,
                         appid: assetInfo.appid,
@@ -1934,24 +1966,19 @@
                     });
                 }
             }
+        }
 
-            // Show the listings again, rendering is done.
-            myMarketListings.show();
-
-            injectJs(function () {
-                g_bMarketWindowHidden =
-                    true; // limit the number of requests made to steam by stopping constant polling of popular listings.
-            });
-        };
 
         // Gets the asset info (appid/contextid/assetid) based on a listingid.
         function getAssetInfoFromListingId(listingid) {
             var listing = getListingFromLists(listingid);
-            if (typeof listing === "undefined")
+            if (listing == null) {
                 return {};
+            }
 
             var actionButton = $('.item_market_action_button', listing.elm).attr('href');
-            if (typeof actionButton === "undefined")
+            // Market buy orders have no asset info.
+            if (actionButton == null || actionButton.toLowerCase().includes('cancelmarketbuyorder'))
                 return {};
 
             var itemIds = actionButton.split(',');
@@ -2008,6 +2035,10 @@
                     $('.market_listing_cancel_button', $(this)).append('<div class="market_listing_select">' +
                         '<input type="checkbox" class="market_select_item"/>' +
                         '</div>');
+
+                    $('.market_select_item', this).change(function (e) {
+                        updateMarketSelectAllButton();
+                    });
                 }
             });
         }
@@ -2021,14 +2052,16 @@
                 var currentCount = 0;
                 var totalCount = 0;
 
-                if (typeof g_oMyListings !== 'undefined' && typeof g_oMyListings.m_cTotalCount !== 'undefined')
+                if (typeof g_oMyListings !== 'undefined' && g_oMyListings != null && g_oMyListings.m_cTotalCount != null)
                     totalCount = g_oMyListings.m_cTotalCount;
                 else {
                     totalCount = parseInt($('#my_market_selllistings_number').text());
                 }
-
-                if (isNaN(totalCount) || totalCount == 0)
+                
+                if (isNaN(totalCount) || totalCount == 0) {
+                    fillMarketListingsQueue();
                     return;
+                }
 
                 $('#tabContentsMyActiveMarketListingsRows').html(''); // Clear the default listings.
                 $('#tabContentsMyActiveMarketListingsRows').hide(); // Hide all listings until everything has been loaded.
@@ -2061,7 +2094,7 @@
                 });
 
                 $('#tabContentsMyActiveMarketListingsRows > .market_listing_row').each(function () {
-                    var listingid = $(this).attr('id').replace('mylisting_', '');
+                    var listingid = $(this).attr('id').replace('mylisting_', '').replace('mybuyorder_', '').replace('mbuyorder_', '');
                     var assetInfo = getAssetInfoFromListingId(listingid);
 
                     // There's only one item in the g_rgAssets on a market listing page.
@@ -2096,7 +2129,7 @@
         // Sort the market listings.
         function sortMarketListings(elem, isPrice, isDate, isName) {
             var list = getListFromContainer(elem);
-            if (typeof list === 'undefined') {
+            if (list == null) {
                 console.log('Invalid parameter, could not find a list matching elem.');
                 return;
             }
@@ -2129,7 +2162,7 @@
             }
             market_listing_selector.text(market_listing_selector.text() + ' ' + (asc ? arrow_up : arrow_down));
 
-            if (typeof list.sort === 'undefined')
+            if (list.sort == null)
                 return;
 
             if (isName) {
@@ -2199,15 +2232,23 @@
             // Sometimes listing ids are contained in multiple lists (?), use the last one available as this is the one we're most likely interested in.
             for (var i = marketLists.length - 1; i >= 0; i--) {
                 var values = marketLists[i].get("market_listing_item_name", 'mylisting_' + listingid + '_name');
-                if (typeof values !== 'undefined' && values.length > 0) {
+                if (values != null && values.length > 0) {
+                    return values[0];
+                }
+
+                values = marketLists[i].get("market_listing_item_name", 'mbuyorder_' + listingid + '_name');
+                if (values != null && values.length > 0) {
                     return values[0];
                 }
             }
+
+            
         }
 
         function removeListingFromLists(listingid) {
             for (var i = 0; i < marketLists.length; i++) {
                 marketLists[i].remove("market_listing_item_name", 'mylisting_' + listingid + '_name');
+                marketLists[i].remove("market_listing_item_name", 'mbuyorder_' + listingid + '_name');
             }
         }
 
@@ -2354,8 +2395,8 @@
             var rgItem = user.findAsset(assets[i].appid, assets[i].contextid, assets[i].assetid);
 
             var text = '';
-            if (typeof rgItem !== 'undefined') {
-                if (typeof rgItem.original_amount !== 'undefined' && typeof rgItem.amount !== 'undefined') {
+            if (rgItem != null) {
+                if (rgItem.original_amount != null && rgItem.amount != null) {
                     var originalAmount = parseInt(rgItem.original_amount);
                     var currentAmount = parseInt(rgItem.amount);
                     var usedAmount = originalAmount - currentAmount;
@@ -2364,7 +2405,7 @@
 
                 text += rgItem.name;
 
-                if (typeof rgItem.type !== 'undefined' && rgItem.type.length > 0) {
+                if (rgItem.type != null && rgItem.type.length > 0) {
                     text += ' (' + rgItem.type + ')';
                 }
             }
