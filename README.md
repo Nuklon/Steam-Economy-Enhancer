@@ -16,6 +16,7 @@ It adds the following features to the Steam Inventory:
 *    Market sell and buy listings added to the item details.
 *    Quick sell buttons to sell an item without confirmations.
 *    Shows the lowest listed price for each item.
+*    Turn selected items into gems.
 
 It adds the following features to the Steam Tradeoffers:
 
