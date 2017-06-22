@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.4.0
+// @version     5.5.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -47,7 +47,9 @@
     const ERROR_DATA = 2;
 
     var marketLists = [];
-    var queuedItems = [];
+    var totalNumberOfProcessedQueueItems = 0;
+    var totalNumberOfQueuedItems = 0;
+
     var spinnerBlock =
         '<div class="spinner"><div class="rect1"></div>&nbsp;<div class="rect2"></div>&nbsp;<div class="rect3"></div>&nbsp;<div class="rect4"></div>&nbsp;<div class="rect5"></div>&nbsp;</div>';
     var numberOfFailedRequests = 0;
@@ -84,6 +86,9 @@
         this.appContext = appContext;
         this.inventoryUrl = inventoryUrl;
         this.walletInfo = walletInfo;
+        this.inventoryUrlBase = inventoryUrl.replace('/inventory/json', '');
+        if (!this.inventoryUrlBase.endsWith('/'))
+            this.inventoryUrlBase += '/';
     }
 
     //#region Settings
@@ -445,6 +450,77 @@
         }
     };
 
+    SteamMarket.prototype.getGooValue = function (item, callback) {
+        try {
+            var sessionId = readCookie('sessionid');
+            $.ajax({
+                type: "GET",
+                url: this.inventoryUrlBase + 'ajaxgetgoovalue/',
+                data: {
+                    sessionid: sessionId,
+                    appid: item.market_fee_app,
+                    assetid: item.assetid,
+                    contextid: item.contextid
+                },
+                success: function (data) {
+                    callback(ERROR_SUCCESS, data);
+                },
+                error: function (data) {
+                    return callback(ERROR_FAILED, data);
+                },
+                crossDomain: true,
+                xhrFields: { withCredentials: true },
+                dataType: 'json'
+            });
+        } catch (e) {
+            return callback(ERROR_FAILED);
+        }
+        //http://steamcommunity.com/auction/ajaxgetgoovalueforitemtype/?appid=582980&item_type=18&border_color=0
+        // OR
+        //http://steamcommunity.com/my/ajaxgetgoovalue/?sessionid=xyz&appid=535690&assetid=4830605461&contextid=6
+        //sessionid=xyz
+        //appid = 535690
+        //assetid = 4830605461
+        //contextid = 6
+    }
+
+
+    // Grinds the item into gems.
+    SteamMarket.prototype.grindIntoGoo = function (item, callback) {
+        try {
+            var sessionId = readCookie('sessionid');
+            $.ajax({
+                type: "POST",
+                url: this.inventoryUrlBase + 'ajaxgrindintogoo/',
+                data: {
+                    sessionid: sessionId,
+                    appid: item.market_fee_app,
+                    assetid: item.assetid,
+                    contextid: item.contextid,
+                    goo_value_expected: item.goo_value_expected
+                },
+                success: function (data) {
+                    callback(ERROR_SUCCESS, data);
+                },
+                error: function (data) {
+                    return callback(ERROR_FAILED, data);
+                },
+                crossDomain: true,
+                xhrFields: { withCredentials: true },
+                dataType: 'json'
+            });
+        } catch (e) {
+            return callback(ERROR_FAILED);
+        }
+
+        //sessionid = xyz
+        //appid = 535690
+        //assetid = 4830605461
+        //contextid = 6
+        //goo_value_expected = 10
+        //http://steamcommunity.com/my/ajaxgrindintogoo/
+    }
+
     // Get the current price history for an item.
     SteamMarket.prototype.getCurrentPriceHistory = function (appid, market_name, callback) {
         var url = window.location.protocol +
@@ -607,15 +683,15 @@
                     '&two_factor=0';
 
                 $.get(url,
-                    function (pageHistogram) {
+                    function (histogram) {
                         // Store the histogram in the session storage.
                         var storage_hash = 'itemordershistogram_' + item.appid + '+' + market_name;
-                        storageSession.setItem(storage_hash, pageHistogram);
+                        storageSession.setItem(storage_hash, histogram);
 
-                        callback(ERROR_SUCCESS, pageHistogram, false);
+                        callback(ERROR_SUCCESS, histogram, false);
                     })
                     .fail(function () {
-                        return callback(ERROR_FAILED);
+                        return callback(ERROR_FAILED, null);
                     });
             });
     };
@@ -719,7 +795,7 @@
                     continue;
 
                 // Cards include a link to the gamecard page.
-                // For example: // For example: "http://steamcommunity.com/my/gamecards/503820/".
+                // For example: "http://steamcommunity.com/my/gamecards/503820/".
                 if (item.owner_actions[i].link.toString().toLowerCase().includes('gamecards'))
                     return true;
             }
@@ -895,20 +971,16 @@
 
     //#region Inventory
     if (currentPage == PAGE_INVENTORY) {
-        var numberOfProcessedItemsInSellQueue = 0;
-
         var sellQueue = async.queue(function (task, next) {
             market.sellItem(task.item,
                 task.sellPrice,
                 function (err, data) {
-                    numberOfProcessedItemsInSellQueue++;
+                    totalNumberOfProcessedQueueItems++;
 
-                    var digits = getNumberOfDigits(queuedItems.length);
+                    var digits = getNumberOfDigits(totalNumberOfQueuedItems);
                     var itemId = task.item.assetid || task.item.id;
                     var itemName = task.item.name || task.item.description.name;
-                    var padLeft = padLeftZero('' + numberOfProcessedItemsInSellQueue, digits) +
-                        ' / ' +
-                        queuedItems.length;
+                    var padLeft = padLeftZero('' + totalNumberOfProcessedQueueItems, digits) + ' / ' + totalNumberOfQueuedItems;
 
                     if (!err) {
                         logDOM(padLeft +
@@ -942,7 +1014,7 @@
             1);
 
         sellQueue.drain = function () {
-            if (itemQueue.length() == 0) {
+            if (itemQueue.length() == 0 && sellQueue.length() == 0 && scrapQueue.length() == 0) {
                 $('#inventory_items_spinner').remove();
             }
         }
@@ -987,8 +1059,77 @@
                 });
         }
 
-        function sellSelectedItems() {
-            var idsToSell = [];
+        var scrapQueue = async.queue(function (item, next) {
+            scrapQueueWorker(item, function (success) {
+                if (success) {
+                    setTimeout(function () { next(); }, 250);
+                } else {
+                    var delay = numberOfFailedRequests > 1
+                        ? getRandomInt(30000, 45000)
+                        : getRandomInt(1000, 1500);
+
+                    if (numberOfFailedRequests > 3)
+                        numberOfFailedRequests = 0;
+
+                    setTimeout(function () {
+                        next();
+                    }, delay);
+                }
+            });
+        }, 1);
+
+        scrapQueue.drain = function () {
+            if (itemQueue.length() == 0 && sellQueue.length() == 0 && scrapQueue.length() == 0) {
+                $('#inventory_items_spinner').remove();
+            }
+        }
+
+        function scrapQueueWorker(item, callback) {
+            var failed = 0;
+            var itemName = item.name || item.description.name;
+            var itemId = item.assetid || item.id;
+
+            market.getGooValue(item,
+                function (err, goo) {
+                    totalNumberOfProcessedQueueItems++;
+
+                    var digits = getNumberOfDigits(totalNumberOfQueuedItems);
+                    var padLeft = padLeftZero('' + totalNumberOfProcessedQueueItems, digits) + ' / ' + totalNumberOfQueuedItems;
+
+                    if (err != ERROR_SUCCESS) {
+                        logConsole('Failed to get gems value for ' + itemName);
+                        logDOM(padLeft + ' - ' + itemName + ' not turned into gems due to missing gems value.');
+
+                        $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_ERROR);
+                        return callback(false);
+                    }
+
+                    item.goo_value_expected = parseInt(goo.goo_value);
+
+                    market.grindIntoGoo(item,
+                        function (err, result) {
+                            if (err != ERROR_SUCCESS) {
+                                logConsole('Failed to turn item into gems for ' + itemName);
+                                logDOM(padLeft + ' - ' + itemName + ' not turned into gems due to unknown error.');
+
+                                $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_ERROR);
+                                return callback(false);
+                            }
+
+                            logConsole('============================')
+                            logConsole(itemName);
+                            logConsole('Turned into ' + goo.goo_value + ' gems');
+                            logDOM(padLeft + ' - ' + itemName + ' turned into ' + item.goo_value_expected + ' gems.');
+                            $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_SUCCESS);
+
+                            callback(true);
+                        });
+                });
+        }
+
+        // Turns the selected items into gems.
+        function turnSelectedItemsIntoGems() {
+            var ids = [];
             $('.inventory_ctn').each(function () {
                 $(this).find('.inventory_page').each(function () {
                     var inventory_page = this;
@@ -1000,7 +1141,73 @@
                         $(this).find('.item').each(function () {
                             var matches = this.id.match(/_(\-?\d+)$/);
                             if (matches) {
-                                idsToSell.push(matches[1]);
+                                ids.push(matches[1]);
+                            }
+                        });
+                    });
+                });
+            });
+
+            loadAllInventories().then(function () {
+                var items = getInventoryItems();
+
+                var numberOfQueuedItems = 0;
+                items.forEach(function (item) {
+                    // Ignored queued items.
+                    if (item.queued != null) {
+                        return;
+                    }
+
+                    if (item.owner_actions == null) {
+                        return;
+                    }
+
+                    var canTurnIntoGems = false;
+                    for (var owner_action in item.owner_actions) {
+                        if (item.owner_actions[owner_action].link != null && item.owner_actions[owner_action].link.includes('GetGooValue')) {
+                            canTurnIntoGems = true;
+                        }
+                    }
+
+                    if (!canTurnIntoGems)
+                        return;
+
+                    var itemId = item.assetid || item.id;
+                    if (ids.indexOf(itemId) !== -1) {
+                        item.queued = true;
+                        scrapQueue.push(item);
+                        numberOfQueuedItems++;
+                    }
+                });
+
+                if (numberOfQueuedItems > 0) {
+                    totalNumberOfQueuedItems += numberOfQueuedItems;
+
+                    $('#inventory_items_spinner').remove();
+                    $('#inventory_sell_buttons').append('<div id="inventory_items_spinner">' +
+                        spinnerBlock +
+                        '<div style="text-align:center">Processing ' + numberOfQueuedItems + ' items</div>' +
+                        '</div>');
+                }
+            }, function () {
+                logDOM('Could not retrieve the inventory...');
+            });
+        }
+
+        function sellSelectedItems() {
+            var ids = [];
+            $('.inventory_ctn').each(function () {
+                $(this).find('.inventory_page').each(function () {
+                    var inventory_page = this;
+
+                    $(inventory_page).find('.itemHolder').each(function () {
+                        if (!$(this).hasClass('ui-selected'))
+                            return;
+
+                        $(this).find('.item').each(function () {
+                            var matches = this.id.match(/_(\-?\d+)$/);
+                            if (matches) {
+                                ids.push(matches[1]);
                             }
                         });
                     });
@@ -1017,16 +1224,15 @@
                     }
 
                     var itemId = item.assetid || item.id;
-                    if (idsToSell.indexOf(itemId) !== -1) {
+                    if (ids.indexOf(itemId) !== -1) {
                         filteredItems.push(item);
                     }
                 });
 
                 sellItems(filteredItems);
-            },
-                function () {
-                    logDOM('Could not retrieve the inventory...');
-                });
+            }, function () {
+                logDOM('Could not retrieve the inventory...');
+            });
         }
 
         function sellItems(items) {
@@ -1036,21 +1242,30 @@
                 return;
             }
 
-            $('#inventory_items_spinner').remove();
-            $('#price_options').append('<div id="inventory_items_spinner">' +
-                spinnerBlock +
-                '<div style="text-align:center">Selling items</div>' +
-                '</div>');
+            var numberOfQueuedItems = 0;
 
             items.forEach(function (item, index, array) {
-                var itemId = item.assetid || item.id;
-                if (queuedItems.indexOf(itemId) == -1) {
-                    item.ignoreErrors = false;
-
-                    queuedItems.push(itemId);
-                    itemQueue.push(item);
+                // Ignored queued items.
+                if (item.queued != null) {
+                    return;
                 }
+
+                item.queued = true;
+                var itemId = item.assetid || item.id;
+                item.ignoreErrors = false;
+                itemQueue.push(item);
+                numberOfQueuedItems++;
             });
+
+            if (numberOfQueuedItems > 0) {
+                totalNumberOfQueuedItems += numberOfQueuedItems;
+
+                $('#inventory_items_spinner').remove();
+                $('#inventory_sell_buttons').append('<div id="inventory_items_spinner">' +
+                    spinnerBlock +
+                    '<div style="text-align:center">Processing ' + numberOfQueuedItems + ' items</div>' +
+                    '</div>');
+            }
         }
 
         var itemQueue = async.queue(function (item, next) {
@@ -1081,8 +1296,7 @@
                             cached ? 0 : delay);
                     }
                 });
-        },
-            1);
+        }, 1);
 
         function itemQueueWorker(item, ignoreErrors, callback) {
             var priceInfo = getPriceInformationFromItem(item);
@@ -1224,20 +1438,18 @@
 
             market.getItemOrdersHistogram(item,
                 false,
-                function (err, listings) {
+                function (err, histogram) {
                     if (err) {
-                        logConsole('Failed to get orders histogram for ' +
-                            (getActiveInventory().selectedItem.name ||
-                                getActiveInventory().selectedItem.description.name));
+                        logConsole('Failed to get orders histogram for ' + (getActiveInventory().selectedItem.name || getActiveInventory().selectedItem.description.name));
                         return;
                     }
 
                     var groupMain = $('<div id="listings_group">' +
                         '<div><div id="listings_sell">Sell</div>' +
-                        listings.sell_order_table +
+                        histogram.sell_order_table +
                         '</div>' +
                         '<div><div id="listings_buy">Buy</div>' +
-                        listings.buy_order_table +
+                        histogram.buy_order_table +
                         '</div>' +
                         '</div>');
 
@@ -1245,20 +1457,22 @@
 
                     // Generate quick sell buttons.
                     var itemId = getActiveInventory().selectedItem.assetid || getActiveInventory().selectedItem.id;
-                    if (queuedItems.indexOf(itemId) != -1) { // There's no need to add queued items again.
+
+                    // Ignored queued items.
+                    if (getActiveInventory().selectedItem.queued != null) {
                         return;
                     }
 
                     var prices = [];
 
-                    if (listings != null && listings.highest_buy_order != null) {
-                        prices.push(parseInt(listings.highest_buy_order));
+                    if (histogram != null && histogram.highest_buy_order != null) {
+                        prices.push(parseInt(histogram.highest_buy_order));
                     }
 
-                    if (listings != null && listings.lowest_sell_order != null) {
-                        prices.push(parseInt(listings.lowest_sell_order) - 1);
-                        prices.push(parseInt(listings.lowest_sell_order));
-                        prices.push(parseInt(listings.lowest_sell_order) + 1);
+                    if (histogram != null && histogram.lowest_sell_order != null) {
+                        prices.push(parseInt(histogram.lowest_sell_order) - 1);
+                        prices.push(parseInt(histogram.lowest_sell_order));
+                        prices.push(parseInt(histogram.lowest_sell_order) + 1);
                     }
 
                     var priceInformation = getPriceInformationFromItem(getActiveInventory().selectedItem);
@@ -1287,14 +1501,9 @@
 
                     $('.quick_sell').on('click',
                         function () {
-                            if (queuedItems.indexOf(itemId) != -1) { // There's no need to add queued items again.
-                                return;
-                            }
-
                             var price = $(this).attr('id').replace('quick_sell', '');
                             price = market.getPriceBeforeFees(price);
 
-                            queuedItems.push(itemId);
                             sellQueue.push({
                                 item: getActiveInventory().selectedItem,
                                 sellPrice: price
@@ -1316,13 +1525,14 @@
             $('#see_settings').on('click', '*', () => openSettings());
 
             var appId = getActiveInventory().m_appid;
-            var showCardOptions = appId == 753;
+            var showMiscOptions = appId == 753;
 
             var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>Sell All Items</span></a>&nbsp;&nbsp;&nbsp;' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_selected"><span>Sell Selected Items</span></a>&nbsp;&nbsp;&nbsp;' +
-                (showCardOptions
-                    ? '<a class="btn_darkblue_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>&nbsp;&nbsp;&nbsp;'
+                (showMiscOptions
+                ? '<a class="btn_green_white_innerfade btn_medium_wide turn_into_gems"><span>Turn Selected Items Into Gems</span></a>&nbsp;&nbsp;&nbsp;' +
+                  '<a class="btn_darkblue_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>&nbsp;&nbsp;&nbsp;'
                     : '') +
                 '</div>');
 
@@ -1355,6 +1565,8 @@
                     });
                 $('.sell_selected').on('click', '*', sellSelectedItems);
                 $('.sell_all_cards').on('click', '*', sellAllCards);
+                $('.turn_into_gems').on('click', '*', turnSelectedItemsIntoGems);
+
             }
 
             $('.inventory_rightnav').prepend(reloadButton);
@@ -1629,7 +1841,7 @@
             if (priceLabel.indexOf('.') === -1 && priceLabel.indexOf(',') === -1) {
                 priceLabel = priceLabel + ',00';
             }
-            
+
             var price = parseInt(replaceNonNumbers(priceLabel));
 
             var priceInfo = getPriceInformationFromItem(asset);
@@ -1663,7 +1875,7 @@
 
                             // Shows the highest buy order price on the market listings.
                             // The 'histogram.highest_buy_order' is not reliable as Steam is caching this value, but it gives some idea for older titles/listings.
-                            var highestBuyOrderPrice = (histogram.highest_buy_order == null
+                            var highestBuyOrderPrice = (histogram == null || histogram.highest_buy_order == null
                                 ? '-'
                                 : ((histogram.highest_buy_order / 100) + currencySymbol));
                             $('.market_table_value > span:nth-child(1) > span:nth-child(1) > span:nth-child(1)',
@@ -1799,7 +2011,7 @@
                 if (items[i].toString().includes('price_'))
                     price = parseInt(items[i].toString().replace('price_', ''));
             }
-            
+
             if (price > 0) {
                 marketOverpricedQueue.push({
                     listing: listingid,
@@ -1923,7 +2135,7 @@
             myMarketListings.show();
 
             fillMarketListingsQueue();
-            
+
             injectJs(function () {
                 g_bMarketWindowHidden =
                     true; // Limits the number of requests made to steam by stopping constant polling of popular listings.
@@ -1947,7 +2159,7 @@
                 } else {
                     $(this).children().last().addClass("market_listing_see");
                 }
-                
+
                 addMarketPagination($('.market_listing_see', this).last());
                 sortMarketListings($(this), false, false, true);
             });
@@ -1957,7 +2169,7 @@
                 for (var j = 0; j < marketLists[i].items.length; j++) {
                     var listingid = replaceNonNumbers(marketLists[i].items[j].values().market_listing_item_name);
                     var assetInfo = getAssetInfoFromListingId(listingid);
-                    
+
                     marketListingsQueue.push({
                         listingid,
                         appid: assetInfo.appid,
@@ -2057,7 +2269,7 @@
                 else {
                     totalCount = parseInt($('#my_market_selllistings_number').text());
                 }
-                
+
                 if (isNaN(totalCount) || totalCount == 0) {
                     fillMarketListingsQueue();
                     return;
@@ -2242,7 +2454,7 @@
                 }
             }
 
-            
+
         }
 
         function removeListingFromLists(listingid) {
