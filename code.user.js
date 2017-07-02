@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.5.0
+// @version     5.5.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1503,6 +1503,8 @@
                         function () {
                             var price = $(this).attr('id').replace('quick_sell', '');
                             price = market.getPriceBeforeFees(price);
+							
+							totalNumberOfQueuedItems++;
 
                             sellQueue.push({
                                 item: getActiveInventory().selectedItem,
