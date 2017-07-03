@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.5.5
+// @version     5.6.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1503,8 +1503,8 @@
                         function () {
                             var price = $(this).attr('id').replace('quick_sell', '');
                             price = market.getPriceBeforeFees(price);
-							
-							totalNumberOfQueuedItems++;
+
+                            totalNumberOfQueuedItems++;
 
                             sellQueue.push({
                                 item: getActiveInventory().selectedItem,
@@ -1533,8 +1533,8 @@
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>Sell All Items</span></a>&nbsp;&nbsp;&nbsp;' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_selected"><span>Sell Selected Items</span></a>&nbsp;&nbsp;&nbsp;' +
                 (showMiscOptions
-                ? '<a class="btn_green_white_innerfade btn_medium_wide turn_into_gems"><span>Turn Selected Items Into Gems</span></a>&nbsp;&nbsp;&nbsp;' +
-                  '<a class="btn_darkblue_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>&nbsp;&nbsp;&nbsp;'
+                    ? '<a class="btn_green_white_innerfade btn_medium_wide turn_into_gems"><span>Turn Selected Items Into Gems</span></a>&nbsp;&nbsp;&nbsp;' +
+                    '<a class="btn_darkblue_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>&nbsp;&nbsp;&nbsp;'
                     : '') +
                 '</div>');
 
@@ -1597,22 +1597,6 @@
                 });
         }
 
-        // Sets the prices for the items.
-        function setInventoryPrices(items) {
-            inventoryPriceQueue.kill();
-
-            items.forEach(function (item) {
-                if (!item.marketable) {
-                    return;
-                }
-
-                if (!$(item.element).is(":visible"))
-                    return;
-
-                inventoryPriceQueue.push(item);
-            });
-        }
-
         // Loads the specified inventories.
         function loadInventories(inventories) {
             return new Promise(function (resolve) {
@@ -1637,11 +1621,6 @@
             items.push(getActiveInventory());
 
             return loadInventories(items);
-        }
-
-        // Gets the active inventory.
-        function getActiveInventory() {
-            return g_ActiveInventory;
         }
 
         // Gets the inventory items from the active inventory.
@@ -1674,6 +1653,32 @@
             }
 
             return arr;
+        }
+    }
+    //#endregion
+
+    //#region Inventory + Tradeoffer
+    if (currentPage == PAGE_INVENTORY || currentPage == PAGE_TRADEOFFER) {
+
+        // Gets the active inventory.
+        function getActiveInventory() {
+            return g_ActiveInventory;
+        }
+
+        // Sets the prices for the items.
+        function setInventoryPrices(items) {
+            inventoryPriceQueue.kill();
+
+            items.forEach(function (item) {
+                if (!item.marketable) {
+                    return;
+                }
+
+                if (!$(item.element).is(":visible"))
+                    return;
+
+                inventoryPriceQueue.push(item);
+            });
         }
 
         var inventoryPriceQueue = async.queue(function (item, next) {
@@ -1715,7 +1720,6 @@
             var failed = 0;
             var itemName = item.name || item.description.name;
 
-
             // Only get the market orders here, the history is not important to visualize the current prices.
             market.getItemOrdersHistogram(item,
                 true,
@@ -1745,7 +1749,7 @@
                     var element = $(elementName);
 
                     $('.inventory_item_price', element).remove();
-                    element.append('<span class="inventory_item_price">' + itemPrice + '</span>');
+                    element.append('<span class="inventory_item_price price_' + (sellPrice == 65535 ? 0 : market.getPriceIncludingFees(sellPrice)) + '">' + itemPrice + '</span>');
 
                     return callback(true, cachedListings);
                 });
@@ -2604,12 +2608,27 @@
     //#region Tradeoffers
     function sumTradeOfferAssets(assets, user) {
         var total = {};
-
+        var totalPrice = 0;
         for (var i = 0; i < assets.length; i++) {
             var rgItem = user.findAsset(assets[i].appid, assets[i].contextid, assets[i].assetid);
 
             var text = '';
             if (rgItem != null) {
+                if (rgItem.element) {
+                    var inventoryPriceElements = $('.inventory_item_price', rgItem.element);
+                    if (inventoryPriceElements.length) {
+                        var firstPriceElement = inventoryPriceElements[0];
+                        var classes = $(firstPriceElement).attr('class').split(' ');
+                        for (var c in classes) {
+                            if (classes[c].toString().includes('price_')) {
+                                var price = parseInt(classes[c].toString().replace('price_', ''));
+                                totalPrice += price;
+                            }
+                        }
+
+                    }
+                }
+
                 if (rgItem.original_amount != null && rgItem.amount != null) {
                     var originalAmount = parseInt(rgItem.original_amount);
                     var currentAmount = parseInt(rgItem.amount);
@@ -2640,7 +2659,7 @@
             return a[1] - b[1];
         }).reverse();
 
-        var totalText = '';
+        var totalText = '<strong>Number of items: ' + sortable.length + ', worth ' + (totalPrice / 100).toFixed(2) + currencySymbol + '<br/><br/></strong>';
 
         for (var i = 0; i < sortable.length; i++) {
             totalText += sortable[i][1] + 'x ' + sortable[i][0] + '<br/>';
@@ -2669,8 +2688,8 @@
 
         var updateInventoryPrices = function () {
             var tradeOfferItems = [];
-            for (var i = 0; i < g_ActiveInventory.rgItemElements.length; i++) {
-                tradeOfferItems.push(g_ActiveInventory.rgItemElements[i].rgItem);
+            for (var i = 0; i < getActiveInventory().rgItemElements.length; i++) {
+                tradeOfferItems.push(getActiveInventory().rgItemElements[i].rgItem);
             }
 
             setInventoryPrices(tradeOfferItems);
