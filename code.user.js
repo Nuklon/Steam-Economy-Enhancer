@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.6.0
+// @version     5.6.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1978,26 +1978,31 @@
             market.removeListing(item.listing,
                 function (errorRemove, data) {
                     if (!errorRemove) {
-                        $('.actual_content', listingUI).css('background', COLOR_PENDING);
+                        $('.actual_content', listingUI).css('background', COLOR_SUCCESS);
 
-                        setTimeout(function () {
-                            market.sellItem(item,
-                                item.sellPrice,
-                                function (errorSell) {
-                                    if (!errorSell) {
-                                        $('.actual_content', listingUI).css('background', COLOR_SUCCESS);
+                        setTimeout(function () { removeListingFromLists(item.listing) }, 3000);
 
-                                        setTimeout(function () { removeListingFromLists(item.listing) }, 3000);
+                        return callback(true);
 
-                                        return callback(true);
-                                    } else {
-                                        $('.actual_content', listingUI).css('background', COLOR_ERROR);
+                        //$('.actual_content', listingUI).css('background', COLOR_PENDING);
 
-                                        return callback(false);
-                                    }
-                                });
-                        },
-                            getRandomInt(1000, 1500)); // Wait a little to make sure the item is returned to inventory.
+                        //setTimeout(function () {
+                        //    market.sellItem(item,
+                        //        item.sellPrice,
+                        //        function (errorSell) {
+                        //            if (!errorSell) {
+                        //                $('.actual_content', listingUI).css('background', COLOR_SUCCESS);
+
+                        //                setTimeout(function () { removeListingFromLists(item.listing) }, 3000);
+
+                        //                return callback(true);
+                        //            } else {
+                        //                $('.actual_content', listingUI).css('background', COLOR_ERROR);
+
+                        //                return callback(false);
+                        //            }
+                        //        });
+                        //}, getRandomInt(1000, 1500)); // Wait a little to make sure the item is returned to inventory.
                     } else {
                         $('.actual_content', listingUI).css('background', COLOR_ERROR);
 
@@ -2760,7 +2765,7 @@
             'Market items per page:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MARKET_PAGE_COUNT + '" value=' + getSettingWithDefault(SETTING_MARKET_PAGE_COUNT) + '>' +
             '<br/>' +
             '<div style="margin-top:6px;">' +
-            'Automatically relist overpriced listings:&nbsp;<input id="' + SETTING_RELIST_AUTOMATICALLY + '" class="market_relist_auto" type="checkbox" ' + (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked=""' : '') + '>' +
+            'Automatically remove overpriced market listings:&nbsp;<input id="' + SETTING_RELIST_AUTOMATICALLY + '" class="market_relist_auto" type="checkbox" ' + (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked=""' : '') + '>' +
             '</label>' +
             '</div>' +
             '</div>' +
