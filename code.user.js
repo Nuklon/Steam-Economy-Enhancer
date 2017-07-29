@@ -2487,12 +2487,12 @@
                 '<a class="item_market_action_button item_market_action_button_green remove_selected market_listing_button">' +
                 '<span class="item_market_action_button_contents" style="text-transform:none">Remove selected</span>' +
                 '</a>' +
-                '<a class="item_market_action_button item_market_action_button_green relist_selected market_listing_button market_listing_button_right">' +
-                '<span class="item_market_action_button_contents" style="text-transform:none">Relist selected</span>' +
-                '</a>' +
+                //'<a class="item_market_action_button item_market_action_button_green relist_selected market_listing_button market_listing_button_right">' +
+                //'<span class="item_market_action_button_contents" style="text-transform:none">Relist selected</span>' +
+                //'</a>' +
                 '<span class="separator-small"></span>' +
                 '<a class="item_market_action_button item_market_action_button_green relist_overpriced market_listing_button market_listing_button_right">' +
-                '<span class="item_market_action_button_contents" style="text-transform:none">Relist overpriced</span>' +
+                '<span class="item_market_action_button_contents" style="text-transform:none">Remove overpriced</span>' +
                 '</a>' +
                 '<span class="separator-small"></span>' +
                 '<a class="item_market_action_button item_market_action_button_green select_overpriced market_listing_button market_listing_button_right">' +
