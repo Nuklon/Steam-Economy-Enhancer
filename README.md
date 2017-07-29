@@ -6,7 +6,7 @@ It adds the following features to the Steam Market:
 
 *    Detect overpriced and underpriced items.
 *    Select all (overpriced) items and remove them at once.
-*    (Automatically) relist overpriced items.
+*    (Automatically) ~~relist~~remove overpriced items.
 *    Sort and search items by name, price or date.
 
 It adds the following features to the Steam Inventory:
