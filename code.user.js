@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.6.5
+// @version     5.7.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1978,31 +1978,50 @@
             market.removeListing(item.listing,
                 function (errorRemove, data) {
                     if (!errorRemove) {
-                        $('.actual_content', listingUI).css('background', COLOR_SUCCESS);
+                        $('.actual_content', listingUI).css('background', COLOR_PENDING);
 
-                        setTimeout(function () { removeListingFromLists(item.listing) }, 3000);
+                        setTimeout(function () {
+                            var baseUrl = $('.header_notification_items').first().attr('href') + 'json/';
+                            var itemName = $('.market_listing_item_name_link', listingUI).first().attr('href');
+                            var marketHashNameIndex = itemName.lastIndexOf('/') + 1;
+                            var marketHashName = decodeURI(itemName.substring(marketHashNameIndex));
+                            var newAssetId = -1;
 
-                        return callback(true);
+                            RequestFullInventory(baseUrl + item.appid + "/" + item.contextid + "/", {}, null, null, function (transport) {
+                                if (transport.responseJSON && transport.responseJSON.success) {
+                                    var inventory = transport.responseJSON.rgInventory;
+                                    for (var child in inventory) {
+                                        
+                                        if (inventory[child].appid == item.appid &&
+                                            inventory[child].market_hash_name == marketHashName) {
+                                            newAssetId = child;
+                                        }
+                                    }
+                                    
+                                    if (newAssetId == -1)
+                                        return callback(false);
 
-                        //$('.actual_content', listingUI).css('background', COLOR_PENDING);
+                                    item.assetid = newAssetId;
+                                    market.sellItem(item,
+                                        item.sellPrice,
+                                        function (errorSell) {
+                                            if (!errorSell) {
+                                                $('.actual_content', listingUI).css('background', COLOR_SUCCESS);
 
-                        //setTimeout(function () {
-                        //    market.sellItem(item,
-                        //        item.sellPrice,
-                        //        function (errorSell) {
-                        //            if (!errorSell) {
-                        //                $('.actual_content', listingUI).css('background', COLOR_SUCCESS);
+                                                setTimeout(function () { removeListingFromLists(item.listing) }, 3000);
 
-                        //                setTimeout(function () { removeListingFromLists(item.listing) }, 3000);
+                                                return callback(true);
+                                            } else {
+                                                $('.actual_content', listingUI).css('background', COLOR_ERROR);
 
-                        //                return callback(true);
-                        //            } else {
-                        //                $('.actual_content', listingUI).css('background', COLOR_ERROR);
+                                                return callback(false);
+                                            }
+                                        });
 
-                        //                return callback(false);
-                        //            }
-                        //        });
-                        //}, getRandomInt(1000, 1500)); // Wait a little to make sure the item is returned to inventory.
+                                } else
+                                    return callback(false);
+                            });
+                        }, getRandomInt(1500, 2500)); // Wait a little to make sure the item is returned to inventory.
                     } else {
                         $('.actual_content', listingUI).css('background', COLOR_ERROR);
 
@@ -2487,12 +2506,12 @@
                 '<a class="item_market_action_button item_market_action_button_green remove_selected market_listing_button">' +
                 '<span class="item_market_action_button_contents" style="text-transform:none">Remove selected</span>' +
                 '</a>' +
-                //'<a class="item_market_action_button item_market_action_button_green relist_selected market_listing_button market_listing_button_right">' +
-                //'<span class="item_market_action_button_contents" style="text-transform:none">Relist selected</span>' +
-                //'</a>' +
+                '<a class="item_market_action_button item_market_action_button_green relist_selected market_listing_button market_listing_button_right">' +
+                '<span class="item_market_action_button_contents" style="text-transform:none">Relist selected</span>' +
+                '</a>' +
                 '<span class="separator-small"></span>' +
                 '<a class="item_market_action_button item_market_action_button_green relist_overpriced market_listing_button market_listing_button_right">' +
-                '<span class="item_market_action_button_contents" style="text-transform:none">Remove overpriced</span>' +
+                '<span class="item_market_action_button_contents" style="text-transform:none">Relist overpriced</span>' +
                 '</a>' +
                 '<span class="separator-small"></span>' +
                 '<a class="item_market_action_button item_market_action_button_green select_overpriced market_listing_button market_listing_button_right">' +
@@ -2765,7 +2784,7 @@
             'Market items per page:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MARKET_PAGE_COUNT + '" value=' + getSettingWithDefault(SETTING_MARKET_PAGE_COUNT) + '>' +
             '<br/>' +
             '<div style="margin-top:6px;">' +
-            'Automatically remove overpriced market listings:&nbsp;<input id="' + SETTING_RELIST_AUTOMATICALLY + '" class="market_relist_auto" type="checkbox" ' + (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked=""' : '') + '>' +
+            'Automatically relist overpriced market listings (slow on large inventories):&nbsp;<input id="' + SETTING_RELIST_AUTOMATICALLY + '" class="market_relist_auto" type="checkbox" ' + (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked=""' : '') + '>' +
             '</label>' +
             '</div>' +
             '</div>' +
