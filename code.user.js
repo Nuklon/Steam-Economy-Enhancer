@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.7.0
+// @version     5.7.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1984,22 +1984,26 @@
                             var baseUrl = $('.header_notification_items').first().attr('href') + 'json/';
                             var itemName = $('.market_listing_item_name_link', listingUI).first().attr('href');
                             var marketHashNameIndex = itemName.lastIndexOf('/') + 1;
-                            var marketHashName = decodeURI(itemName.substring(marketHashNameIndex));
+                            var marketHashName = itemName.substring(marketHashNameIndex);
+                            var decodedMarketHashName = decodeURIComponent(itemName.substring(marketHashNameIndex));
                             var newAssetId = -1;
 
                             RequestFullInventory(baseUrl + item.appid + "/" + item.contextid + "/", {}, null, null, function (transport) {
                                 if (transport.responseJSON && transport.responseJSON.success) {
                                     var inventory = transport.responseJSON.rgInventory;
+
                                     for (var child in inventory) {
-                                        
                                         if (inventory[child].appid == item.appid &&
-                                            inventory[child].market_hash_name == marketHashName) {
+                                            (inventory[child].market_hash_name == decodedMarketHashName ||
+                                                inventory[child].market_hash_name == marketHashName)) {
                                             newAssetId = child;
                                         }
                                     }
-                                    
-                                    if (newAssetId == -1)
+
+                                    if (newAssetId == -1) {
+                                        $('.actual_content', listingUI).css('background', COLOR_ERROR);
                                         return callback(false);
+                                    }
 
                                     item.assetid = newAssetId;
                                     market.sellItem(item,
@@ -2013,18 +2017,18 @@
                                                 return callback(true);
                                             } else {
                                                 $('.actual_content', listingUI).css('background', COLOR_ERROR);
-
                                                 return callback(false);
                                             }
                                         });
 
-                                } else
+                                } else {
+                                    $('.actual_content', listingUI).css('background', COLOR_ERROR);
                                     return callback(false);
+                                }
                             });
                         }, getRandomInt(1500, 2500)); // Wait a little to make sure the item is returned to inventory.
                     } else {
                         $('.actual_content', listingUI).css('background', COLOR_ERROR);
-
                         return callback(false);
                     }
                 });
