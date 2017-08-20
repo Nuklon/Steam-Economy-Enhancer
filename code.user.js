@@ -741,10 +741,20 @@
     };
     //#endregion
 
+    function replaceAll(str, find, replace) {
+        return str.replace(new RegExp(find, 'g'), replace);
+    }
+
+    // Cannot use encodeURI / encodeURIComponent, Steam only escapes certain characters.
     function escapeURI(name) {
-        return name.replace('?', '%3F')
-            .replace('#', '%23')
-            .replace('	', '%09');
+        var previousName = '';
+        while (previousName != name) {
+            previousName = name;
+            name = name.replace('?', '%3F')
+                       .replace('#', '%23')
+                       .replace('	', '%09');
+        }
+        return name;
     }
 
     //#region Steam Market / Inventory helpers
@@ -1426,8 +1436,8 @@
             scrap.next().insertBefore(scrap);
 
             // Starting at prices are already retrieved in the table.
-            $('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(2)')
-                .remove(); // Starting at: x,xx.
+            //$('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(2)')
+            //    .remove(); // Starting at: x,xx.
 
             var market_hash_name = getMarketHashName(getActiveInventory().selectedItem);
             if (market_hash_name == null)
@@ -2908,6 +2918,11 @@
         };
 
         iterator(0);
+    };
+
+    String.prototype.replaceAll = function (search, replacement) {
+        var target = this;
+        return target.replace(new RegExp(search, 'g'), replacement);
     };
     //#endregion
 })(jQuery, async);
