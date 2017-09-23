@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     5.8.0
+// @version     6.0.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -11,9 +11,9 @@
 // @include     *://steamcommunity.com/tradeoffer*
 // @require     https://code.jquery.com/jquery-3.2.1.min.js
 // @require     https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
-// @require     https://raw.githubusercontent.com/kapetan/jquery-observe/master/jquery-observe.js
-// @require     https://raw.githubusercontent.com/superRaytin/paginationjs/master/dist/pagination.js
-// @require     https://raw.githubusercontent.com/caolan/async/master/dist/async.min.js
+// @require     https://raw.githubusercontent.com/kapetan/jquery-observe/ca67b735bb3ae8d678d1843384ebbe7c02466c61/jquery-observe.js
+// @require     https://raw.githubusercontent.com/superRaytin/paginationjs/d61bbf5e2bf00c7b310e07a7674a8d18237ec9b0/dist/pagination.min.js
+// @require     https://raw.githubusercontent.com/caolan/async/eb7a02fd5e57faeb83d7b2efa6a5af4703eda2c1/dist/async.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.4.3/localforage.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min.js
 // @require     https://raw.githubusercontent.com/javve/list.js/v1.5.0/dist/list.min.js
@@ -27,7 +27,7 @@
 // jQuery is already added by Steam, force no conflict mode.
 (function ($, async) {
     $.noConflict(true);
-
+    
     const STEAM_INVENTORY_ID = 753;
 
     const PAGE_MARKET = 0;
@@ -104,6 +104,7 @@
     const SETTING_LAST_CACHE = 'SETTING_LAST_CACHE';
     const SETTING_RELIST_AUTOMATICALLY = 'SETTING_RELIST_AUTOMATICALLY';
     const SETTING_MARKET_PAGE_COUNT = 'SETTING_MARKET_PAGE_COUNT';
+    const SETTING_INVENTORY_PRICES = 'SETTING_INVENTORY_PRICES';
 
     var settingDefaults =
         {
@@ -113,7 +114,7 @@
             SETTING_MAX_FOIL_PRICE: 10,
             SETTING_MIN_MISC_PRICE: 0.05,
             SETTING_MAX_MISC_PRICE: 10,
-            SETTING_PRICE_OFFSET: -0.01,
+            SETTING_PRICE_OFFSET: 0.00,
             SETTING_PRICE_ALGORITHM: 1,
             SETTING_PRICE_IGNORE_LOWEST_Q: 1,
             SETTING_LAST_CACHE: 0,
@@ -751,8 +752,8 @@
         while (previousName != name) {
             previousName = name;
             name = name.replace('?', '%3F')
-                       .replace('#', '%23')
-                       .replace('	', '%09');
+                .replace('#', '%23')
+                .replace('	', '%09');
         }
         return name;
     }
@@ -1004,13 +1005,14 @@
                         $('#' + task.item.appid + '_' + task.item.contextid + '_' + itemId)
                             .css('background', COLOR_SUCCESS);
                     } else {
-                        if (data.responseJSON.message != null)
+                        if (data != null && data.responseJSON != null && data.responseJSON.message != null) {
                             logDOM(padLeft +
                                 ' - ' +
                                 itemName +
                                 ' not added to market because ' +
                                 data.responseJSON.message[0].toLowerCase() +
                                 data.responseJSON.message.slice(1));
+                        }
                         else
                             logDOM(padLeft + ' - ' + itemName + ' not added to market.');
 
@@ -1205,43 +1207,8 @@
         }
 
         function sellSelectedItems() {
-            var ids = [];
-            $('.inventory_ctn').each(function () {
-                $(this).find('.inventory_page').each(function () {
-                    var inventory_page = this;
-
-                    $(inventory_page).find('.itemHolder').each(function () {
-                        if (!$(this).hasClass('ui-selected'))
-                            return;
-
-                        $(this).find('.item').each(function () {
-                            var matches = this.id.match(/_(\-?\d+)$/);
-                            if (matches) {
-                                ids.push(matches[1]);
-                            }
-                        });
-                    });
-                });
-            });
-
-            loadAllInventories().then(function () {
-                var items = getInventoryItems();
-                var filteredItems = [];
-
-                items.forEach(function (item) {
-                    if (!item.marketable) {
-                        return;
-                    }
-
-                    var itemId = item.assetid || item.id;
-                    if (ids.indexOf(itemId) !== -1) {
-                        filteredItems.push(item);
-                    }
-                });
-
+            getInventorySelectedMarketableItems(function (items) {
                 sellItems(filteredItems);
-            }, function () {
-                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -1379,15 +1346,16 @@
             if (!isOwnInventory)
                 return;
 
-            var filter =
-                ".itemHolder:not([style*=none])"; // Steam adds 'display:none' to items while searching. These should not be selected while using shift/ctrl.
+            // Steam adds 'display:none' to items while searching. These should not be selected while using shift/ctrl.
+            var filter = ".itemHolder:not([style*=none])";
             $('#inventories').selectable({
                 filter: filter,
                 selecting: function (e, ui) {
-                    var selectedIndex =
-                        $(ui.selecting.tagName, e.target).index(ui.selecting); // Get selected item index.
-                    if (e.shiftKey && previousSelection > -1
-                    ) { // If shift key was pressed and there is previous - select them all.
+                    // Get selected item index.
+                    var selectedIndex = $(ui.selecting.tagName, e.target).index(ui.selecting);
+
+                    // If shift key was pressed and there is previous - select them all.
+                    if (e.shiftKey && previousSelection > -1) {
                         $(ui.selecting.tagName, e.target)
                             .slice(Math.min(previousSelection, selectedIndex),
                             1 + Math.max(previousSelection, selectedIndex)).each(function () {
@@ -1406,7 +1374,65 @@
             });
         }
 
+        // Gets the selected and marketable items in the inventory.
+        function getInventorySelectedMarketableItems(callback) {
+            var ids = [];
+            $('.inventory_ctn').each(function () {
+                $(this).find('.inventory_page').each(function () {
+                    var inventory_page = this;
+
+                    $(inventory_page).find('.itemHolder').each(function () {
+                        if (!$(this).hasClass('ui-selected'))
+                            return;
+
+                        $(this).find('.item').each(function () {
+                            var matches = this.id.match(/_(\-?\d+)$/);
+                            if (matches) {
+                                ids.push(matches[1]);
+                            }
+                        });
+                    });
+                });
+            });
+
+            loadAllInventories().then(function () {
+                var items = getInventoryItems();
+                var filteredItems = [];
+
+                items.forEach(function (item) {
+                    if (!item.marketable) {
+                        return;
+                    }
+
+                    var itemId = item.assetid || item.id;
+                    if (ids.indexOf(itemId) !== -1) {
+                        filteredItems.push(item);
+                    }
+                });
+
+                callback(filteredItems);
+            }, function () {
+                logDOM('Could not retrieve the inventory...');
+            });
+        }
+
+        // Updates the (selected) sell ... items button.
+        function updateSellSelectedButton() {
+            getInventorySelectedMarketableItems(function (items) {
+                var selectedItems = items.length;
+                if (items.length == 0)
+                    $('.sell_selected').hide();
+                else {
+                    $('.sell_selected').show();
+                    $('.sell_selected > span')
+                        .text('Sell ' + selectedItems + (selectedItems == 1 ? ' Item' : ' Items'));
+                }
+            });
+        }
+
         function updateInventorySelection(item) {
+            updateSellSelectedButton();
+
             // Wait until g_ActiveInventory.selectedItem is identical to the selected UI item.
             // This also makes sure that the new - and correct - item_info (iteminfo0 or iteminfo1) is visible.
             var selectedItemIdUI = $('div', item).attr('id');
@@ -1418,8 +1444,7 @@
             if (selectedItemIdUI !== selectedItemIdInventory) {
                 setTimeout(function () {
                     updateInventorySelection(item);
-                },
-                    250);
+                }, 250);
 
                 return;
             }
@@ -1541,7 +1566,7 @@
 
             var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>Sell All Items</span></a>&nbsp;&nbsp;&nbsp;' +
-                '<a class="btn_green_white_innerfade btn_medium_wide sell_selected"><span>Sell Selected Items</span></a>&nbsp;&nbsp;&nbsp;' +
+                '<a class="btn_green_white_innerfade btn_medium_wide sell_selected" style="display:none"><span>Sell Selected Items</span></a>&nbsp;&nbsp;&nbsp;' +
                 (showMiscOptions
                     ? '<a class="btn_green_white_innerfade btn_medium_wide turn_into_gems"><span>Turn Selected Items Into Gems</span></a>&nbsp;&nbsp;&nbsp;' +
                     '<a class="btn_darkblue_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>&nbsp;&nbsp;&nbsp;'
@@ -1717,8 +1742,7 @@
 
                         setTimeout(function () {
                             next();
-                        },
-                            cached ? 0 : delay);
+                        }, cached ? 0 : delay);
                     }
                 });
         },
@@ -1769,6 +1793,8 @@
 
     //#region Market
     if (currentPage == PAGE_MARKET || currentPage == PAGE_MARKET_LISTING) {
+        var marketListingsRelistedAssets = [];
+
         var marketListingsQueue = async.queue(function (listing, next) {
             marketListingsQueueWorker(listing,
                 false,
@@ -1789,8 +1815,7 @@
                             cached ? 0 : getRandomInt(30000, 45000));
                     }
                 });
-        },
-            1);
+        }, 1);
 
         marketListingsQueue.drain = function () {
             injectJs(function () {
@@ -2003,10 +2028,9 @@
                                     var inventory = transport.responseJSON.rgInventory;
 
                                     for (var child in inventory) {
-                                        if (inventory[child].appid == item.appid &&
-                                            (inventory[child].market_hash_name == decodedMarketHashName ||
-                                                inventory[child].market_hash_name == marketHashName)) {
+                                        if (marketListingsRelistedAssets.indexOf(child) == -1 && inventory[child].appid == item.appid && (inventory[child].market_hash_name == decodedMarketHashName || inventory[child].market_hash_name == marketHashName)) {
                                             newAssetId = child;
+                                            break;
                                         }
                                     }
 
@@ -2016,6 +2040,8 @@
                                     }
 
                                     item.assetid = newAssetId;
+                                    marketListingsRelistedAssets.push(newAssetId);
+
                                     market.sellItem(item,
                                         item.sellPrice,
                                         function (errorSell) {
@@ -2823,7 +2849,7 @@
     //#endregion
 
     //#region UI
-    injectCss('.ui-selected { outline: 1px groove #FFFFFF; } ' +
+    injectCss('.ui-selected { outline: 2px dashed #FFFFFF; } ' +
         '#logger { color: #767676; font-size: 12px;margin-top:16px; max-height: 200px; overflow-y: auto; }' +
         '.trade_offer_sum { color: #767676; font-size: 12px;margin-top:8px; }' +
         '.trade_offer_buttons { margin-top: 12px; }' +
