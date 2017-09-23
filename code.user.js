@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     6.0.0
+// @version     6.0.1
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1208,7 +1208,7 @@
 
         function sellSelectedItems() {
             getInventorySelectedMarketableItems(function (items) {
-                sellItems(filteredItems);
+                sellItems(items);
             });
         }
 
