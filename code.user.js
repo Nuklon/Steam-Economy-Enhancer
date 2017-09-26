@@ -95,12 +95,12 @@
     //#region language
     var language = g_strLanguage;
 
-    var lang = {'added to market for': 'added to market for', 'not added to market because': 'not added to market because', 'not added to market': 'not added to market', 'Could not retrieve the inventory': 'Could not retrieve the inventory', 'Failed to get gems value for': 'Failed to get gems value for', 'not turned into gems due to missing gems value': 'not turned into gems due to missing gems value', 'Failed to turn item into gems for': 'Failed to turn item into gems for', 'not turned into gems due to unknown error': 'not turned into gems due to unknown error', 'Turned into': 'Turned into', 'gems': 'gems', 'turned into': 'turned into', 'Processing': 'Processing', 'items': 'items', 'These items cannot be added to the market': 'These items cannot be added to the market', 'Failed to get price history for': 'Failed to get price history for', 'Failed to get orders histogram for': 'Failed to get orders histogram for', 'Sell price': 'Sell price', 'Item': 'Item', 'Items': 'Items', 'Sell': 'Sell', 'Buy': 'Buy', 'Sell All Items': 'Sell All Items', 'Sell Selected Items': 'Sell Selected Items', 'Turn Selected Items Into Gems': 'Turn Selected Items Into Gems', 'Sell All Cards': 'Sell All Cards', 'Reload Inventory': 'Reload Inventory', 'This is likely the highest buy order price': 'This is likely the highest buy order price', 'Current price': 'Current price', 'Calculated price': 'Calculated price', 'The best price is': 'The best price is', 'Sell price is too high': 'Sell price is too high', 'Sell price is too low': 'Sell price is too low', 'Sell price is fair': 'Sell price is fair', 'Search': 'Search', 'Loading market listings': 'Loading market listings', 'Deselect all': 'Deselect all', 'Select all': 'Select all', 'Invalid parameter, could not find a list matching elem': 'Invalid parameter, could not find a list matching elem', 'Remove selected': 'Remove selected', 'Relist selected': 'Relist selected', 'Relist overpriced': 'Relist overpriced', 'Select overpriced': 'Select overpriced', 'Remove selected 2': 'Remove selected', 'Unknown Item': 'Unknown Item', 'Number of items': 'Number of items', 'worth': 'worth', 'Select all from page': 'Select all from page', 'Calculate prices as the': 'Calculate prices as the', 'maximum of the average': 'maximum of the average', 'hours': 'hours', 'and lowest listing': 'and lowest listing', 'lowest listing': 'lowest listing', 'The value to add to the calculated price': 'The value to add to the calculated price', 'minimum and maximum are respected': 'minimum and maximum are respected', 'Use the second lowest listing when the lowest listing has a low quantity': 'Use the second lowest listing when the lowest listing has a low quantity', 'Minimum': 'Minimum', 'and maximum': 'and maximum', 'price for normal cards': 'price for normal cards', 'price for foil cards': 'price for foil cards', 'price for other items': 'price for other items', 'Market items per page': 'Market items per page', 'Automatically relist overpriced market listings': 'Automatically relist overpriced market listings', 'slow on large inventories': 'slow on large inventories'};
+    var lang = { 'added to market for': 'added to market for', 'not added to market because': 'not added to market because', 'not added to market': 'not added to market', 'Could not retrieve the inventory': 'Could not retrieve the inventory', 'not turned into gems due to missing gems value': 'not turned into gems due to missing gems value', 'not turned into gems due to unknown error': 'not turned into gems due to unknown error', 'gems': 'gems', 'turned into': 'turned into', 'Processing': 'Processing', 'items': 'items', 'These items cannot be added to the market': 'These items cannot be added to the market', 'Item': 'Item', 'Items': 'Items', 'Sell': 'Sell', 'Buy': 'Buy', 'Sell All Items': 'Sell All Items', 'Sell Selected Items': 'Sell Selected Items', 'Turn Selected Items Into Gems': 'Turn Selected Items Into Gems', 'Sell All Cards': 'Sell All Cards', 'Reload Inventory': 'Reload Inventory', 'This is likely the highest buy order price': 'This is likely the highest buy order price', 'The best price is': 'The best price is', 'Search': 'Search', 'Loading market listings': 'Loading market listings', 'Deselect all': 'Deselect all', 'Select all': 'Select all', 'Remove selected': 'Remove selected', 'Relist selected': 'Relist selected', 'Relist overpriced': 'Relist overpriced', 'Select overpriced': 'Select overpriced', 'Remove selected 2': 'Remove selected', 'Unknown Item': 'Unknown Item', 'Number of items': 'Number of items', 'worth': 'worth', 'Select all from page': 'Select all from page', 'Calculate prices as the': 'Calculate prices as the', 'maximum of the average': 'maximum of the average', 'hours': 'hours', 'and lowest listing': 'and lowest listing', 'lowest listing': 'lowest listing', 'The value to add to the calculated price': 'The value to add to the calculated price', 'minimum and maximum are respected': 'minimum and maximum are respected', 'Use the second lowest listing when the lowest listing has a low quantity': 'Use the second lowest listing when the lowest listing has a low quantity', 'Minimum': 'Minimum', 'and maximum': 'and maximum', 'price for normal cards': 'price for normal cards', 'price for foil cards': 'price for foil cards', 'price for other items': 'price for other items', 'Market items per page': 'Market items per page', 'Automatically relist overpriced market listings': 'Automatically relist overpriced market listings', 'slow on large inventories': 'slow on large inventories' };
 
     var lang_local = {};
     switch (language) {
         case 'schinese':
-            lang_local = {'added to market for': '已添加至市场, 售价为', 'not added to market because': '上架市场失败, 因为', 'not added to market': '上架市场失败', 'Could not retrieve the inventory': '无法加载库存', 'Failed to get gems value for': '无法获取此物品宝珠值', 'not turned into gems due to missing gems value': '因缺少宝珠值而无法分解为宝珠', 'Failed to turn item into gems for': '分解宝珠失败', 'not turned into gems due to unknown error': '未知错误, 分解宝珠失败', 'Turned into': '分解为', 'gems': '个宝珠', 'turned into': '分解为', 'Processing': '正在处理', 'items': '个物品', 'These items cannot be added to the market': ' 这些物品未能上架市场', 'Failed to get price history for': '无法获取此物品历史价格', 'Failed to get orders histogram for': '无法获取此物品订单价格', 'Sell price': '售价', 'Item': '个物品', 'Items': '个物品', 'Sell': '出售', 'Buy': '购买', 'Sell All Items': '出售全部物品', 'Sell Selected Items': '出售选定物品', 'Turn Selected Items Into Gems': '将选定物品分解为宝石', 'Sell All Cards': '出售全部卡牌', 'Reload Inventory': '重新加载库存', 'This is likely the highest buy order price': '这可能是当前最高的买价', 'Current price': '目前价格', 'Calculated price': '计算后的价格', 'The best price is': '最好的价格是', 'Sell price is too high': '售价过高', 'Sell price is too low': '售价过低', 'Sell price is fair': '售价正常', 'Search': '搜索', 'Loading market listings': '加载交易列表中', 'Deselect all': '取消选择', 'Select all': '选择全部', 'Invalid parameter, could not find a list matching elem': '参数无效, 未找到节点', 'Remove selected': '下架选定物品', 'Relist selected': '重新上架选定物品', 'Relist overpriced': '重新上架高价物品', 'Select overpriced': '选择高价物品', 'Remove selected 2': '删除选定', 'Unknown Item': '未知物品', 'Number of items': '这些物品', 'worth': '值', 'Select all from page': '全选本页', 'Calculate prices as the': '基准价格计算方式', 'maximum of the average': '在过去', 'hours': '小时', 'and lowest listing': '的均价和目前最低售价两个数间取大值', 'lowest listing': '当前最低售价', 'The value to add to the calculated price': '自动调整价格', 'minimum and maximum are respected': '请谨慎填写', 'Use the second lowest listing when the lowest listing has a low quantity': '当前最低售价较少时, 使用第二低售价', 'Minimum': '最低售价', 'and maximum': '最高售价', 'price for normal cards': '普通卡牌的售价', 'price for foil cards': '闪亮卡牌的售价', 'price for other items': '其他物品的售价', 'Market items per page': '每页的物品数量', 'Automatically relist overpriced market listings': '自动重新上架售价过高的物品', 'slow on large inventories': '大量物品会导致卡顿'};
+            lang_local = { 'added to market for': '已添加至市场, 售价为', 'not added to market because': '上架市场失败, 因为', 'not added to market': '上架市场失败', 'Could not retrieve the inventory': '无法加载库存', 'not turned into gems due to missing gems value': '因缺少宝珠值而无法分解为宝珠', 'not turned into gems due to unknown error': '未知错误, 分解宝珠失败', 'gems': '个宝珠', 'turned into': '分解为', 'Processing': '正在处理', 'items': '个物品', 'These items cannot be added to the market': ' 这些物品未能上架市场', 'Item': '个物品', 'Items': '个物品', 'Sell': '出售', 'Buy': '购买', 'Sell All Items': '出售全部物品', 'Sell Selected Items': '出售选定物品', 'Turn Selected Items Into Gems': '将选定物品分解为宝石', 'Sell All Cards': '出售全部卡牌', 'Reload Inventory': '重新加载库存', 'This is likely the highest buy order price': '这可能是当前最高的买价', 'The best price is': '最好的价格是', 'Search': '搜索', 'Loading market listings': '加载交易列表中', 'Deselect all': '取消选择', 'Select all': '选择全部', 'Remove selected': '下架选定物品', 'Relist selected': '重新上架选定物品', 'Relist overpriced': '重新上架高价物品', 'Select overpriced': '选择高价物品', 'Remove selected 2': '删除选定', 'Unknown Item': '未知物品', 'Number of items': '这些物品', 'worth': '值', 'Select all from page': '全选本页', 'Calculate prices as the': '基准价格计算方式', 'maximum of the average': '在过去', 'hours': '小时', 'and lowest listing': '的均价和目前最低售价两个数间取大值', 'lowest listing': '当前最低售价', 'The value to add to the calculated price': '自动调整价格', 'minimum and maximum are respected': '请谨慎填写', 'Use the second lowest listing when the lowest listing has a low quantity': '当前最低售价较少时, 使用第二低售价', 'Minimum': '最低售价', 'and maximum': '最高售价', 'price for normal cards': '普通卡牌的售价', 'price for foil cards': '闪亮卡牌的售价', 'price for other items': '其他物品的售价', 'Market items per page': '每页的物品数量', 'Automatically relist overpriced market listings': '自动重新上架售价过高的物品', 'slow on large inventories': '大量物品会导致卡顿' };
             break;
         default:
             break;
@@ -1127,7 +1127,7 @@
                     var padLeft = padLeftZero('' + totalNumberOfProcessedQueueItems, digits) + ' / ' + totalNumberOfQueuedItems;
 
                     if (err != ERROR_SUCCESS) {
-                        logConsole(lang['Failed to get gems value for'] + ' ' + itemName);
+                        logConsole('Failed to get gems value for ' + itemName);
                         logDOM(padLeft + ' - ' + itemName + ' ' + lang['not turned into gems due to missing gems value'] + '.');
 
                         $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_ERROR);
@@ -1139,7 +1139,7 @@
                     market.grindIntoGoo(item,
                         function (err, result) {
                             if (err != ERROR_SUCCESS) {
-                                logConsole(lang['Failed to turn item into gems for'] + ' ' + itemName);
+                                logConsole('Failed to turn item into gems for ' + itemName);
                                 logDOM(padLeft + ' - ' + itemName + ' ' + lang['not turned into gems due to unknown error'] + '.');
 
                                 $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_ERROR);
@@ -1148,7 +1148,7 @@
 
                             logConsole('============================')
                             logConsole(itemName);
-                            logConsole(lang['Turned into'] + ' ' + goo.goo_value + ' ' + lang['gems']);
+                            logConsole('Turned into ' + goo.goo_value + ' gems');
                             logDOM(padLeft + ' - ' + itemName + ' ' + lang['turned into'] + ' ' + item.goo_value_expected + ' ' + lang['gems'] + '.');
                             $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_SUCCESS);
 
@@ -1303,7 +1303,7 @@
                 true,
                 function (err, history, cachedHistory) {
                     if (err) {
-                        logConsole(lang['Failed to get price history for'] + ' ' + itemName);
+                        logConsole('Failed to get price history for ' + itemName);
 
                         if (err == ERROR_FAILED)
                             failed += 1;
@@ -1313,7 +1313,7 @@
                         true,
                         function (err, histogram, cachedListings) {
                             if (err) {
-                                logConsole(lang['Failed to get orders histogram for'] + ' ' + itemName);
+                                logConsole('Failed to get orders histogram for ' + itemName);
 
                                 if (err == ERROR_FAILED)
                                     failed += 1;
@@ -1332,7 +1332,7 @@
                                 priceInfo.minPriceBeforeFees,
                                 priceInfo.maxPriceBeforeFees);
 
-                            logConsole(lang['Sell price'] + ': ' +
+                            logConsole('Sell price: ' +
                                 sellPrice / 100.0 +
                                 ' (' +
                                 market.getPriceIncludingFees(sellPrice) / 100.0 +
@@ -1493,7 +1493,7 @@
                 false,
                 function (err, histogram) {
                     if (err) {
-                        logConsole(lang['Failed to get orders histogram for'] + ' ' + (getActiveInventory().selectedItem.name || getActiveInventory().selectedItem.description.name));
+                        logConsole('Failed to get orders histogram for ' + (getActiveInventory().selectedItem.name || getActiveInventory().selectedItem.description.name));
                         return;
                     }
 
@@ -1777,7 +1777,7 @@
                 true,
                 function (err, histogram, cachedListings) {
                     if (err) {
-                        logConsole(lang['Failed to get orders histogram for'] + ' ' + itemName);
+                        logConsole('Failed to get orders histogram for ' + itemName);
 
                         if (err == ERROR_FAILED)
                             failed += 1;
@@ -1912,7 +1912,7 @@
                 true,
                 function (errorPriceHistory, history, cachedHistory) {
                     if (errorPriceHistory) {
-                        logConsole(lang['Failed to get price history for'] + ' ' + game_name);
+                        logConsole('Failed to get price history for ' + game_name);
 
                         if (errorPriceHistory == ERROR_FAILED)
                             failed += 1;
@@ -1922,7 +1922,7 @@
                         true,
                         function (errorHistogram, histogram, cachedListings) {
                             if (errorHistogram) {
-                                logConsole(lang['Failed to get orders histogram for'] + ' ' + game_name);
+                                logConsole('Failed to get orders histogram for ' + game_name);
 
                                 if (errorHistogram == ERROR_FAILED)
                                     failed += 1;
@@ -1945,7 +1945,7 @@
                             logConsole('============================')
                             logConsole(JSON.stringify(listing));
                             logConsole(game_name + ': ' + asset.name);
-                            logConsole(lang['Current price'] + ': ' + price / 100.0);
+                            logConsole('Current price: ' + price / 100.0);
 
                             // Calculate two prices here, one without the offset and one with the offset.
                             // The price without the offset is required to not relist the item constantly when you have the lowest price (i.e., with a negative offset).
@@ -1964,7 +1964,7 @@
 
                             var sellPriceWithoutOffsetWithFees = market.getPriceIncludingFees(sellPriceWithoutOffset);
 
-                            logConsole(lang['Calculated price'] + ': ' +
+                            logConsole('Calculated price: ' +
                                 sellPriceWithoutOffsetWithFees / 100.0 +
                                 ' (' +
                                 sellPriceWithoutOffset / 100.0 +
@@ -1976,7 +1976,7 @@
                                 lang['The best price is'] + ' ' + (sellPriceWithoutOffsetWithFees / 100.0) + currencySymbol + '.');
 
                             if (sellPriceWithoutOffsetWithFees < price) {
-                                logConsole(lang['Sell price is too high'] + '.');
+                                logConsole('Sell price is too high.');
 
                                 $('.market_listing_my_price', listingUI).last()
                                     .css('background', COLOR_PRICE_EXPENSIVE);
@@ -1986,12 +1986,12 @@
                                     queueOverpricedItemListing(listing.listingid);
                                 }
                             } else if (sellPriceWithoutOffsetWithFees > price) {
-                                logConsole(lang['Sell price is too low'] + '.');
+                                logConsole('Sell price is too low.');
 
                                 $('.market_listing_my_price', listingUI).last().css('background', COLOR_PRICE_CHEAP);
                                 listingUI.addClass('underpriced');
                             } else {
-                                logConsole(lang['Sell price is fair'] + '.');
+                                logConsole('Sell price is fair.');
 
                                 $('.market_listing_my_price', listingUI).last().css('background', COLOR_PRICE_FAIR);
                                 listingUI.addClass('fair');
@@ -2430,7 +2430,7 @@
         function sortMarketListings(elem, isPrice, isDate, isName) {
             var list = getListFromContainer(elem);
             if (list == null) {
-                console.log(lang['Invalid parameter, could not find a list matching elem'] + '.');
+                console.log('Invalid parameter, could not find a list matching elem.');
                 return;
             }
 
