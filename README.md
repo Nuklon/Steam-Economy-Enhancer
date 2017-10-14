@@ -8,6 +8,7 @@ It adds the following features to the Steam Market:
 *    Select all (overpriced) items and remove them at once.
 *    (Automatically) relist overpriced items.
 *    Sort and search items by name, price or date.
+*    Total price for listings, as seller and buyer.
 
 It adds the following features to the Steam Inventory:
 
@@ -17,6 +18,7 @@ It adds the following features to the Steam Inventory:
 *    Quick sell buttons to sell an item without confirmations.
 *    Shows the lowest listed price for each item.
 *    Turn selected items into gems.
+*    Unpack selected booster packs.
 
 It adds the following features to the Steam Tradeoffers:
 
