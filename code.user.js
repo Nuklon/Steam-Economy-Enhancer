@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     6.2.0
+// @version     6.2.1
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -3057,13 +3057,7 @@
             $('div.offerheader:nth-child(1) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_your_sum">' + your_sum + '</div>');
             $('div.offerheader:nth-child(3) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_their_sum">' + their_sum + '</div>');
         });
-
-
-        // This only works with a new trade offer.
-        if (!window.location.href.includes('tradeoffer/new'))
-            return;
-
-
+        
         var updateInventoryPrices = function () {
             setInventoryPrices(getTradeOfferInventoryItems());
         };
@@ -3077,6 +3071,11 @@
                 updateInventoryPrices();
             });
 
+        
+        // This only works with a new trade offer.
+        if (!window.location.href.includes('tradeoffer/new'))
+            return;
+        
         $('#inventory_displaycontrols').append(
             '<br/>' +
             '<div class="trade_offer_buttons">' +
