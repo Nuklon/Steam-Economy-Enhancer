@@ -97,10 +97,13 @@
     //#region Settings
     const SETTING_MIN_NORMAL_PRICE = 'SETTING_MIN_NORMAL_PRICE';
     const SETTING_MAX_NORMAL_PRICE = 'SETTING_MAX_NORMAL_PRICE';
+    const SETTING_SKIP_NORMAL_PRICE = 'SETTING_SKIP_NORMAL_PRICE';
     const SETTING_MIN_FOIL_PRICE = 'SETTING_MIN_FOIL_PRICE';
     const SETTING_MAX_FOIL_PRICE = 'SETTING_MAX_FOIL_PRICE';
+    const SETTING_SKIP_FOIL_PRICE = 'SETTING_SKIP_FOIL_PRICE';
     const SETTING_MIN_MISC_PRICE = 'SETTING_MIN_MISC_PRICE';
     const SETTING_MAX_MISC_PRICE = 'SETTING_MAX_MISC_PRICE';
+    const SETTING_SKIP_MISC_PRICE = 'SETTING_SKIP_MISC_PRICE';
     const SETTING_PRICE_OFFSET = 'SETTING_PRICE_OFFSET';
     const SETTING_PRICE_ALGORITHM = 'SETTING_PRICE_ALGORITHM';
     const SETTING_PRICE_IGNORE_LOWEST_Q = 'SETTING_PRICE_IGNORE_LOWEST_Q';
@@ -113,10 +116,13 @@
         {
             SETTING_MIN_NORMAL_PRICE: 0.05,
             SETTING_MAX_NORMAL_PRICE: 2.50,
+            SETTING_SKIP_NORMAL_PRICE: 0,
             SETTING_MIN_FOIL_PRICE: 0.15,
             SETTING_MAX_FOIL_PRICE: 10,
+            SETTING_SKIP_FOIL_PRICE: 0,
             SETTING_MIN_MISC_PRICE: 0.05,
             SETTING_MAX_MISC_PRICE: 10,
+            SETTING_SKIP_MISC_PRICE: 0,
             SETTING_PRICE_OFFSET: 0.00,
             SETTING_PRICE_ALGORITHM: 1,
             SETTING_PRICE_IGNORE_LOWEST_Q: 1,
@@ -213,10 +219,12 @@
     function getPriceInformation(isTradingCard, isFoilTradingCard) {
         var maxPrice = 0;
         var minPrice = 0;
+        var skip = 0;
 
         if (!isTradingCard) {
             maxPrice = getSettingWithDefault(SETTING_MAX_MISC_PRICE);
             minPrice = getSettingWithDefault(SETTING_MIN_MISC_PRICE);
+            skip = getSettingWithDefault(SETTING_SKIP_MISC_PRICE);
         } else {
             maxPrice = isFoilTradingCard
                 ? getSettingWithDefault(SETTING_MAX_FOIL_PRICE)
@@ -224,6 +232,9 @@
             minPrice = isFoilTradingCard
                 ? getSettingWithDefault(SETTING_MIN_FOIL_PRICE)
                 : getSettingWithDefault(SETTING_MIN_NORMAL_PRICE);
+            skip = isFoilTradingCard
+                ? getSettingWithDefault(SETTING_SKIP_FOIL_PRICE)
+                : getSettingWithDefault(SETTING_SKIP_NORMAL_PRICE);
         }
 
         maxPrice = maxPrice * 100.0;
@@ -232,7 +243,7 @@
         var maxPriceBeforeFees = market.getPriceBeforeFees(maxPrice);
         var minPriceBeforeFees = market.getPriceBeforeFees(minPrice);
 
-        return { maxPrice, minPrice, maxPriceBeforeFees, minPriceBeforeFees };
+        return { maxPrice, minPrice, maxPriceBeforeFees, minPriceBeforeFees, skip };
     }
 
     // Calculates the average history price, before the fee.
@@ -260,7 +271,7 @@
         return market.getPriceBeforeFees(highest);
     }
 
-    // Calculates the listing price, before the fee.    
+    // Calculates the listing price, before the fee.
     function calculateListingPriceBeforeFees(histogram) {
         if (histogram == null ||
             histogram.lowest_sell_order == null ||
@@ -302,7 +313,7 @@
 
     // Calculate the sell price based on the history and listings.
     // applyOffset specifies whether the price offset should be applied when the listings are used to determine the price.
-    function calculateSellPriceBeforeFees(history, histogram, applyOffset, minPriceBeforeFees, maxPriceBeforeFees) {
+    function calculateSellPriceBeforeFees(history, histogram, applyOffset, minPriceBeforeFees, maxPriceBeforeFees, skip) {
         var historyPrice = calculateAverageHistoryPriceBeforeFees(history);
         var listingPrice = calculateListingPriceBeforeFees(histogram);
 
@@ -330,6 +341,9 @@
         if (!changedToMax && applyOffset) {
             calculatedPrice = calculatedPrice + (getSettingWithDefault(SETTING_PRICE_OFFSET) * 100);
         }
+
+        // Keep our skip in mind.
+        if (calculatedPrice < minPriceBeforeFees && skip) return false;
 
 
         // Keep our minimum and maximum in mind.
@@ -1466,7 +1480,12 @@
                                 histogram,
                                 true,
                                 priceInfo.minPriceBeforeFees,
-                                priceInfo.maxPriceBeforeFees);
+                                priceInfo.maxPriceBeforeFees,
+                                priceInfo.skip);
+
+                            if (!sellPrice) {
+                                return callback(true, cachedHistory && cachedListings);
+                            }
 
                             logConsole('Sell price: ' +
                                 sellPrice / 100.0 +
@@ -1519,7 +1538,7 @@
                             });
                         previousSelection = -1; // Reset previous.
                     } else {
-                        previousSelection = selectedIndex; // Save previous.					
+                        previousSelection = selectedIndex; // Save previous.
                     }
                 },
                 selected: function (e, ui) {
@@ -2031,7 +2050,7 @@
                         return callback(false, cachedListings);
                     }
 
-                    var sellPrice = calculateSellPriceBeforeFees(null, histogram, false, 0, 65535);
+                    var sellPrice = calculateSellPriceBeforeFees(null, histogram, false, 0, 65535, false);
                     var itemPrice = sellPrice == 65535
                         ? '∞'
                         : (market.getPriceIncludingFees(sellPrice) / 100.0).toFixed(2) + currencySymbol;
@@ -2204,12 +2223,14 @@
                                 histogram,
                                 false,
                                 priceInfo.minPriceBeforeFees,
-                                priceInfo.maxPriceBeforeFees);
+                                priceInfo.maxPriceBeforeFees,
+                                false);
                             var sellPriceWithOffset = calculateSellPriceBeforeFees(history,
                                 histogram,
                                 true,
                                 priceInfo.minPriceBeforeFees,
-                                priceInfo.maxPriceBeforeFees);
+                                priceInfo.maxPriceBeforeFees,
+                                false);
 
                             var sellPriceWithoutOffsetWithFees = market.getPriceIncludingFees(sellPriceWithoutOffset);
 
@@ -3119,18 +3140,24 @@
             '</div>' +
             '<div style="margin-top:24px">' +
             '<div style="margin-bottom:6px;">' +
-            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
-            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;price for normal cards' +
+            '<span style="display:inline-block;width:100px;">Normal cards</span>' +
+            '<span style="display:inline-block;width:40px;text-align: center;">Min:</span><input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
+            '<span style="display:inline-block;width:40px;text-align: center;">Max:</span><input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;' +
+            '<span style="display:inline-block;width:40px;text-align: center;">Skip:</span><input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_SKIP_NORMAL_PRICE + '" ' + (getSettingWithDefault(SETTING_SKIP_NORMAL_PRICE) == 1 ? 'checked=""' : '') + '>&nbsp;' +
             '<br/>' +
             '</div>' +
             '<div style="margin-bottom:6px;">' +
-            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
-            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_FOIL_PRICE) + '>&nbsp;price for foil cards' +
+            '<span style="display:inline-block;width:100px;">Foil cards</span>' +
+            '<span style="display:inline-block;width:40px;text-align: center;">Min:</span><input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
+            '<span style="display:inline-block;width:40px;text-align: center;">Max:</span><input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_FOIL_PRICE) + '>&nbsp;' +
+            '<span style="display:inline-block;width:40px;text-align: center;">Skip:</span><input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_SKIP_FOIL_PRICE + '" ' + (getSettingWithDefault(SETTING_SKIP_FOIL_PRICE) == 1 ? 'checked=""' : '') + '>&nbsp;' +
             '<br/>' +
             '</div>' +
             '<div style="margin-bottom:6px;">' +
-            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
-            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;price for other items' +
+            '<span style="display:inline-block;width:100px;">Other items</span>' +
+            '<span style="display:inline-block;width:40px;text-align: center;">Min:</span><input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
+            '<span style="display:inline-block;width:40px;text-align: center;">Max:</span><input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;' +
+            '<span style="display:inline-block;width:40px;text-align: center;">Skip:</span><input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_SKIP_MISC_PRICE + '" ' + (getSettingWithDefault(SETTING_SKIP_MISC_PRICE) == 1 ? 'checked=""' : '') + '>&nbsp;' +
             '<br/>' +
             '</div>' +
             '<div style="margin-top:24px;margin-bottom:6px;">' +
@@ -3146,10 +3173,13 @@
         var dialog = ShowConfirmDialog('Steam Economy Enhancer', price_options).done(function () {
             setSetting(SETTING_MIN_NORMAL_PRICE, $('#' + SETTING_MIN_NORMAL_PRICE, price_options).val());
             setSetting(SETTING_MAX_NORMAL_PRICE, $('#' + SETTING_MAX_NORMAL_PRICE, price_options).val());
+            setSetting(SETTING_SKIP_NORMAL_PRICE, $('#' + SETTING_SKIP_NORMAL_PRICE, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_MIN_FOIL_PRICE, $('#' + SETTING_MIN_FOIL_PRICE, price_options).val());
             setSetting(SETTING_MAX_FOIL_PRICE, $('#' + SETTING_MAX_FOIL_PRICE, price_options).val());
+            setSetting(SETTING_SKIP_FOIL_PRICE, $('#' + SETTING_SKIP_FOIL_PRICE, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_MIN_MISC_PRICE, $('#' + SETTING_MIN_MISC_PRICE, price_options).val());
             setSetting(SETTING_MAX_MISC_PRICE, $('#' + SETTING_MAX_MISC_PRICE, price_options).val());
+            setSetting(SETTING_SKIP_MISC_PRICE, $('#' + SETTING_SKIP_MISC_PRICE, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_PRICE_OFFSET, $('#' + SETTING_PRICE_OFFSET, price_options).val());
             setSetting(SETTING_PRICE_ALGORITHM, $('#' + SETTING_PRICE_ALGORITHM, price_options).val());
             setSetting(SETTING_MARKET_PAGE_COUNT, $('#' + SETTING_MARKET_PAGE_COUNT, price_options).val());
