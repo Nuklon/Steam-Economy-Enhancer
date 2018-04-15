@@ -33,7 +33,7 @@ This can be defined in Steam Economy Enhancer's settings, which you can find at 
 
 [Install Steam Economy Enhancer](https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js)
 
-*Violentmonkey, Greasemonkey or Tampermonkey is required to install.*
+*Violentmonkey, ~~Greasemonkey~~ or Tampermonkey is required to install.*
 
 **Screenshots**
 
