@@ -3,21 +3,21 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     6.3.0
+// @version     6.4.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
 // @include     *://steamcommunity.com/market*
 // @include     *://steamcommunity.com/tradeoffer*
-// @require     https://code.jquery.com/jquery-3.2.1.min.js
+// @require     https://code.jquery.com/jquery-3.3.1.min.js
 // @require     https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
 // @require     https://raw.githubusercontent.com/kapetan/jquery-observe/ca67b735bb3ae8d678d1843384ebbe7c02466c61/jquery-observe.js
-// @require     https://raw.githubusercontent.com/superRaytin/paginationjs/d61bbf5e2bf00c7b310e07a7674a8d18237ec9b0/dist/pagination.min.js
-// @require     https://raw.githubusercontent.com/caolan/async/eb7a02fd5e57faeb83d7b2efa6a5af4703eda2c1/dist/async.min.js
-// @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.4.3/localforage.min.js
+// @require     https://cdnjs.cloudflare.com/ajax/libs/paginationjs/2.1.2/pagination.min.js
+// @require     https://cdnjs.cloudflare.com/ajax/libs/async/2.6.0/async.js
+// @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.7.1/localforage.min.js
 // @require     http://moment.github.io/luxon/global/luxon.min.js
-// @require     https://raw.githubusercontent.com/javve/list.js/v1.5.0/dist/list.min.js
-// @require     https://github.com/rmariuzzo/checkboxes.js/releases/download/v1.2.0/jquery.checkboxes-1.2.0.min.js
+// @require     https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.js
+// @require     https://github.com/rmariuzzo/checkboxes.js/releases/download/v1.2.2/jquery.checkboxes-1.2.2.min.js
 // @homepageURL https://github.com/Nuklon/Steam-Economy-Enhancer
 // @supportURL  https://github.com/Nuklon/Steam-Economy-Enhancer/issues
 // @downloadURL https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
@@ -1758,7 +1758,7 @@
                         logConsole('Failed to get orders histogram for ' + (getActiveInventory().selectedItem.name || getActiveInventory().selectedItem.description.name));
                         return;
                     }
-
+              
                     var groupMain = $('<div id="listings_group">' +
                         '<div><div id="listings_sell">Sell</div>' +
                         histogram.sell_order_table +
@@ -1769,7 +1769,19 @@
                         '</div>');
 
                     $('#' + item_info_id + '_item_market_actions > div').after(groupMain);
-
+          
+                    var ownerActions = $('#' + item_info_id + '_item_owner_actions');
+                      
+                    ownerActions.append('<br/> <a class="btn_small btn_grey_white_innerfade" href="/market/listings/' + appid + '/' + market_hash_name + '"><span>View in Community Market</span></a>');
+                    $('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(1)').hide();
+              
+                    var isBoosterPack = getActiveInventory().selectedItem.name.toLowerCase().endsWith('booster pack');
+                    if (isBoosterPack) {
+                        var tradingCardsUrl = "/market/search?q=&category_753_Game%5B%5D=tag_app_" + getActiveInventory().selectedItem.market_fee_app + "&category_753_item_class%5B%5D=tag_item_class_2&appid=753";
+                        ownerActions.append('<br/> <a class="btn_small btn_grey_white_innerfade" href="' + tradingCardsUrl + '"><span>View trading cards in Community Market</span></a>');
+                    }
+                    
+              
                     // Generate quick sell buttons.
                     var itemId = getActiveInventory().selectedItem.assetid || getActiveInventory().selectedItem.id;
 
