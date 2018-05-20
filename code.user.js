@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     6.4.0
+// @version     6.4.1
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -2821,15 +2821,15 @@
                     sortFunction: function(a, b) {
                         var firstDate = DateTime.fromString((a.values().market_listing_listed_date).trim(), 'd MMM');
                         var secondDate = DateTime.fromString((b.values().market_listing_listed_date).trim(), 'd MMM');
-
+                          
                         if (firstDate == null || secondDate == null) {
                             return 0;
                         }
 
                         if (firstDate.month > currentMonth)
-                            firstDate.add(-1, 'years');
+                            firstDate = firstDate.plus({ years: -1});
                         if (secondDate.month > currentMonth)
-                            secondDate.add(-1, 'years');
+                            secondDate = secondDate.plus({ years: -1});
 
                         if (firstDate > secondDate)
                             return 1;
