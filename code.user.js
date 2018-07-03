@@ -310,6 +310,7 @@
     function calculateSellPriceBeforeFees(history, histogram, applyOffset, minPriceBeforeFees, maxPriceBeforeFees) {
         var historyPrice = calculateAverageHistoryPriceBeforeFees(history);
         var listingPrice = calculateListingPriceBeforeFees(histogram);
+        var buyPrice = market.getPriceBeforeFees(histogram.highest_buy_order);
 
         var shouldUseAverage = getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1;
         var shouldUseBuyOrder = getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 3;
@@ -317,8 +318,7 @@
         // If the highest average price is lower than the first listing, return the offset + that listing.
         // Otherwise, use the highest average price instead.
         var calculatedPrice = 0;
-        if (shouldUseBuyOrder){
-            var buyPrice = market.getPriceBeforeFees(histogram.highest_buy_order);
+        if (shouldUseBuyOrder && buyPrice !== -2) {
             calculatedPrice = buyPrice;
         } else if (historyPrice < listingPrice || !shouldUseAverage) {
             calculatedPrice = listingPrice;
