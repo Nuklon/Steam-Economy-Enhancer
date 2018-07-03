@@ -305,12 +305,16 @@
         return listingPrice;
     }
 
+    function calculateBuyOrderPriceBeforeFees(histogram) {
+        return market.getPriceBeforeFees(histogram.highest_buy_order);
+    }
+
     // Calculate the sell price based on the history and listings.
     // applyOffset specifies whether the price offset should be applied when the listings are used to determine the price.
     function calculateSellPriceBeforeFees(history, histogram, applyOffset, minPriceBeforeFees, maxPriceBeforeFees) {
         var historyPrice = calculateAverageHistoryPriceBeforeFees(history);
         var listingPrice = calculateListingPriceBeforeFees(histogram);
-        var buyPrice = market.getPriceBeforeFees(histogram.highest_buy_order);
+        var buyPrice = calculateBuyOrderPriceBeforeFees(histogram);
 
         var shouldUseAverage = getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1;
         var shouldUseBuyOrder = getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 3;
