@@ -312,12 +312,15 @@
         var listingPrice = calculateListingPriceBeforeFees(histogram);
 
         var shouldUseAverage = getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1;
+        var shouldUseBuyOrder = getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 3;
 
         // If the highest average price is lower than the first listing, return the offset + that listing.
         // Otherwise, use the highest average price instead.
         var calculatedPrice = 0;
-
-        if (historyPrice < listingPrice || !shouldUseAverage) {
+        if (shouldUseBuyOrder){
+            var buyPrice = market.getPriceBeforeFees(histogram.highest_buy_order);
+            calculatedPrice = buyPrice;
+        } else if (historyPrice < listingPrice || !shouldUseAverage) {
             calculatedPrice = listingPrice;
         } else {
             calculatedPrice = historyPrice;
@@ -3221,8 +3224,9 @@
         var price_options = $('<div id="price_options">' +
             '<div style="margin-bottom:6px;">' +
             'Calculate prices as the:&nbsp;<select class="price_option_input" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
-            '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>maximum of the average (12 hours) and lowest listing</option>' +
-            '<option value="2" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : '') + '>lowest listing</option>' +
+            '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>Maximum of the average (12 hours) and lowest listing</option>' +
+            '<option value="2" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : '') + '>Lowest current sell listing</option>' +
+            '<option value="3" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 3 ? 'selected="selected"' : '') + '>Highest current buy order</option>' +
             '</select>' +
             '<br/>' +
             '</div>' +
