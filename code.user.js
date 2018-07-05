@@ -105,7 +105,8 @@
     const SETTING_PRICE_OFFSET = 'SETTING_PRICE_OFFSET';
     const SETTING_PRICE_ALGORITHM = 'SETTING_PRICE_ALGORITHM';
     const SETTING_PRICE_IGNORE_LOWEST_Q = 'SETTING_PRICE_IGNORE_LOWEST_Q';
-    const SETTING_PRICE_ENABLE = 'SETTING_PRICE_ENABLE';
+    const SETTING_INVENTORY_PRICE_ENABLE = 'SETTING_INVENTORY_PRICE_ENABLE';
+    const SETTING_TO_PRICE_ENABLE = 'SETTING_TO_PRICE_ENABLE';
     const SETTING_LAST_CACHE = 'SETTING_LAST_CACHE';
     const SETTING_RELIST_AUTOMATICALLY = 'SETTING_RELIST_AUTOMATICALLY';
     const SETTING_MARKET_PAGE_COUNT = 'SETTING_MARKET_PAGE_COUNT';
@@ -121,7 +122,8 @@
         SETTING_PRICE_OFFSET: 0.00,
         SETTING_PRICE_ALGORITHM: 1,
         SETTING_PRICE_IGNORE_LOWEST_Q: 1,
-        SETTING_PRICE_ENABLE: 1,
+        SETTING_INVENTORY_PRICE_ENABLE: 1,
+        SETTING_TO_PRICE_ENABLE: 1,
         SETTING_LAST_CACHE: 0,
         SETTING_RELIST_AUTOMATICALLY: 0,
         SETTING_MARKET_PAGE_COUNT: 100
@@ -1941,6 +1943,10 @@
 
             loadAllInventories().then(function() {
                     var updateInventoryPrices = function() {
+                        var shouldCalcuate = getSettingWithDefault(SETTING_INVENTORY_PRICE_ENABLE) == 1;
+                        if (!shouldCalcuate) {
+                            return;
+                        }
                         setInventoryPrices(getInventoryItems());
                     };
 
@@ -2097,11 +2103,6 @@
                     }
 
                     var sellPrice = calculateSellPriceBeforeFees(null, histogram, false, 0, 65535);
-
-                    var shouldCalcuate = getSettingWithDefault(SETTING_PRICE_ENABLE) == 1;
-                    if (!shouldCalcuate) {
-                        return;
-                    }
 
                     var itemPrice = sellPrice == 65535 ?
                         '∞' :
@@ -3157,6 +3158,10 @@
 
     function initializeTradeOfferUI() {
         var updateInventoryPrices = function() {
+            var shouldCalcuate = getSettingWithDefault(SETTING_TO_PRICE_ENABLE) == 1;
+            if (!shouldCalcuate) {
+                return;
+            }
             setInventoryPrices(getTradeOfferInventoryItems());
         };
 
@@ -3236,7 +3241,9 @@
     function openSettings() {
         var price_options = $('<div id="price_options">' +
             '<div style="margin-top:6px">' +
-            'Enable inventory price labels:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_PRICE_ENABLE + '" ' + (getSettingWithDefault(SETTING_PRICE_ENABLE) == 1 ? 'checked=""' : '') + '>' +
+            'Enable inventory price labels:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_INVENTORY_PRICE_ENABLE + '" ' + (getSettingWithDefault(SETTING_INVENTORY_PRICE_ENABLE) == 1 ? 'checked=""' : '') + '>' +
+            '<br/>' +
+            'Enable trade offer price labels:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_TO_PRICE_ENABLE + '" ' + (getSettingWithDefault(SETTING_TO_PRICE_ENABLE) == 1 ? 'checked=""' : '') + '>' +
             '<br/>' +
             '<div style="margin-bottom:6px;">' +
             'Calculate prices as the:&nbsp;<select class="price_option_input" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
@@ -3292,7 +3299,8 @@
             setSetting(SETTING_MARKET_PAGE_COUNT, $('#' + SETTING_MARKET_PAGE_COUNT, price_options).val());
             setSetting(SETTING_RELIST_AUTOMATICALLY, $('#' + SETTING_RELIST_AUTOMATICALLY, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $('#' + SETTING_PRICE_IGNORE_LOWEST_Q, price_options).prop('checked') ? 1 : 0);
-            setSetting(SETTING_PRICE_ENABLE, $('#' + SETTING_PRICE_ENABLE, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_INVENTORY_PRICE_ENABLE, $('#' + SETTING_INVENTORY_PRICE_ENABLE, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_TO_PRICE_ENABLE, $('#' + SETTING_TO_PRICE_ENABLE, price_options).prop('checked') ? 1 : 0);
 
             window.location.reload();
         });
