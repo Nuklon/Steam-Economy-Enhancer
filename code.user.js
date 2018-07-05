@@ -1943,8 +1943,7 @@
 
             loadAllInventories().then(function() {
                     var updateInventoryPrices = function() {
-                        var shouldCalcuate = getSettingWithDefault(SETTING_INVENTORY_PRICE_ENABLE) == 1;
-                        if (!shouldCalcuate) {
+                        if (getSettingWithDefault(SETTING_INVENTORY_PRICE_ENABLE) !== 1) {
                             return;
                         }
                         setInventoryPrices(getInventoryItems());
@@ -3158,8 +3157,7 @@
 
     function initializeTradeOfferUI() {
         var updateInventoryPrices = function() {
-            var shouldCalcuate = getSettingWithDefault(SETTING_TO_PRICE_ENABLE) == 1;
-            if (!shouldCalcuate) {
+            if (getSettingWithDefault(SETTING_TO_PRICE_ENABLE) !== 1) {
                 return;
             }
             setInventoryPrices(getTradeOfferInventoryItems());
