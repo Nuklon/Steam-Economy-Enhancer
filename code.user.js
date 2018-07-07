@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     6.4.3
+// @version     6.4.4
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -105,6 +105,8 @@
     const SETTING_PRICE_OFFSET = 'SETTING_PRICE_OFFSET';
     const SETTING_PRICE_ALGORITHM = 'SETTING_PRICE_ALGORITHM';
     const SETTING_PRICE_IGNORE_LOWEST_Q = 'SETTING_PRICE_IGNORE_LOWEST_Q';
+    const SETTING_INVENTORY_PRICE_ENABLE = 'SETTING_INVENTORY_PRICE_ENABLE';
+    const SETTING_TO_PRICE_ENABLE = 'SETTING_TO_PRICE_ENABLE';
     const SETTING_LAST_CACHE = 'SETTING_LAST_CACHE';
     const SETTING_RELIST_AUTOMATICALLY = 'SETTING_RELIST_AUTOMATICALLY';
     const SETTING_MARKET_PAGE_COUNT = 'SETTING_MARKET_PAGE_COUNT';
@@ -120,6 +122,8 @@
         SETTING_PRICE_OFFSET: 0.00,
         SETTING_PRICE_ALGORITHM: 1,
         SETTING_PRICE_IGNORE_LOWEST_Q: 1,
+        SETTING_INVENTORY_PRICE_ENABLE: 1,
+        SETTING_TO_PRICE_ENABLE: 1,
         SETTING_LAST_CACHE: 0,
         SETTING_RELIST_AUTOMATICALLY: 0,
         SETTING_MARKET_PAGE_COUNT: 100
@@ -1496,6 +1500,7 @@
                                 true,
                                 priceInfo.minPriceBeforeFees,
                                 priceInfo.maxPriceBeforeFees);
+                            
 
                             logConsole('Sell price: ' +
                                 sellPrice / 100.0 +
@@ -1938,6 +1943,9 @@
 
             loadAllInventories().then(function() {
                     var updateInventoryPrices = function() {
+                        if (getSettingWithDefault(SETTING_INVENTORY_PRICE_ENABLE) !== 1) {
+                            return;
+                        }
                         setInventoryPrices(getInventoryItems());
                     };
 
@@ -2094,6 +2102,7 @@
                     }
 
                     var sellPrice = calculateSellPriceBeforeFees(null, histogram, false, 0, 65535);
+
                     var itemPrice = sellPrice == 65535 ?
                         '∞' :
                         (market.getPriceIncludingFees(sellPrice) / 100.0).toFixed(2) + currencySymbol;
@@ -3148,6 +3157,9 @@
 
     function initializeTradeOfferUI() {
         var updateInventoryPrices = function() {
+            if (getSettingWithDefault(SETTING_TO_PRICE_ENABLE) !== 1) {
+                return;
+            }
             setInventoryPrices(getTradeOfferInventoryItems());
         };
 
@@ -3226,6 +3238,11 @@
     //#region Settings
     function openSettings() {
         var price_options = $('<div id="price_options">' +
+            '<div style="margin-top:6px">' +
+            'Enable inventory price labels:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_INVENTORY_PRICE_ENABLE + '" ' + (getSettingWithDefault(SETTING_INVENTORY_PRICE_ENABLE) == 1 ? 'checked=""' : '') + '>' +
+            '<br/>' +
+            'Enable trade offer price labels:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_TO_PRICE_ENABLE + '" ' + (getSettingWithDefault(SETTING_TO_PRICE_ENABLE) == 1 ? 'checked=""' : '') + '>' +
+            '<br/>' +
             '<div style="margin-bottom:6px;">' +
             'Calculate prices as the:&nbsp;<select class="price_option_input" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
             '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>Maximum of the average (12 hours) and lowest listing</option>' +
@@ -3280,6 +3297,8 @@
             setSetting(SETTING_MARKET_PAGE_COUNT, $('#' + SETTING_MARKET_PAGE_COUNT, price_options).val());
             setSetting(SETTING_RELIST_AUTOMATICALLY, $('#' + SETTING_RELIST_AUTOMATICALLY, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $('#' + SETTING_PRICE_IGNORE_LOWEST_Q, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_INVENTORY_PRICE_ENABLE, $('#' + SETTING_INVENTORY_PRICE_ENABLE, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_TO_PRICE_ENABLE, $('#' + SETTING_TO_PRICE_ENABLE, price_options).prop('checked') ? 1 : 0);
 
             window.location.reload();
         });
