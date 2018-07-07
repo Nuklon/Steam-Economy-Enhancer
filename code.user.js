@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     6.4.4
+// @version     6.5.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -105,6 +105,7 @@
     const SETTING_PRICE_OFFSET = 'SETTING_PRICE_OFFSET';
     const SETTING_PRICE_ALGORITHM = 'SETTING_PRICE_ALGORITHM';
     const SETTING_PRICE_IGNORE_LOWEST_Q = 'SETTING_PRICE_IGNORE_LOWEST_Q';
+    const SETTING_PRICE_HISTORY_HOURS = 'SETTING_PRICE_HISTORY_HOURS';
     const SETTING_INVENTORY_PRICE_ENABLE = 'SETTING_INVENTORY_PRICE_ENABLE';
     const SETTING_TO_PRICE_ENABLE = 'SETTING_TO_PRICE_ENABLE';
     const SETTING_LAST_CACHE = 'SETTING_LAST_CACHE';
@@ -122,6 +123,7 @@
         SETTING_PRICE_OFFSET: 0.00,
         SETTING_PRICE_ALGORITHM: 1,
         SETTING_PRICE_IGNORE_LOWEST_Q: 1,
+        SETTING_PRICE_HISTORY_HOURS: 12,
         SETTING_INVENTORY_PRICE_ENABLE: 1,
         SETTING_TO_PRICE_ENABLE: 1,
         SETTING_LAST_CACHE: 0,
@@ -250,8 +252,8 @@
         var total = 0;
 
         if (history != null) {
-            // Highest average price in the last 12 hours.
-            var timeAgo = Date.now() - (12 * 60 * 60 * 1000);
+            // Highest average price in the last xx hours.
+            var timeAgo = Date.now() - (getSettingWithDefault(SETTING_PRICE_HISTORY_HOURS) * 60 * 60 * 1000);
 
             history.forEach(function(historyItem) {
                 var d = new Date(historyItem[0]);
@@ -3238,26 +3240,30 @@
     //#region Settings
     function openSettings() {
         var price_options = $('<div id="price_options">' +
-            '<div style="margin-top:6px">' +
-            'Enable inventory price labels:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_INVENTORY_PRICE_ENABLE + '" ' + (getSettingWithDefault(SETTING_INVENTORY_PRICE_ENABLE) == 1 ? 'checked=""' : '') + '>' +
-            '<br/>' +
-            'Enable trade offer price labels:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_TO_PRICE_ENABLE + '" ' + (getSettingWithDefault(SETTING_TO_PRICE_ENABLE) == 1 ? 'checked=""' : '') + '>' +
-            '<br/>' +
             '<div style="margin-bottom:6px;">' +
             'Calculate prices as the:&nbsp;<select class="price_option_input" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
-            '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>Maximum of the average (12 hours) and lowest listing</option>' +
-            '<option value="2" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : '') + '>Lowest current sell listing</option>' +
-            '<option value="3" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 3 ? 'selected="selected"' : '') + '>Highest current buy order or highest current sell listing</option>' +
+            '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>Maximum of the average history and lowest sell listing</option>' +
+            '<option value="2" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : '') + '>Lowest sell listing</option>' +
+            '<option value="3" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 3 ? 'selected="selected"' : '') + '>Highest current buy order or lowest sell listing</option>' +
             '</select>' +
             '<br/>' +
+            '</div>' +
+            '<div style="margin-bottom:6px;">' +
+            'Hours to use for the average history calculated price:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="2" id="' + SETTING_PRICE_HISTORY_HOURS + '" value=' + getSettingWithDefault(SETTING_PRICE_HISTORY_HOURS) + '>' +
             '</div>' +
             '<div style="margin-bottom:6px;">' +
             'The value to add to the calculated price (minimum and maximum are respected):&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
             '<br/>' +
             '</div>' +
             '<div style="margin-top:6px">' +
-            'Use the second lowest listing when the lowest listing has a low quantity:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_PRICE_IGNORE_LOWEST_Q + '" ' + (getSettingWithDefault(SETTING_PRICE_IGNORE_LOWEST_Q) == 1 ? 'checked=""' : '') + '>' +
+            'Use the second lowest sell listing when the lowest sell listing has a low quantity:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_PRICE_IGNORE_LOWEST_Q + '" ' + (getSettingWithDefault(SETTING_PRICE_IGNORE_LOWEST_Q) == 1 ? 'checked=""' : '') + '>' +
             '<br/>' +
+            '</div>' +
+            '<div style="margin-top:24px">' +
+            'Show price labels in inventory:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_INVENTORY_PRICE_ENABLE + '" ' + (getSettingWithDefault(SETTING_INVENTORY_PRICE_ENABLE) == 1 ? 'checked=""' : '') + '>' +
+            '</div>' +
+            '<div style="margin-top:6px">' +
+            'Show price labels in trade offers:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_TO_PRICE_ENABLE + '" ' + (getSettingWithDefault(SETTING_TO_PRICE_ENABLE) == 1 ? 'checked=""' : '') + '>' +
             '</div>' +
             '<div style="margin-top:24px">' +
             '<div style="margin-bottom:6px;">' +
@@ -3294,9 +3300,10 @@
             setSetting(SETTING_MAX_MISC_PRICE, $('#' + SETTING_MAX_MISC_PRICE, price_options).val());
             setSetting(SETTING_PRICE_OFFSET, $('#' + SETTING_PRICE_OFFSET, price_options).val());
             setSetting(SETTING_PRICE_ALGORITHM, $('#' + SETTING_PRICE_ALGORITHM, price_options).val());
+            setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $('#' + SETTING_PRICE_IGNORE_LOWEST_Q, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_PRICE_HISTORY_HOURS, $('#' + SETTING_PRICE_HISTORY_HOURS, price_options).val());
             setSetting(SETTING_MARKET_PAGE_COUNT, $('#' + SETTING_MARKET_PAGE_COUNT, price_options).val());
             setSetting(SETTING_RELIST_AUTOMATICALLY, $('#' + SETTING_RELIST_AUTOMATICALLY, price_options).prop('checked') ? 1 : 0);
-            setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $('#' + SETTING_PRICE_IGNORE_LOWEST_Q, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_INVENTORY_PRICE_ENABLE, $('#' + SETTING_INVENTORY_PRICE_ENABLE, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_TO_PRICE_ENABLE, $('#' + SETTING_TO_PRICE_ENABLE, price_options).prop('checked') ? 1 : 0);
 
