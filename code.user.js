@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     6.5.0
+// @version     6.5.1
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -273,7 +273,8 @@
 
     // Calculates the listing price, before the fee.    
     function calculateListingPriceBeforeFees(histogram) {
-        if (histogram == null ||
+        if (typeof histogram === 'undefined' || 
+            histogram == null ||
             histogram.lowest_sell_order == null ||
             histogram.sell_order_graph == null)
             return 0;
@@ -312,6 +313,9 @@
     }
 
     function calculateBuyOrderPriceBeforeFees(histogram) {
+        if (typeof histogram === 'undefined')
+            return 0;
+				
         return market.getPriceBeforeFees(histogram.highest_buy_order);
     }
 
@@ -355,7 +359,7 @@
 
 
         // In case there's a buy order higher than the calculated price.
-        if (histogram != null && histogram.highest_buy_order != null) {
+        if (typeof histogram !== 'undefined' && histogram != null && histogram.highest_buy_order != null) {
             var buyOrderPrice = market.getPriceBeforeFees(histogram.highest_buy_order);
             if (buyOrderPrice > calculatedPrice)
                 calculatedPrice = buyOrderPrice;
