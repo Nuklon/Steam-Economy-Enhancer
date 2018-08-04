@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     6.5.1
+// @version     6.5.2
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -106,8 +106,8 @@
     const SETTING_PRICE_ALGORITHM = 'SETTING_PRICE_ALGORITHM';
     const SETTING_PRICE_IGNORE_LOWEST_Q = 'SETTING_PRICE_IGNORE_LOWEST_Q';
     const SETTING_PRICE_HISTORY_HOURS = 'SETTING_PRICE_HISTORY_HOURS';
-    const SETTING_INVENTORY_PRICE_ENABLE = 'SETTING_INVENTORY_PRICE_ENABLE';
-    const SETTING_TO_PRICE_ENABLE = 'SETTING_TO_PRICE_ENABLE';
+    const SETTING_INVENTORY_PRICES = 'SETTING_INVENTORY_PRICES';
+    const SETTING_TRADEOFFER_PRICES = 'SETTING_TRADEOFFER_PRICES';
     const SETTING_LAST_CACHE = 'SETTING_LAST_CACHE';
     const SETTING_RELIST_AUTOMATICALLY = 'SETTING_RELIST_AUTOMATICALLY';
     const SETTING_MARKET_PAGE_COUNT = 'SETTING_MARKET_PAGE_COUNT';
@@ -124,8 +124,8 @@
         SETTING_PRICE_ALGORITHM: 1,
         SETTING_PRICE_IGNORE_LOWEST_Q: 1,
         SETTING_PRICE_HISTORY_HOURS: 12,
-        SETTING_INVENTORY_PRICE_ENABLE: 1,
-        SETTING_TO_PRICE_ENABLE: 1,
+        SETTING_INVENTORY_PRICES: 1,
+        SETTING_TRADEOFFER_PRICES: 1,
         SETTING_LAST_CACHE: 0,
         SETTING_RELIST_AUTOMATICALLY: 0,
         SETTING_MARKET_PAGE_COUNT: 100
@@ -1949,10 +1949,9 @@
 
             loadAllInventories().then(function() {
                     var updateInventoryPrices = function() {
-                        if (getSettingWithDefault(SETTING_INVENTORY_PRICE_ENABLE) !== 1) {
-                            return;
-                        }
-                        setInventoryPrices(getInventoryItems());
+                        if (getSettingWithDefault(SETTING_INVENTORY_PRICES) == 1) {
+                            setInventoryPrices(getInventoryItems());
+                        }                        
                     };
 
                     // Load after the inventory is loaded.
@@ -3163,10 +3162,9 @@
 
     function initializeTradeOfferUI() {
         var updateInventoryPrices = function() {
-            if (getSettingWithDefault(SETTING_TO_PRICE_ENABLE) !== 1) {
-                return;
-            }
-            setInventoryPrices(getTradeOfferInventoryItems());
+            if (getSettingWithDefault(SETTING_TRADEOFFER_PRICES) == 1) {
+                setInventoryPrices(getTradeOfferInventoryItems());
+            }            
         };
 
         var updateInventoryPricesInTrade = function() {
@@ -3264,10 +3262,10 @@
             '<br/>' +
             '</div>' +
             '<div style="margin-top:24px">' +
-            'Show price labels in inventory:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_INVENTORY_PRICE_ENABLE + '" ' + (getSettingWithDefault(SETTING_INVENTORY_PRICE_ENABLE) == 1 ? 'checked=""' : '') + '>' +
+            'Show price labels in inventory:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_INVENTORY_PRICES + '" ' + (getSettingWithDefault(SETTING_INVENTORY_PRICES) == 1 ? 'checked=""' : '') + '>' +
             '</div>' +
             '<div style="margin-top:6px">' +
-            'Show price labels in trade offers:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_TO_PRICE_ENABLE + '" ' + (getSettingWithDefault(SETTING_TO_PRICE_ENABLE) == 1 ? 'checked=""' : '') + '>' +
+            'Show price labels in trade offers:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_TRADEOFFER_PRICES + '" ' + (getSettingWithDefault(SETTING_TRADEOFFER_PRICES) == 1 ? 'checked=""' : '') + '>' +
             '</div>' +
             '<div style="margin-top:24px">' +
             '<div style="margin-bottom:6px;">' +
@@ -3308,8 +3306,8 @@
             setSetting(SETTING_PRICE_HISTORY_HOURS, $('#' + SETTING_PRICE_HISTORY_HOURS, price_options).val());
             setSetting(SETTING_MARKET_PAGE_COUNT, $('#' + SETTING_MARKET_PAGE_COUNT, price_options).val());
             setSetting(SETTING_RELIST_AUTOMATICALLY, $('#' + SETTING_RELIST_AUTOMATICALLY, price_options).prop('checked') ? 1 : 0);
-            setSetting(SETTING_INVENTORY_PRICE_ENABLE, $('#' + SETTING_INVENTORY_PRICE_ENABLE, price_options).prop('checked') ? 1 : 0);
-            setSetting(SETTING_TO_PRICE_ENABLE, $('#' + SETTING_TO_PRICE_ENABLE, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_INVENTORY_PRICES, $('#' + SETTING_INVENTORY_PRICES, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_TRADEOFFER_PRICES, $('#' + SETTING_TRADEOFFER_PRICES, price_options).prop('checked') ? 1 : 0);
 
             window.location.reload();
         });
