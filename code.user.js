@@ -271,9 +271,9 @@
         return market.getPriceBeforeFees(highest);
     }
 
-    // Calculates the listing price, before the fee.    
+    // Calculates the listing price, before the fee.
     function calculateListingPriceBeforeFees(histogram) {
-        if (typeof histogram === 'undefined' || 
+        if (typeof histogram === 'undefined' ||
             histogram == null ||
             histogram.lowest_sell_order == null ||
             histogram.sell_order_graph == null)
@@ -315,7 +315,7 @@
     function calculateBuyOrderPriceBeforeFees(histogram) {
         if (typeof histogram === 'undefined')
             return 0;
-				
+
         return market.getPriceBeforeFees(histogram.highest_buy_order);
     }
 
@@ -1506,7 +1506,7 @@
                                 true,
                                 priceInfo.minPriceBeforeFees,
                                 priceInfo.maxPriceBeforeFees);
-                            
+
 
                             logConsole('Sell price: ' +
                                 sellPrice / 100.0 +
@@ -1559,7 +1559,7 @@
                             });
                         previousSelection = -1; // Reset previous.
                     } else {
-                        previousSelection = selectedIndex; // Save previous.					
+                        previousSelection = selectedIndex; // Save previous.
                     }
                 },
                 selected: function(e, ui) {
@@ -1776,7 +1776,7 @@
                         logConsole('Failed to get orders histogram for ' + (getActiveInventory().selectedItem.name || getActiveInventory().selectedItem.description.name));
                         return;
                     }
-              
+
                     var groupMain = $('<div id="listings_group">' +
                         '<div><div id="listings_sell">Sell</div>' +
                         histogram.sell_order_table +
@@ -1787,19 +1787,19 @@
                         '</div>');
 
                     $('#' + item_info_id + '_item_market_actions > div').after(groupMain);
-          
+
                     var ownerActions = $('#' + item_info_id + '_item_owner_actions');
-                      
+
                     ownerActions.append('<br/> <a class="btn_small btn_grey_white_innerfade" href="/market/listings/' + appid + '/' + market_hash_name + '"><span>View in Community Market</span></a>');
                     $('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(1)').hide();
-              
+
                     var isBoosterPack = getActiveInventory().selectedItem.name.toLowerCase().endsWith('booster pack');
                     if (isBoosterPack) {
                         var tradingCardsUrl = "/market/search?q=&category_753_Game%5B%5D=tag_app_" + getActiveInventory().selectedItem.market_fee_app + "&category_753_item_class%5B%5D=tag_item_class_2&appid=753";
                         ownerActions.append('<br/> <a class="btn_small btn_grey_white_innerfade" href="' + tradingCardsUrl + '"><span>View trading cards in Community Market</span></a>');
                     }
-                    
-              
+
+
                     // Generate quick sell buttons.
                     var itemId = getActiveInventory().selectedItem.assetid || getActiveInventory().selectedItem.id;
 
@@ -1951,7 +1951,7 @@
                     var updateInventoryPrices = function() {
                         if (getSettingWithDefault(SETTING_INVENTORY_PRICE_LABELS) == 1) {
                             setInventoryPrices(getInventoryItems());
-                        }                        
+                        }
                     };
 
                     // Load after the inventory is loaded.
@@ -2842,7 +2842,7 @@
                     sortFunction: function(a, b) {
                         var firstDate = DateTime.fromString((a.values().market_listing_listed_date).trim(), 'd MMM');
                         var secondDate = DateTime.fromString((b.values().market_listing_listed_date).trim(), 'd MMM');
-                          
+
                         if (firstDate == null || secondDate == null) {
                             return 0;
                         }
@@ -3164,7 +3164,7 @@
         var updateInventoryPrices = function() {
             if (getSettingWithDefault(SETTING_TRADEOFFER_PRICE_LABELS) == 1) {
                 setInventoryPrices(getTradeOfferInventoryItems());
-            }            
+            }
         };
 
         var updateInventoryPricesInTrade = function() {
