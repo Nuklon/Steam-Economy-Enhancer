@@ -18,6 +18,7 @@
 // @require     http://moment.github.io/luxon/global/luxon.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.js
 // @require     https://github.com/rmariuzzo/checkboxes.js/releases/download/v1.2.2/jquery.checkboxes-1.2.2.min.js
+// @grant       unsafeWindow
 // @homepageURL https://github.com/Nuklon/Steam-Economy-Enhancer
 // @supportURL  https://github.com/Nuklon/Steam-Economy-Enhancer/issues
 // @downloadURL https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
@@ -60,7 +61,7 @@
 
     var enableConsoleLog = false;
 
-    var isLoggedIn = typeof g_rgWalletInfo !== 'undefined' && g_rgWalletInfo != null || (typeof g_bLoggedIn !== 'undefined' && g_bLoggedIn);
+    var isLoggedIn = typeof unsafeWindow.g_rgWalletInfo !== 'undefined' && unsafeWindow.g_rgWalletInfo != null || (typeof unsafeWindow.g_bLoggedIn !== 'undefined' && unsafeWindow.g_bLoggedIn);
 
     var currentPage = window.location.href.includes('.com/market') ?
         (window.location.href.includes('market/listings') ?
@@ -70,11 +71,11 @@
             PAGE_TRADEOFFER :
             PAGE_INVENTORY);
 
-    var market = new SteamMarket(g_rgAppContextData,
-        typeof g_strInventoryLoadURL !== 'undefined' && g_strInventoryLoadURL != null ?
-        g_strInventoryLoadURL :
+    var market = new SteamMarket(unsafeWindow.g_rgAppContextData,
+        typeof unsafeWindow.g_strInventoryLoadURL !== 'undefined' && unsafeWindow.g_strInventoryLoadURL != null ?
+        unsafeWindow.g_strInventoryLoadURL :
         location.protocol + '//steamcommunity.com/my/inventory/json/',
-        isLoggedIn ? g_rgWalletInfo : undefined);
+        isLoggedIn ? unsafeWindow.g_rgWalletInfo : undefined);
 
     var currencyId =
         isLoggedIn &&
@@ -84,7 +85,7 @@
         market.walletInfo.wallet_currency :
         3;
 
-    var currencySymbol = GetCurrencySymbol(GetCurrencyCode(currencyId));
+    var currencySymbol = unsafeWindow.GetCurrencySymbol(unsafeWindow.GetCurrencyCode(currencyId));
 
     function SteamMarket(appContext, inventoryUrl, walletInfo) {
         this.appContext = appContext;
@@ -271,9 +272,9 @@
         return market.getPriceBeforeFees(highest);
     }
 
-    // Calculates the listing price, before the fee.    
+    // Calculates the listing price, before the fee.
     function calculateListingPriceBeforeFees(histogram) {
-        if (typeof histogram === 'undefined' || 
+        if (typeof histogram === 'undefined' ||
             histogram == null ||
             histogram.lowest_sell_order == null ||
             histogram.sell_order_graph == null)
@@ -315,7 +316,7 @@
     function calculateBuyOrderPriceBeforeFees(histogram) {
         if (typeof histogram === 'undefined')
             return 0;
-				
+
         return market.getPriceBeforeFees(histogram.highest_buy_order);
     }
 
@@ -1506,7 +1507,7 @@
                                 true,
                                 priceInfo.minPriceBeforeFees,
                                 priceInfo.maxPriceBeforeFees);
-                            
+
 
                             logConsole('Sell price: ' +
                                 sellPrice / 100.0 +
@@ -1526,7 +1527,7 @@
 
         // Initialize the inventory UI.
         function initializeInventoryUI() {
-            var isOwnInventory = g_ActiveUser.strSteamId == g_steamID;
+            var isOwnInventory = unsafeWindow.g_ActiveUser.strSteamId == unsafeWindow.g_steamID;
             var previousSelection = -1; // To store the index of the previous selection.
             updateInventoryUI(isOwnInventory);
 
@@ -1559,7 +1560,7 @@
                             });
                         previousSelection = -1; // Reset previous.
                     } else {
-                        previousSelection = selectedIndex; // Save previous.					
+                        previousSelection = selectedIndex; // Save previous.
                     }
                 },
                 selected: function(e, ui) {
@@ -1776,7 +1777,7 @@
                         logConsole('Failed to get orders histogram for ' + (getActiveInventory().selectedItem.name || getActiveInventory().selectedItem.description.name));
                         return;
                     }
-              
+
                     var groupMain = $('<div id="listings_group">' +
                         '<div><div id="listings_sell">Sell</div>' +
                         histogram.sell_order_table +
@@ -1787,19 +1788,19 @@
                         '</div>');
 
                     $('#' + item_info_id + '_item_market_actions > div').after(groupMain);
-          
+
                     var ownerActions = $('#' + item_info_id + '_item_owner_actions');
-                      
+
                     ownerActions.append('<br/> <a class="btn_small btn_grey_white_innerfade" href="/market/listings/' + appid + '/' + market_hash_name + '"><span>View in Community Market</span></a>');
                     $('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(1)').hide();
-              
+
                     var isBoosterPack = getActiveInventory().selectedItem.name.toLowerCase().endsWith('booster pack');
                     if (isBoosterPack) {
                         var tradingCardsUrl = "/market/search?q=&category_753_Game%5B%5D=tag_app_" + getActiveInventory().selectedItem.market_fee_app + "&category_753_item_class%5B%5D=tag_item_class_2&appid=753";
                         ownerActions.append('<br/> <a class="btn_small btn_grey_white_innerfade" href="' + tradingCardsUrl + '"><span>View trading cards in Community Market</span></a>');
                     }
-                    
-              
+
+
                     // Generate quick sell buttons.
                     var itemId = getActiveInventory().selectedItem.assetid || getActiveInventory().selectedItem.id;
 
@@ -1951,7 +1952,7 @@
                     var updateInventoryPrices = function() {
                         if (getSettingWithDefault(SETTING_INVENTORY_PRICE_LABELS) == 1) {
                             setInventoryPrices(getInventoryItems());
-                        }                        
+                        }
                     };
 
                     // Load after the inventory is loaded.
@@ -2033,7 +2034,7 @@
 
         // Gets the active inventory.
         function getActiveInventory() {
-            return g_ActiveInventory;
+            return unsafeWindow.g_ActiveInventory;
         }
 
         // Sets the prices for the items.
@@ -2157,7 +2158,7 @@
 
         marketListingsQueue.drain = function() {
             injectJs(function() {
-                g_bMarketWindowHidden = false;
+                unsafeWindow.g_bMarketWindowHidden = false;
             })
         };
 
@@ -2178,7 +2179,7 @@
         }
 
         function marketListingsQueueWorker(listing, ignoreErrors, callback) {
-            var asset = g_rgAssets[listing.appid][listing.contextid][listing.assetid];
+            var asset = unsafeWindow.g_rgAssets[listing.appid][listing.contextid][listing.assetid];
 
             // An asset:
             //{
@@ -2371,7 +2372,7 @@
                             var decodedMarketHashName = decodeURIComponent(itemName.substring(marketHashNameIndex));
                             var newAssetId = -1;
 
-                            RequestFullInventory(baseUrl + item.appid + "/" + item.contextid + "/", {}, null, null, function(transport) {
+                            unsafeWindow.RequestFullInventory(baseUrl + item.appid + "/" + item.contextid + "/", {}, null, null, function(transport) {
                                 if (transport.responseJSON && transport.responseJSON.success) {
                                     var inventory = transport.responseJSON.rgInventory;
 
@@ -2511,7 +2512,7 @@
                             myMarketListings.append(rows);
 
                             // g_rgAssets
-                            MergeWithAssetArray(data.assets); // This is a method from Steam.
+                            unsafeWindow.MergeWithAssetArray(data.assets); // This is a method from Steam.
 
                             next();
                         },
@@ -2702,8 +2703,8 @@
                 var currentCount = 0;
                 var totalCount = 0;
 
-                if (typeof g_oMyListings !== 'undefined' && g_oMyListings != null && g_oMyListings.m_cTotalCount != null)
-                    totalCount = g_oMyListings.m_cTotalCount;
+                if (typeof unsafeWindow.g_oMyListings !== 'undefined' && unsafeWindow.g_oMyListings != null && unsafeWindow.g_oMyListings.m_cTotalCount != null)
+                    totalCount = unsafeWindow.g_oMyListings.m_cTotalCount;
                 else {
                     totalCount = parseInt($('#my_market_selllistings_number').text());
                 }
@@ -2749,17 +2750,17 @@
 
                     // There's only one item in the g_rgAssets on a market listing page.
                     var existingAsset = null;
-                    for (var appid in g_rgAssets) {
-                        for (var contextid in g_rgAssets[appid]) {
-                            for (var assetid in g_rgAssets[appid][contextid]) {
-                                existingAsset = g_rgAssets[appid][contextid][assetid];
+                    for (var appid in unsafeWindow.g_rgAssets) {
+                        for (var contextid in unsafeWindow.g_rgAssets[appid]) {
+                            for (var assetid in unsafeWindow.g_rgAssets[appid][contextid]) {
+                                existingAsset = unsafeWindow.g_rgAssets[appid][contextid][assetid];
                                 break;
                             }
                         }
                     }
 
                     // appid and contextid are identical, only the assetid is different for each asset.
-                    g_rgAssets[appid][contextid][assetInfo.assetid] = existingAsset;
+                    unsafeWindow.g_rgAssets[appid][contextid][assetInfo.assetid] = existingAsset;
                     marketListingsQueue.push({
                         listingid,
                         appid: assetInfo.appid,
@@ -2842,7 +2843,7 @@
                     sortFunction: function(a, b) {
                         var firstDate = DateTime.fromString((a.values().market_listing_listed_date).trim(), 'd MMM');
                         var secondDate = DateTime.fromString((b.values().market_listing_listed_date).trim(), 'd MMM');
-                          
+
                         if (firstDate == null || secondDate == null) {
                             return 0;
                         }
@@ -3146,13 +3147,13 @@
     var lastTradeOfferSum = 0;
 
     function hasLoadedAllTradeOfferItems() {
-        for (var i = 0; i < g_rgCurrentTradeStatus.them.assets.length; i++) {
-            var asset = UserThem.findAsset(g_rgCurrentTradeStatus.them.assets[i].appid, g_rgCurrentTradeStatus.them.assets[i].contextid, g_rgCurrentTradeStatus.them.assets[i].assetid);
+        for (var i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.them.assets.length; i++) {
+            var asset = UserThem.findAsset(unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].assetid);
             if (asset == null)
                 return false;
         }
-        for (var i = 0; i < g_rgCurrentTradeStatus.me.assets.length; i++) {
-            var asset = UserYou.findAsset(g_rgCurrentTradeStatus.me.assets[i].appid, g_rgCurrentTradeStatus.me.assets[i].contextid, g_rgCurrentTradeStatus.me.assets[i].assetid);
+        for (var i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.me.assets.length; i++) {
+            var asset = UserYou.findAsset(unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].assetid);
             if (asset == null)
                 return false;
         }
@@ -3164,17 +3165,17 @@
         var updateInventoryPrices = function() {
             if (getSettingWithDefault(SETTING_TRADEOFFER_PRICE_LABELS) == 1) {
                 setInventoryPrices(getTradeOfferInventoryItems());
-            }            
+            }
         };
 
         var updateInventoryPricesInTrade = function() {
             var items = [];
-            for (var i = 0; i < g_rgCurrentTradeStatus.them.assets.length; i++) {
-                var asset = UserThem.findAsset(g_rgCurrentTradeStatus.them.assets[i].appid, g_rgCurrentTradeStatus.them.assets[i].contextid, g_rgCurrentTradeStatus.them.assets[i].assetid);
+            for (var i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.them.assets.length; i++) {
+                var asset = UserThem.findAsset(unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].assetid);
                 items.push(asset);
             }
-            for (var i = 0; i < g_rgCurrentTradeStatus.me.assets.length; i++) {
-                var asset = UserYou.findAsset(g_rgCurrentTradeStatus.me.assets[i].appid, g_rgCurrentTradeStatus.me.assets[i].contextid, g_rgCurrentTradeStatus.me.assets[i].assetid);
+            for (var i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.me.assets.length; i++) {
+                var asset = UserYou.findAsset(unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].assetid);
                 items.push(asset);
             }
             setInventoryPrices(items);
@@ -3184,7 +3185,7 @@
             if (!hasLoadedAllTradeOfferItems())
                 return;
 
-            var currentTradeOfferSum = g_rgCurrentTradeStatus.me.assets.length + g_rgCurrentTradeStatus.them.assets.length;
+            var currentTradeOfferSum = unsafeWindow.g_rgCurrentTradeStatus.me.assets.length + unsafeWindow.g_rgCurrentTradeStatus.them.assets.length;
             if (lastTradeOfferSum != currentTradeOfferSum) {
                 updateInventoryPricesInTrade();
             }
@@ -3194,8 +3195,8 @@
             $('#trade_offer_your_sum').remove();
             $('#trade_offer_their_sum').remove();
 
-            var your_sum = sumTradeOfferAssets(g_rgCurrentTradeStatus.me.assets, UserYou);
-            var their_sum = sumTradeOfferAssets(g_rgCurrentTradeStatus.them.assets, UserThem);
+            var your_sum = sumTradeOfferAssets(unsafeWindow.g_rgCurrentTradeStatus.me.assets, UserYou);
+            var their_sum = sumTradeOfferAssets(unsafeWindow.g_rgCurrentTradeStatus.them.assets, UserThem);
 
             $('div.offerheader:nth-child(1) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_your_sum">' + your_sum + '</div>');
             $('div.offerheader:nth-child(3) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_their_sum">' + their_sum + '</div>');
@@ -3233,7 +3234,7 @@
                 if (!item.tradable)
                     return;
 
-                MoveItemToTrade(it);
+                unsafeWindow.MoveItemToTrade(it);
             });
         });
     }
@@ -3293,7 +3294,7 @@
             '</div>' +
             '</div>');
 
-        var dialog = ShowConfirmDialog('Steam Economy Enhancer', price_options).done(function() {
+        var dialog = unsafeWindow.ShowConfirmDialog('Steam Economy Enhancer', price_options).done(function() {
             setSetting(SETTING_MIN_NORMAL_PRICE, $('#' + SETTING_MIN_NORMAL_PRICE, price_options).val());
             setSetting(SETTING_MAX_NORMAL_PRICE, $('#' + SETTING_MAX_NORMAL_PRICE, price_options).val());
             setSetting(SETTING_MIN_FOIL_PRICE, $('#' + SETTING_MIN_FOIL_PRICE, price_options).val());
