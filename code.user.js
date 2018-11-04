@@ -15,7 +15,7 @@
 // @require     https://cdnjs.cloudflare.com/ajax/libs/paginationjs/2.1.2/pagination.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/async/2.6.0/async.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.7.1/localforage.min.js
-// @require     http://moment.github.io/luxon/global/luxon.min.js
+// @require     https://moment.github.io/luxon/global/luxon.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.js
 // @require     https://github.com/rmariuzzo/checkboxes.js/releases/download/v1.2.2/jquery.checkboxes-1.2.2.min.js
 // @grant       unsafeWindow
