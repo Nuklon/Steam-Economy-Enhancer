@@ -37,7 +37,7 @@ It is free but there is **NO** support. If you want to add functionality, feel f
 
 [Install Steam Economy Enhancer](https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js)
 
-*Violentmonkey~~, Greasemonkey~~ or Tampermonkey is required to install.*
+*Violentmonkey or Tampermonkey is required to install.*
 
 **Screenshots**
 
