@@ -29,11 +29,15 @@ It adds the following features to the Steam Tradeoffers:
 The pricing can be based on the lowest listed price, the price history and your own minimum and maximum prices.
 This can be defined in Steam Economy Enhancer's settings, which you can find at the top of the page near the *Install Steam* button.
 
+**Note**
+
+It is free but there is **NO** support. If you want to add functionality, feel free to submit a PR.
+
 **Download**
 
 [Install Steam Economy Enhancer](https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js)
 
-*Violentmonkey, Greasemonkey or Tampermonkey is required to install.*
+*Violentmonkey~~, Greasemonkey~~ or Tampermonkey is required to install.*
 
 **Screenshots**
 
