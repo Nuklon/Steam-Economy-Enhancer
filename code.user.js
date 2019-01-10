@@ -247,6 +247,17 @@
         };
     }
 
+    // get real goo appID from item owner_action link
+    function getGooAppIDForItem(item) {
+        for(var i = 0; i < item.owner_actions.length; ++i) {
+            var match = item.owner_actions[i].link.match(/GetGooValue\s*\(([\D]+)([0-9]+),/i);
+            if(match != null) {
+                return match[2];
+            }
+        }
+        return 0;
+    }    
+    
     // Calculates the average history price, before the fee.
     function calculateAverageHistoryPriceBeforeFees(history) {
         var highest = 0;
@@ -489,7 +500,7 @@
                 url: this.inventoryUrlBase + 'ajaxgetgoovalue/',
                 data: {
                     sessionid: sessionId,
-                    appid: item.market_fee_app,
+                    appid: getGooAppIDForItem(item),
                     assetid: item.assetid,
                     contextid: item.contextid
                 },
@@ -527,7 +538,7 @@
                 url: this.inventoryUrlBase + 'ajaxgrindintogoo/',
                 data: {
                     sessionid: sessionId,
-                    appid: item.market_fee_app,
+                    appid: getGooAppIDForItem(item),
                     assetid: item.assetid,
                     contextid: item.contextid,
                     goo_value_expected: item.goo_value_expected
