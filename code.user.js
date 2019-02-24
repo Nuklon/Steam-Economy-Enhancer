@@ -2675,6 +2675,7 @@
             };
 
             var list = new List(market_listing_see.parent().attr('id'), options);
+            list.on('searchComplete', updateMarketSelectAllButton);
             marketLists.push(list);
         }
 
@@ -2966,8 +2967,8 @@
 
                 var invert = $('.market_select_item:checked', selectionGroup).length == $('.market_select_item', selectionGroup).length;
 
-                for (var i = 0; i < marketList.items.length; i++) {
-                    $('.market_select_item', marketList.items[i].elm).prop('checked', !invert);
+                for (var i = 0; i < marketList.matchingItems.length; i++) {
+                    $('.market_select_item', marketList.matchingItems[i].elm).prop('checked', !invert);
                 }
 
                 updateMarketSelectAllButton();
@@ -2984,9 +2985,9 @@
                 var selectionGroup = $(this).parent().parent().parent().parent();
                 var marketList = getListFromContainer(selectionGroup);
 
-                for (var i = 0; i < marketList.items.length; i++) {
-                    if ($(marketList.items[i].elm).hasClass('overpriced')) {
-                        $('.market_select_item', marketList.items[i].elm).prop('checked', true);
+                for (var i = 0; i < marketList.matchingItems.length; i++) {
+                    if ($(marketList.matchingItems[i].elm).hasClass('overpriced')) {
+                        $('.market_select_item', marketList.matchingItems[i].elm).prop('checked', true);
                     }
                 }
 
@@ -3002,9 +3003,9 @@
                 var selectionGroup = $(this).parent().parent().parent().parent();
                 var marketList = getListFromContainer(selectionGroup);
 
-                for (var i = 0; i < marketList.items.length; i++) {
-                    if ($('.market_select_item', $(marketList.items[i].elm)).prop('checked')) {
-                        var listingid = replaceNonNumbers(marketList.items[i].values().market_listing_item_name);
+                for (var i = 0; i < marketList.matchingItems.length; i++) {
+                    if ($('.market_select_item', $(marketList.matchingItems[i].elm)).prop('checked')) {
+                        var listingid = replaceNonNumbers(marketList.matchingItems[i].values().market_listing_item_name);
                         marketRemoveQueue.push(listingid);
                     }
                 }
@@ -3018,9 +3019,9 @@
                 var selectionGroup = $(this).parent().parent().parent().parent();
                 var marketList = getListFromContainer(selectionGroup);
 
-                for (var i = 0; i < marketList.items.length; i++) {
-                    if ($(marketList.items[i].elm).hasClass('overpriced')) {
-                        var listingid = replaceNonNumbers(marketList.items[i].values().market_listing_item_name);
+                for (var i = 0; i < marketList.matchingItems.length; i++) {
+                    if ($(marketList.matchingItems[i].elm).hasClass('overpriced')) {
+                        var listingid = replaceNonNumbers(marketList.matchingItems[i].values().market_listing_item_name);
                         queueOverpricedItemListing(listingid);
                     }
                 }
@@ -3030,9 +3031,9 @@
                 var selectionGroup = $(this).parent().parent().parent().parent();
                 var marketList = getListFromContainer(selectionGroup);
 
-                for (var i = 0; i < marketList.items.length; i++) {
-                    if ($(marketList.items[i].elm).hasClass('overpriced') && $('.market_select_item', $(marketList.items[i].elm)).prop('checked')) {
-                        var listingid = replaceNonNumbers(marketList.items[i].values().market_listing_item_name);
+                for (var i = 0; i < marketList.matchingItems.length; i++) {
+                    if ($(marketList.matchingItems[i].elm).hasClass('overpriced') && $('.market_select_item', $(marketList.matchingItems[i].elm)).prop('checked')) {
+                        var listingid = replaceNonNumbers(marketList.matchingItems[i].values().market_listing_item_name);
                         queueOverpricedItemListing(listingid);
                     }
                 }
