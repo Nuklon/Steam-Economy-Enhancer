@@ -1408,6 +1408,38 @@
             });
         }
 
+        function sellSelectedItemsManually() {
+            getInventorySelectedMarketableItems(function(items) {
+                // We have to construct an URL like this
+                // https://steamcommunity.com/market/multisell?appid=730&contextid=2&items[]=Falchion%20Case&qty[]=100
+                var appid = items[0].appid;
+                var contextid = items[0].contextid;
+
+                var hasBadItem = false;
+                var itemsWithQty = {};
+                items.forEach(function(item) {
+                    if (item.contextid != contextid || item.commodity == false)
+                        hasBadItem = true;
+                    else
+                        itemsWithQty[item.market_hash_name] = itemsWithQty[item.market_hash_name] + 1 || 1;
+                });
+
+                // Do not do anything if contextids vary (e.g. in Steam inventory)
+                // or a non-commodity item gets encountered
+                if (hasBadItem)
+                    return;
+
+                var itemsString = '';
+                for (var itemName in itemsWithQty) {
+                    itemsString += '&items[]=' + encodeURI(itemName) + '&qty[]=' + itemsWithQty[itemName];
+                }
+
+                var baseUrl = 'https://steamcommunity.com/market/multisell';
+                var redirectUrl = baseUrl + '?appid=' + appid + '&contextid=' + contextid + itemsString;
+                $(location).attr('href', redirectUrl);
+            });
+        }
+
         function sellItems(items) {
             if (items.length == 0) {
                 logDOM('These items cannot be added to the market...');
@@ -1688,8 +1720,10 @@
                 var selectedItems = items.length;
                 if (items.length == 0) {
                     $('.sell_selected').hide();
+                    $('.sell_manual').hide();
                 } else {
                     $('.sell_selected').show();
+                    $('.sell_manual').show();
                     $('.sell_selected > span')
                         .text('Sell ' + selectedItems + (selectedItems == 1 ? ' Item' : ' Items'));
                 }
@@ -1899,6 +1933,7 @@
             var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_all separator-btn-right"><span>Sell All Items</span></a>' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_selected separator-btn-right" style="display:none"><span>Sell Selected Items</span></a>' +
+                '<a class="btn_green_white_innerfade btn_medium_wide sell_manual separator-btn-right" style="display:none"><span>Sell Manually</span></a>' +
                 (showMiscOptions ?
                     '<a class="btn_green_white_innerfade btn_medium_wide sell_all_cards separator-btn-right"><span>Sell All Cards</span></a>' +
                     '<div style="margin-top:12px;">' +
@@ -1937,6 +1972,7 @@
                         sellAllItems(appId);
                     });
                 $('.sell_selected').on('click', '*', sellSelectedItems);
+                $('.sell_manual').on('click', '*', sellSelectedItemsManually);
                 $('.sell_all_cards').on('click', '*', sellAllCards);
                 $('.turn_into_gems').on('click', '*', turnSelectedItemsIntoGems);
                 $('.unpack_booster_packs').on('click', '*', unpackSelectedBoosterPacks);
