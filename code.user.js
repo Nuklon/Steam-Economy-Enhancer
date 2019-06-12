@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     6.7.0
+// @version     6.7.5
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -1446,7 +1446,14 @@
 
                 var baseUrl = 'https://steamcommunity.com/market/multisell';
                 var redirectUrl = baseUrl + '?appid=' + appid + '&contextid=' + contextid + itemsString;
-                $(location).attr('href', redirectUrl);
+                
+                var dialog = unsafeWindow.ShowDialog('Steam Economy Enhancer', '<iframe frameBorder="0" height="650" width="910" src="' + redirectUrl + '"></iframe>');
+                dialog.OnDismiss(function() {
+                    items.forEach(function(item) {
+                        var itemId = item.assetid || item.id;
+                        $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_PENDING);                      
+                    });
+                });
             });
         }
 
