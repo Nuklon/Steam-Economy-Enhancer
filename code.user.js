@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     6.6.0
+// @version     6.7.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -43,6 +43,7 @@
     const COLOR_PRICE_FAIR = '#496424';
     const COLOR_PRICE_CHEAP = '#837433';
     const COLOR_PRICE_EXPENSIVE = '#813030';
+    const COLOR_PRICE_NOT_CHECKED = '#26566c';
 
     const ERROR_SUCCESS = null;
     const ERROR_FAILED = 1;
@@ -1407,6 +1408,47 @@
                 sellItems(items);
             });
         }
+		
+        function canSellSelectedItemsManually(items) {
+            // We have to construct an URL like this
+            // https://steamcommunity.com/market/multisell?appid=730&contextid=2&items[]=Falchion%20Case&qty[]=100
+            var appid = items[0].appid;
+            var contextid = items[0].contextid;
+
+            var hasInvalidItem = false;
+		  
+            items.forEach(function(item) {
+				if (item.contextid != contextid || item.commodity == false)
+				    hasInvalidItem = true;
+            });
+
+            return !hasInvalidItem;
+        }
+
+        function sellSelectedItemsManually() {
+            getInventorySelectedMarketableItems(function(items) {
+                // We have to construct an URL like this
+                // https://steamcommunity.com/market/multisell?appid=730&contextid=2&items[]=Falchion%20Case&qty[]=100
+                
+				var appid = items[0].appid;
+                var contextid = items[0].contextid;
+
+                var itemsWithQty = {};
+              
+                items.forEach(function(item) {
+                   itemsWithQty[item.market_hash_name] = itemsWithQty[item.market_hash_name] + 1 || 1;
+                });
+
+                var itemsString = '';
+                for (var itemName in itemsWithQty) {
+                    itemsString += '&items[]=' + encodeURI(itemName) + '&qty[]=' + itemsWithQty[itemName];
+                }
+
+                var baseUrl = 'https://steamcommunity.com/market/multisell';
+                var redirectUrl = baseUrl + '?appid=' + appid + '&contextid=' + contextid + itemsString;
+                $(location).attr('href', redirectUrl);
+            });
+        }
 
         function sellItems(items) {
             if (items.length == 0) {
@@ -1688,10 +1730,16 @@
                 var selectedItems = items.length;
                 if (items.length == 0) {
                     $('.sell_selected').hide();
+                    $('.sell_manual').hide();
                 } else {
                     $('.sell_selected').show();
-                    $('.sell_selected > span')
-                        .text('Sell ' + selectedItems + (selectedItems == 1 ? ' Item' : ' Items'));
+                    if (canSellSelectedItemsManually(items)) {
+                        $('.sell_manual').show();
+                        $('.sell_manual > span').text('Sell ' + selectedItems + (selectedItems == 1 ? ' Item Manual' : ' Items Manual'));						
+                    } else {
+                        $('.sell_manual').hide();						
+                    }
+                    $('.sell_selected > span').text('Sell ' + selectedItems + (selectedItems == 1 ? ' Item' : ' Items'));
                 }
             });
         }
@@ -1899,6 +1947,7 @@
             var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_all separator-btn-right"><span>Sell All Items</span></a>' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_selected separator-btn-right" style="display:none"><span>Sell Selected Items</span></a>' +
+                '<a class="btn_green_white_innerfade btn_medium_wide sell_manual separator-btn-right" style="display:none"><span>Sell Manually</span></a>' +
                 (showMiscOptions ?
                     '<a class="btn_green_white_innerfade btn_medium_wide sell_all_cards separator-btn-right"><span>Sell All Cards</span></a>' +
                     '<div style="margin-top:12px;">' +
@@ -1909,8 +1958,7 @@
                 '</div>');
 
             var reloadButton =
-                $(
-                    '<a id="inventory_reload_button" class="btn_darkblue_white_innerfade btn_medium_wide reload_inventory" style="margin-right:12px"><span>Reload Inventory</span></a>');
+                $('<a id="inventory_reload_button" class="btn_darkblue_white_innerfade btn_medium_wide reload_inventory" style="margin-right:12px"><span>Reload Inventory</span></a>');
 
             $('#inventory_logos')[0].style.height = 'auto';
 
@@ -1937,6 +1985,7 @@
                         sellAllItems(appId);
                     });
                 $('.sell_selected').on('click', '*', sellSelectedItems);
+                $('.sell_manual').on('click', '*', sellSelectedItemsManually);
                 $('.sell_all_cards').on('click', '*', sellAllCards);
                 $('.turn_into_gems').on('click', '*', turnSelectedItemsIntoGems);
                 $('.unpack_booster_packs').on('click', '*', unpackSelectedBoosterPacks);
@@ -2231,7 +2280,11 @@
             var game_name = asset.type;
             var price = getPriceFromMarketListing($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text());
 
-            if (price < getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE) * 100) {
+            if (price <= getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE) * 100) {
+                $('.market_listing_my_price', listingUI).last().css('background', COLOR_PRICE_NOT_CHECKED);
+                $('.market_listing_my_price', listingUI).last().prop('title', 'The price is not checked.');
+                listingUI.addClass('not_checked');
+              
                 return callback(true, true);
             }
 
@@ -3270,7 +3323,7 @@
             '<br/>' +
             '</div>' +
             '<div style="margin-top:6px;">' +
-            'Don\'t check market listing prices below:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_MIN_CHECK_PRICE + '" value=' + getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE) + '>' +
+            'Don\'t check market listings with prices of and below:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_MIN_CHECK_PRICE + '" value=' + getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE) + '>' +
             '<br/>' +
             '</div>' +
             '<div style="margin-top:24px">' +
