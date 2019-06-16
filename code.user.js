@@ -411,7 +411,11 @@
                 price: price
             },
             success: function(data) {
-                callback(ERROR_SUCCESS, data);
+                if(data.success === false && isRetryMessage(data.message)) {
+                    callback(ERROR_FAILED, data);
+                } else {
+                    callback(ERROR_SUCCESS, data);
+                }
             },
             error: function(data) {
                 return callback(ERROR_FAILED, data);
@@ -1023,6 +1027,16 @@
         }
         return null;
     }
+
+    function isRetryMessage(message) {
+        var messageList = [
+            "You have too many listings pending confirmation. Please confirm or cancel some before attempting to list more.",
+            "You cannot sell any items until your previous action completes.",
+            "There was a problem listing your item. Refresh the page and try again."
+        ];
+
+        return messageList.indexOf(message) !== -1;
+    }
     //#endregion
 
     //#region Logging
@@ -1115,6 +1129,21 @@
                             totalPriceWithoutFeesOnMarket += task.sellPrice;
                             totalPriceWithFeesOnMarket += market.getPriceIncludingFees(task.sellPrice);
                             updateTotals();
+                        } else if (data != null && isRetryMessage(data.message)) {
+                            logDOM(padLeft +
+                                ' - ' +
+                                itemName +
+                                ' retrying listing because ' +
+                                data.message
+                            );
+
+                            totalNumberOfProcessedQueueItems--;
+                            sellQueue.unshift(task);
+                            sellQueue.pause();
+
+                            setTimeout(function() {
+                                sellQueue.resume();
+                            }, getRandomInt(30000, 45000));
                         } else {
                             if (data != null && data.responseJSON != null && data.responseJSON.message != null) {
                                 logDOM(padLeft +
