@@ -1032,7 +1032,8 @@
         var messageList = [
             "You have too many listings pending confirmation. Please confirm or cancel some before attempting to list more.",
             "You cannot sell any items until your previous action completes.",
-            "There was a problem listing your item. Refresh the page and try again."
+            "There was a problem listing your item. Refresh the page and try again.",
+            "We were unable to contact the game's item server. The game's item server may be down or Steam may be experiencing temporary connectivity issues. Your listing has not been created. Refresh the page and try again."
         ];
 
         return messageList.indexOf(message) !== -1;
