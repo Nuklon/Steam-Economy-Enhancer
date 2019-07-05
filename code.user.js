@@ -1135,8 +1135,8 @@
                                 ' - ' +
                                 itemName +
                                 ' retrying listing because ' +
-                                data.message
-                            );
+                                data.message[0].toLowerCase() +
+                                data.message.slice(1));
 
                             totalNumberOfProcessedQueueItems--;
                             sellQueue.unshift(task);
