@@ -3,7 +3,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     6.7.6
+// @version     6.8.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -411,7 +411,7 @@
                 price: price
             },
             success: function(data) {
-                if(data.success === false && isRetryMessage(data.message)) {
+                if (data.success === false && isRetryMessage(data.message)) {
                     callback(ERROR_FAILED, data);
                 } else {
                     callback(ERROR_SUCCESS, data);
@@ -1030,7 +1030,6 @@
 
     function isRetryMessage(message) {
         var messageList = [
-            "You have too many listings pending confirmation. Please confirm or cancel some before attempting to list more.",
             "You cannot sell any items until your previous action completes.",
             "There was a problem listing your item. Refresh the page and try again.",
             "We were unable to contact the game's item server. The game's item server may be down or Steam may be experiencing temporary connectivity issues. Your listing has not been created. Refresh the page and try again."
