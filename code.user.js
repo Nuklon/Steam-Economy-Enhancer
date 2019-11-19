@@ -1,5 +1,6 @@
 // ==UserScript==
 // @name        Steam Economy Enhancer
+// @icon        https://upload.wikimedia.org/wikipedia/commons/8/83/Steam_icon_logo.svg
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
