@@ -854,6 +854,27 @@
         return null;
     }
 
+    function getIsCrate(item) {
+        if (item == null)
+            return false;
+        // This is available on the inventory page.
+        var tags = item.tags != null ?
+            item.tags :
+            (item.description != null && item.description.tags != null ?
+                item.description.tags :
+                null);
+        if (tags != null) {
+            var isTaggedAsCrate = false;
+            tags.forEach(function (arrayItem) {
+                if (arrayItem.category == 'Type')
+                    if (arrayItem.internal_name == 'Supply Crate')
+                        isTaggedAsCrate = true;
+            });
+            if (isTaggedAsCrate)
+                return true;
+        }
+    }
+
     function getIsTradingCard(item) {
         if (item == null)
             return false;
@@ -1198,6 +1219,24 @@
                             return;
                         }
 
+                        filteredItems.push(item);
+                    });
+
+                    sellItems(filteredItems);
+                },
+                function() {
+                    logDOM('Could not retrieve the inventory...');
+                });
+        }
+
+        function sellAllCrates() {
+            loadAllInventories().then(function () {
+                    var items = getInventoryItems();
+                    var filteredItems = [];
+                    items.forEach(function (item) {
+                        if (!getIsCrate(item) || !item.marketable) {
+                            return;
+                        }
                         filteredItems.push(item);
                     });
 
@@ -1981,6 +2020,7 @@
 
             var appId = getActiveInventory().m_appid;
             var showMiscOptions = appId == 753;
+            var TF2 = appId == 440;
 
             var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_all separator-btn-right"><span>Sell All Items</span></a>' +
@@ -1993,6 +2033,7 @@
                     '<a class="btn_darkblue_white_innerfade btn_medium_wide unpack_booster_packs separator-btn-right" style="display:none"><span>Unpack Selected Booster Packs</span></a>' +
                     '</div>' :
                     '') +
+                (TF2 ? '<a class="btn_green_white_innerfade btn_medium_wide sell_all_crates separator-btn-right"><span>Sell All Crates</span></a>' : '') +
                 '</div>');
 
             var reloadButton =
@@ -2025,6 +2066,7 @@
                 $('.sell_selected').on('click', '*', sellSelectedItems);
                 $('.sell_manual').on('click', '*', sellSelectedItemsManually);
                 $('.sell_all_cards').on('click', '*', sellAllCards);
+                $('.sell_all_crates').on('click', '*', sellAllCrates);
                 $('.turn_into_gems').on('click', '*', turnSelectedItemsIntoGems);
                 $('.unpack_booster_packs').on('click', '*', unpackSelectedBoosterPacks);
 
