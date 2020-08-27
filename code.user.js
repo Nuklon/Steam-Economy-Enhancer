@@ -2289,7 +2289,7 @@
 
         marketListingsQueue.drain = function() {
             injectJs(function() {
-                unsafeWindow.g_bMarketWindowHidden = false;
+                g_bMarketWindowHidden = false;
             })
         };
 
