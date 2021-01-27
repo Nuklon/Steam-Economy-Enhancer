@@ -1373,53 +1373,63 @@
 
 
         // Turns the selected items into gems.
-        function turnSelectedItemsIntoGems() {
-            var ids = getSelectedItems();
+        function turnItemsIntoGems(selectedOnly = true) {
+            var ids, dialog;
+            var fn = function() {
+                loadAllInventories().then(function() {
+                    var items = getInventoryItems();
 
-            loadAllInventories().then(function() {
-                var items = getInventoryItems();
-
-                var numberOfQueuedItems = 0;
-                items.forEach(function(item) {
-                    // Ignored queued items.
-                    if (item.queued != null) {
-                        return;
-                    }
-
-                    if (item.owner_actions == null) {
-                        return;
-                    }
-
-                    var canTurnIntoGems = false;
-                    for (var owner_action in item.owner_actions) {
-                        if (item.owner_actions[owner_action].link != null && item.owner_actions[owner_action].link.includes('GetGooValue')) {
-                            canTurnIntoGems = true;
+                    var numberOfQueuedItems = 0;
+                    items.forEach(function(item) {
+                        // Ignored queued items.
+                        if (item.queued != null) {
+                            return;
                         }
-                    }
 
-                    if (!canTurnIntoGems)
-                        return;
+                        if (item.owner_actions == null) {
+                            return;
+                        }
 
-                    var itemId = item.assetid || item.id;
-                    if (ids.indexOf(itemId) !== -1) {
-                        item.queued = true;
-                        scrapQueue.push(item);
-                        numberOfQueuedItems++;
+                        var canTurnIntoGems = false;
+                        for (var owner_action in item.owner_actions) {
+                            if (item.owner_actions[owner_action].link != null && item.owner_actions[owner_action].link.includes('GetGooValue')) {
+                                canTurnIntoGems = true;
+                            }
+                        }
+
+                        if (!canTurnIntoGems)
+                            return;
+
+                        var itemId = item.assetid || item.id;
+                        if (selectedOnly ? ids.indexOf(itemId) !== -1 : true) {
+                            item.queued = true;
+                            scrapQueue.push(item);
+                            numberOfQueuedItems++;
+                        }
+                    });
+
+                    if (numberOfQueuedItems > 0) {
+                        totalNumberOfQueuedItems += numberOfQueuedItems;
+
+                        $('#inventory_items_spinner').remove();
+                        $('#inventory_sell_buttons').append('<div id="inventory_items_spinner">' +
+                            spinnerBlock +
+                            '<div style="text-align:center">Processing ' + numberOfQueuedItems + ' items</div>' +
+                            '</div>');
                     }
+                }, function() {
+                    logDOM('Could not retrieve the inventory...');
                 });
+            };
+            
+            if (selectedOnly) {
+                ids = getSelectedItems();
+                fn();
+                return;
+            }
 
-                if (numberOfQueuedItems > 0) {
-                    totalNumberOfQueuedItems += numberOfQueuedItems;
-
-                    $('#inventory_items_spinner').remove();
-                    $('#inventory_sell_buttons').append('<div id="inventory_items_spinner">' +
-                        spinnerBlock +
-                        '<div style="text-align:center">Processing ' + numberOfQueuedItems + ' items</div>' +
-                        '</div>');
-                }
-            }, function() {
-                logDOM('Could not retrieve the inventory...');
-            });
+            dialog = unsafeWindow.ShowConfirmDialog('Steam Economy Enhancer', 'Are you sure you want to turn all your items into gems?');
+            dialog.done(fn);
         }
 
         // Unpacks the selected booster packs.
@@ -2030,6 +2040,7 @@
                 (showMiscOptions ?
                     '<a class="btn_green_white_innerfade btn_medium_wide sell_all_cards separator-btn-right"><span>Sell All Cards</span></a>' +
                     '<div style="margin-top:12px;">' +
+                    '<a class="btn_darkblue_white_innerfade btn_medium_wide gem_all_items separator-btn-right"><span>Turn All Items Into Gems</span></a>' +
                     '<a class="btn_darkblue_white_innerfade btn_medium_wide turn_into_gems separator-btn-right" style="display:none"><span>Turn Selected Items Into Gems</span></a>' +
                     '<a class="btn_darkblue_white_innerfade btn_medium_wide unpack_booster_packs separator-btn-right" style="display:none"><span>Unpack Selected Booster Packs</span></a>' +
                     '</div>' :
@@ -2068,9 +2079,9 @@
                 $('.sell_manual').on('click', '*', sellSelectedItemsManually);
                 $('.sell_all_cards').on('click', '*', sellAllCards);
                 $('.sell_all_crates').on('click', '*', sellAllCrates);
-                $('.turn_into_gems').on('click', '*', turnSelectedItemsIntoGems);
+                $('.gem_all_items').on('click', '*', () => turnItemsIntoGems(false));
+                $('.turn_into_gems').on('click', '*', () => turnItemsIntoGems(true));
                 $('.unpack_booster_packs').on('click', '*', unpackSelectedBoosterPacks);
-
             }
 
             $('.inventory_rightnav').prepend(reloadButton);
