@@ -1944,7 +1944,10 @@
                     }
 
                     if (histogram != null && histogram.lowest_sell_order != null) {
-                        prices.push(parseInt(histogram.lowest_sell_order) - 1);
+                        // Transaction volume must be separable into three or more parts (no matter if equal): valve+publisher+seller.
+                        if (parseInt(histogram.lowest_sell_order) > 3) {
+                            prices.push(parseInt(histogram.lowest_sell_order) - 1);
+                        }
                         prices.push(parseInt(histogram.lowest_sell_order));
                     }
 
