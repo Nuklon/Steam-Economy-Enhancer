@@ -50,6 +50,11 @@
     const ERROR_FAILED = 1;
     const ERROR_DATA = 2;
 
+    const PRICE_MARKUP_TYPES = {
+        offset: "offset",
+        percent: "percent"
+    };
+
     var marketLists = [];
     var totalNumberOfProcessedQueueItems = 0;
     var totalNumberOfQueuedItems = 0;
@@ -105,7 +110,9 @@
     const SETTING_MAX_FOIL_PRICE = 'SETTING_MAX_FOIL_PRICE';
     const SETTING_MIN_MISC_PRICE = 'SETTING_MIN_MISC_PRICE';
     const SETTING_MAX_MISC_PRICE = 'SETTING_MAX_MISC_PRICE';
+    const SETTING_PRICE_MARKUP_TYPE = 'SETTING_PRICE_MARKUP_TYPE';
     const SETTING_PRICE_OFFSET = 'SETTING_PRICE_OFFSET';
+    const SETTING_PRICE_PERCENT = 'SETTING_PRICE_PERCENT';
     const SETTING_PRICE_MIN_CHECK_PRICE = 'SETTING_PRICE_MIN_CHECK_PRICE';
     const SETTING_PRICE_ALGORITHM = 'SETTING_PRICE_ALGORITHM';
     const SETTING_PRICE_IGNORE_LOWEST_Q = 'SETTING_PRICE_IGNORE_LOWEST_Q';
@@ -124,7 +131,9 @@
         SETTING_MAX_FOIL_PRICE: 10,
         SETTING_MIN_MISC_PRICE: 0.05,
         SETTING_MAX_MISC_PRICE: 10,
+        SETTING_PRICE_MARKUP_TYPE: PRICE_MARKUP_TYPES.offset,
         SETTING_PRICE_OFFSET: 0.00,
+        SETTING_PRICE_PERCENT: 0.00,
         SETTING_PRICE_MIN_CHECK_PRICE: 0.00,
         SETTING_PRICE_ALGORITHM: 1,
         SETTING_PRICE_IGNORE_LOWEST_Q: 1,
@@ -324,6 +333,22 @@
         return market.getPriceBeforeFees(histogram.highest_buy_order);
     }
 
+    function calculateMarkup(calculatedPrice) {
+        const markupType = getSettingWithDefault(SETTING_PRICE_MARKUP_TYPE);
+
+        switch (markupType) {
+            case PRICE_MARKUP_TYPES.offset:
+                return getSettingWithDefault(SETTING_PRICE_OFFSET) * 100;
+
+            case PRICE_MARKUP_TYPES.percent:
+                return Math.round(calculatedPrice * getSettingWithDefault(SETTING_PRICE_PERCENT) / 100);
+
+            default:
+                console.error("Unknown markup type: " + markupType);
+                return 0;
+        }
+    }
+
     // Calculate the sell price based on the history and listings.
     // applyOffset specifies whether the price offset should be applied when the listings are used to determine the price.
     function calculateSellPriceBeforeFees(history, histogram, applyOffset, minPriceBeforeFees, maxPriceBeforeFees) {
@@ -353,9 +378,9 @@
         }
 
 
-        // Apply the offset to the calculated price, but only if the price wasn't changed to the max (as otherwise it's impossible to list for this price).
+        // Apply the markup to the calculated price, but only if the price wasn't changed to the max (as otherwise it's impossible to list for this price).
         if (!changedToMax && applyOffset) {
-            calculatedPrice = calculatedPrice + (getSettingWithDefault(SETTING_PRICE_OFFSET) * 100);
+            calculatedPrice = calculatedPrice + calculateMarkup(calculatedPrice);
         }
 
 
@@ -3398,10 +3423,6 @@
             '<div style="margin-bottom:6px;">' +
             'Hours to use for the average history calculated price:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="2" id="' + SETTING_PRICE_HISTORY_HOURS + '" value=' + getSettingWithDefault(SETTING_PRICE_HISTORY_HOURS) + '>' +
             '</div>' +
-            '<div style="margin-bottom:6px;">' +
-            'The value to add to the calculated price (minimum and maximum are respected):&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
-            '<br/>' +
-            '</div>' +
             '<div style="margin-top:6px">' +
             'Use the second lowest sell listing when the lowest sell listing has a low quantity:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_PRICE_IGNORE_LOWEST_Q + '" ' + (getSettingWithDefault(SETTING_PRICE_IGNORE_LOWEST_Q) == 1 ? 'checked=""' : '') + '>' +
             '<br/>' +
@@ -3410,6 +3431,22 @@
             'Don\'t check market listings with prices of and below:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_MIN_CHECK_PRICE + '" value=' + getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE) + '>' +
             '<br/>' +
             '</div>' +
+
+            '<div style="margin-top:24px;">' +
+            `The type of markup to apply to the calculated price:&nbsp;<select style="background-color: black;color: white;border: transparent;" id="${SETTING_PRICE_MARKUP_TYPE}">` +
+            Object.values(PRICE_MARKUP_TYPES).map(markupType => `<option value="${markupType}" ${getSettingWithDefault(SETTING_PRICE_MARKUP_TYPE) === markupType ? "selected" : ""}>${markupType}</option>`).join('') +
+            '</select>' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-top:6px;">' +
+            '(Offset) The flat value to add to the calculated price (minimum and maximum are respected):&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
+            '<br/>' +
+            '</div>' +
+            '<div style="margin-top:6px;">' +
+            '(Percent) The percentage value to add to the calculated price (minimum and maximum are respected):&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_PERCENT + '" value=' + getSettingWithDefault(SETTING_PRICE_PERCENT) + '>' +
+            '<br/>' +
+            '</div>' +
+
             '<div style="margin-top:24px">' +
             'Show price labels in inventory:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_INVENTORY_PRICE_LABELS + '" ' + (getSettingWithDefault(SETTING_INVENTORY_PRICE_LABELS) == 1 ? 'checked=""' : '') + '>' +
             '</div>' +
@@ -3449,7 +3486,9 @@
             setSetting(SETTING_MAX_FOIL_PRICE, $('#' + SETTING_MAX_FOIL_PRICE, price_options).val());
             setSetting(SETTING_MIN_MISC_PRICE, $('#' + SETTING_MIN_MISC_PRICE, price_options).val());
             setSetting(SETTING_MAX_MISC_PRICE, $('#' + SETTING_MAX_MISC_PRICE, price_options).val());
+            setSetting(SETTING_PRICE_MARKUP_TYPE, $('#' + SETTING_PRICE_MARKUP_TYPE, price_options).val());
             setSetting(SETTING_PRICE_OFFSET, $('#' + SETTING_PRICE_OFFSET, price_options).val());
+            setSetting(SETTING_PRICE_PERCENT, $('#' + SETTING_PRICE_PERCENT, price_options).val());
             setSetting(SETTING_PRICE_MIN_CHECK_PRICE, $('#' + SETTING_PRICE_MIN_CHECK_PRICE, price_options).val());
             setSetting(SETTING_PRICE_ALGORITHM, $('#' + SETTING_PRICE_ALGORITHM, price_options).val());
             setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $('#' + SETTING_PRICE_IGNORE_LOWEST_Q, price_options).prop('checked') ? 1 : 0);
