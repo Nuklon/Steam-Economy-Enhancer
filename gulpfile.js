@@ -27,7 +27,7 @@ function js() {
         .pipe(gulpEsbuild({
             outfile: './code.user.js',
             bundle: true,
-            minify: false,
+            minify: true,
             target: 'es6',
             define: {
                 'process.env.NODE_ENV': '"production"'
