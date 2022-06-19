@@ -15,7 +15,6 @@ function concatjs() {
         './modules/inventory.js',
         './modules/tradeoffer.js',
         './modules/inventory+tradeoffer.js',
-        './modules/misc.js',
         './modules/footer.js'
     ])
         .pipe(concat('modules.js'))
