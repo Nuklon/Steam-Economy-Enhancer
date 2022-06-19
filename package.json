@@ -1,0 +1,22 @@
+{
+  "name": "steam-economy-enhancer",
+  "version": "1.0.0",
+  "description": "A free userscript to enhance your Steam Inventory, Steam Market and Steam Tradeoffers.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nuklon/Steam-Economy-Enhancer.git"
+  },
+  "author": "Nuklon",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Nuklon/Steam-Economy-Enhancer/issues"
+  },
+  "homepage": "https://github.com/Nuklon/Steam-Economy-Enhancer#readme",
+  "devDependencies": {
+    "del": "^6.1.1",
+    "fs": "^0.0.1-security",
+    "gulp": "^4.0.2",
+    "gulp-concat": "^2.6.1",
+    "gulp-esbuild": "^0.10.3"
+  }
+}
