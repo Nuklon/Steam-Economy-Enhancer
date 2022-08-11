@@ -1210,6 +1210,29 @@
                 });
         }
 
+        function sellAllDuplicateItems() {
+            loadAllInventories().then(function () {
+                var items = getInventoryItems();
+                var marketableItems = [];
+                var filteredItems = [];
+
+                items.forEach(function (item) {
+                    if (!item.marketable) {
+                        return;
+                    }
+
+                    marketableItems.push(item);
+                });
+
+                filteredItems = marketableItems.filter((e, i) => marketableItems.map(m => m.classid).indexOf(e.classid) !== i);
+
+                sellItems(filteredItems);
+            },
+                function () {
+                    logDOM('Could not retrieve the inventory...');
+                });
+        }
+
         function sellAllCards() {
             loadAllInventories().then(function() {
                     var items = getInventoryItems();
@@ -2028,6 +2051,7 @@
 
             var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_all separator-btn-right"><span>Sell All Items</span></a>' +
+                '<a class="btn_green_white_innerfade btn_medium_wide sell_all_duplicates separator-btn-right"><span>Sell All Duplicate Items</span></a>' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_selected separator-btn-right" style="display:none"><span>Sell Selected Items</span></a>' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_manual separator-btn-right" style="display:none"><span>Sell Manually</span></a>' +
                 (showMiscOptions ?
@@ -2068,6 +2092,7 @@
                         sellAllItems(appId);
                     });
                 $('.sell_selected').on('click', '*', sellSelectedItems);
+                $('.sell_all_duplicates').on('click', '*', sellAllDuplicateItems);
                 $('.sell_manual').on('click', '*', sellSelectedItemsManually);
                 $('.sell_all_cards').on('click', '*', sellAllCards);
                 $('.sell_all_crates').on('click', '*', sellAllCrates);
