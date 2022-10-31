@@ -4,7 +4,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     6.8.3
+// @version     6.8.4
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -18,7 +18,7 @@
 // @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.7.1/localforage.min.js
 // @require     https://moment.github.io/luxon/global/luxon.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.js
-// @require     https://github.com/rmariuzzo/checkboxes.js/releases/download/v1.2.2/jquery.checkboxes-1.2.2.min.js
+// @require     https://raw.githubusercontent.com/rmariuzzo/checkboxes.js/91bec667e9172ceb063df1ecb7505e8ed0bae9ba/src/jquery.checkboxes.js
 // @grant       unsafeWindow
 // @homepageURL https://github.com/Nuklon/Steam-Economy-Enhancer
 // @supportURL  https://github.com/Nuklon/Steam-Economy-Enhancer/issues
@@ -63,6 +63,7 @@
 
     var enableConsoleLog = false;
 
+    var country = typeof unsafeWindow.g_strCountryCode !== 'undefined' ? unsafeWindow.g_strCountryCode : undefined;
     var isLoggedIn = typeof unsafeWindow.g_rgWalletInfo !== 'undefined' && unsafeWindow.g_rgWalletInfo != null || (typeof unsafeWindow.g_bLoggedIn !== 'undefined' && unsafeWindow.g_bLoggedIn);
 
     var currentPage = window.location.href.includes('.com/market') ?
@@ -754,7 +755,9 @@
                     return;
                 }
                 var url = window.location.protocol +
-                    '//steamcommunity.com/market/itemordershistogram?language=english&currency=' +
+                    '//steamcommunity.com/market/itemordershistogram?country=' +
+                    country +
+                    '&language=english&currency=' +
                     currencyId +
                     '&item_nameid=' +
                     item_nameid +
@@ -1477,7 +1480,7 @@
                 sellItems(items);
             });
         }
-		
+
         function canSellSelectedItemsManually(items) {
             // We have to construct an URL like this
             // https://steamcommunity.com/market/multisell?appid=730&contextid=2&items[]=Falchion%20Case&qty[]=100
@@ -1485,7 +1488,7 @@
             var contextid = items[0].contextid;
 
             var hasInvalidItem = false;
-		  
+
             items.forEach(function(item) {
 				if (item.contextid != contextid || item.commodity == false)
 				    hasInvalidItem = true;
@@ -1498,12 +1501,12 @@
             getInventorySelectedMarketableItems(function(items) {
                 // We have to construct an URL like this
                 // https://steamcommunity.com/market/multisell?appid=730&contextid=2&items[]=Falchion%20Case&qty[]=100
-                
+
 				var appid = items[0].appid;
                 var contextid = items[0].contextid;
 
                 var itemsWithQty = {};
-              
+
                 items.forEach(function(item) {
                    itemsWithQty[item.market_hash_name] = itemsWithQty[item.market_hash_name] + 1 || 1;
                 });
@@ -1515,12 +1518,12 @@
 
                 var baseUrl = 'https://steamcommunity.com/market/multisell';
                 var redirectUrl = baseUrl + '?appid=' + appid + '&contextid=' + contextid + itemsString;
-                
+
                 var dialog = unsafeWindow.ShowDialog('Steam Economy Enhancer', '<iframe frameBorder="0" height="650" width="900" src="' + redirectUrl + '"></iframe>');
                 dialog.OnDismiss(function() {
                     items.forEach(function(item) {
                         var itemId = item.assetid || item.id;
-                        $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_PENDING);                      
+                        $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_PENDING);
                     });
                 });
             });
@@ -1811,9 +1814,9 @@
                     $('.sell_selected').show();
                     if (canSellSelectedItemsManually(items)) {
                         $('.sell_manual').show();
-                        $('.sell_manual > span').text('Sell ' + selectedItems + (selectedItems == 1 ? ' Item Manual' : ' Items Manual'));						
+                        $('.sell_manual > span').text('Sell ' + selectedItems + (selectedItems == 1 ? ' Item Manual' : ' Items Manual'));
                     } else {
-                        $('.sell_manual').hide();						
+                        $('.sell_manual').hide();
                     }
                     $('.sell_selected > span').text('Sell ' + selectedItems + (selectedItems == 1 ? ' Item' : ' Items'));
                 }
@@ -2368,7 +2371,7 @@
                 $('.market_listing_my_price', listingUI).last().css('background', COLOR_PRICE_NOT_CHECKED);
                 $('.market_listing_my_price', listingUI).last().prop('title', 'The price is not checked.');
                 listingUI.addClass('not_checked');
-              
+
                 return callback(true, true);
             }
 
