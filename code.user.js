@@ -4,7 +4,7 @@
 // @namespace   https://github.com/Nuklon
 // @author      Nuklon
 // @license     MIT
-// @version     6.8.5
+// @version     6.8.6
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -75,9 +75,11 @@
             PAGE_INVENTORY);
 
     var market = new SteamMarket(unsafeWindow.g_rgAppContextData,
-        typeof unsafeWindow.g_strInventoryLoadURL !== 'undefined' && unsafeWindow.g_strInventoryLoadURL != null ?
-        unsafeWindow.g_strInventoryLoadURL :
-        location.protocol + '//steamcommunity.com/my/inventory/json/',
+        typeof unsafeWindow.g_strInventoryLoadURL !== 'undefined' && unsafeWindow.g_strInventoryLoadURL != null
+           ? unsafeWindow.g_strInventoryLoadURL
+           : typeof unsafeWindow.g_strProfileURL !== 'undefined' && unsafeWindow.g_strProfileURL != null
+              ? unsafeWindow.g_strProfileURL + '/inventory/json/'
+              : 'https://steamcommunity.com/my/inventory/json/',
         isLoggedIn ? unsafeWindow.g_rgWalletInfo : undefined);
 
     var currencyId =
