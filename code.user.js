@@ -1710,11 +1710,19 @@
                     } else {
                         previousSelection = selectedIndex; // Save previous.
                     }
-                },
-                selected: function(e, ui) {
-                    updateInventorySelection(ui.selected);
                 }
             });
+
+            if (typeof unsafeWindow.CInventory !== 'undefined') {
+                var originalSelectItem = unsafeWindow.CInventory.prototype.SelectItem;
+
+                unsafeWindow.CInventory.prototype.SelectItem = function(event, elItem, rgItem, bUserAction) {
+                    originalSelectItem.apply(this, arguments);
+
+                    updateButtons();
+                    updateInventorySelection(rgItem);
+                }
+            }
         }
 
         // Gets the selected items in the inventory.
@@ -1876,28 +1884,18 @@
             });
         }
 
-        function updateInventorySelection(item) {
+        function updateButtons() {
             updateSellSelectedButton();
             updateTurnIntoGemsButton();
             updateOpenBoosterPacksButton();
+        }
 
-            // Wait until g_ActiveInventory.selectedItem is identical to the selected UI item.
-            // This also makes sure that the new - and correct - item_info (iteminfo0 or iteminfo1) is visible.
-            var selectedItemIdUI = $('div', item).attr('id');
-            var selectedItemIdInventory = getActiveInventory().selectedItem.appid +
-                '_' +
-                getActiveInventory().selectedItem.contextid +
-                '_' +
-                getActiveInventory().selectedItem.assetid;
-            if (selectedItemIdUI !== selectedItemIdInventory) {
-                setTimeout(function() {
-                    updateInventorySelection(item);
-                }, 250);
+        function updateInventorySelection(selectedItem) {
+            var item_info = $('#iteminfo' + unsafeWindow.iActiveSelectView);
 
+            if (!item_info.length)
                 return;
-            }
 
-            var item_info = $('.inventory_iteminfo:visible').first();
             if (item_info.html().indexOf('checkout/sendgift/') > -1) // Gifts have no market information.
                 return;
 
@@ -1912,11 +1910,11 @@
             //$('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(2)')
             //    .remove(); // Starting at: x,xx.
 
-            var market_hash_name = getMarketHashName(getActiveInventory().selectedItem);
+            var market_hash_name = getMarketHashName(selectedItem);
             if (market_hash_name == null)
                 return;
 
-            var appid = getActiveInventory().selectedItem.appid;
+            var appid = selectedItem.appid;
             var item = {
                 appid: parseInt(appid),
                 description: {
@@ -1928,7 +1926,7 @@
                 false,
                 function(err, histogram) {
                     if (err) {
-                        logConsole('Failed to get orders histogram for ' + (getActiveInventory().selectedItem.name || getActiveInventory().selectedItem.description.name));
+                        logConsole('Failed to get orders histogram for ' + (selectedItem.name || selectedItem.description.name));
                         return;
                     }
 
@@ -1950,21 +1948,18 @@
                     ownerActions.append('<a class="btn_small btn_grey_white_innerfade" href="/market/listings/' + appid + '/' + market_hash_name + '"><span>View in Community Market</span></a>');
                     $('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(1)').hide();
 
-                    var isBoosterPack = getActiveInventory().selectedItem.name.toLowerCase().endsWith('booster pack');
+                    var isBoosterPack = selectedItem.name.toLowerCase().endsWith('booster pack');
                     if (isBoosterPack) {
-                        var tradingCardsUrl = "/market/search?q=&category_753_Game%5B%5D=tag_app_" + getActiveInventory().selectedItem.market_fee_app + "&category_753_item_class%5B%5D=tag_item_class_2&appid=753";
+                        var tradingCardsUrl = "/market/search?q=&category_753_Game%5B%5D=tag_app_" + selectedItem.market_fee_app + "&category_753_item_class%5B%5D=tag_item_class_2&appid=753";
                         ownerActions.append('<br/> <a class="btn_small btn_grey_white_innerfade" href="' + tradingCardsUrl + '"><span>View trading cards in Community Market</span></a>');
                     }
 
-
-                    // Generate quick sell buttons.
-                    var itemId = getActiveInventory().selectedItem.assetid || getActiveInventory().selectedItem.id;
-
                     // Ignored queued items.
-                    if (getActiveInventory().selectedItem.queued != null) {
+                    if (selectedItem.queued != null) {
                         return;
                     }
 
+                    // Generate quick sell buttons.
                     var prices = [];
 
                     if (histogram != null && histogram.highest_buy_order != null) {
@@ -2018,7 +2013,7 @@
                             totalNumberOfQueuedItems++;
 
                             sellQueue.push({
-                                item: getActiveInventory().selectedItem,
+                                item: selectedItem,
                                 sellPrice: price
                             });
                         });
@@ -2031,7 +2026,7 @@
                             totalNumberOfQueuedItems++;
 
                             sellQueue.push({
-                                item: getActiveInventory().selectedItem,
+                                item: selectedItem,
                                 sellPrice: price
                             });
                         });
