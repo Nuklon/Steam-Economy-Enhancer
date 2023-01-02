@@ -1715,6 +1715,16 @@
                     updateInventorySelection(ui.selected);
                 }
             });
+
+            if (typeof unsafeWindow.Filter !== 'undefined') {
+                var originalApplyFilter = unsafeWindow.Filter.ApplyFilter;
+
+                unsafeWindow.Filter.ApplyFilter = function() {
+                    originalApplyFilter.apply(this, arguments);
+
+                    updateButtons();
+                }
+            }
         }
 
         // Gets the selected items in the inventory.
@@ -1724,10 +1734,7 @@
                 $(this).find('.inventory_page').each(function() {
                     var inventory_page = this;
 
-                    $(inventory_page).find('.itemHolder').each(function() {
-                        if (!$(this).hasClass('ui-selected'))
-                            return;
-
+                    $(inventory_page).find('.itemHolder.ui-selected:not([style*=none])').each(function() {
                         $(this).find('.item').each(function() {
                             var matches = this.id.match(/_(\-?\d+)$/);
                             if (matches) {
@@ -1876,10 +1883,14 @@
             });
         }
 
-        function updateInventorySelection(item) {
+        function updateButtons() {
             updateSellSelectedButton();
             updateTurnIntoGemsButton();
             updateOpenBoosterPacksButton();
+        }
+
+        function updateInventorySelection(item) {
+            updateButtons();
 
             // Wait until g_ActiveInventory.selectedItem is identical to the selected UI item.
             // This also makes sure that the new - and correct - item_info (iteminfo0 or iteminfo1) is visible.
