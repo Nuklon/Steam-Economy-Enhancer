@@ -2292,6 +2292,18 @@
                     return callback(true, cachedListings);
                 });
         }
+
+        $(document.body).on('keyup', function(keyevent) {
+            if (['INPUT', 'TEXTAREA'].includes(keyevent.target.nodeName)) return;
+            switch (keyevent.key) {
+                case 'ArrowRight':
+                    InventoryNextPage();
+                    break;
+                case 'ArrowLeft':
+                    InventoryPreviousPage();
+                    break;
+            }
+        });
     }
     //#endregion
 
