@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name        Steam Economy Enhancer
 // @icon        https://upload.wikimedia.org/wikipedia/commons/8/83/Steam_icon_logo.svg
-// @namespace   https://github.com/Nuklon
-// @author      Nuklon
+// @namespace   https://github.com/SeRi0uS007
+// @author      SeRi0uS007
 // @license     MIT
-// @version     6.8.6
+// @version     7.0.0
 // @description Enhances the Steam Inventory and Steam Market.
 // @include     *://steamcommunity.com/id/*/inventory*
 // @include     *://steamcommunity.com/profiles/*/inventory*
@@ -20,10 +20,10 @@
 // @require     https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.js
 // @require     https://raw.githubusercontent.com/rmariuzzo/checkboxes.js/91bec667e9172ceb063df1ecb7505e8ed0bae9ba/src/jquery.checkboxes.js
 // @grant       unsafeWindow
-// @homepageURL https://github.com/Nuklon/Steam-Economy-Enhancer
-// @supportURL  https://github.com/Nuklon/Steam-Economy-Enhancer/issues
-// @downloadURL https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
-// @updateURL   https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
+// @homepageURL https://github.com/SeRi0uS007/Steam-Economy-Enhancer
+// @supportURL  https://github.com/SeRi0uS007/Steam-Economy-Enhancer/issues
+// @downloadURL https://github.com/SeRi0uS007/Steam-Economy-Enhancer/raw/master/code.user.js
+// @updateURL   https://github.com/SeRi0uS007/Steam-Economy-Enhancer/raw/master/code.user.js
 // ==/UserScript==
 // jQuery is already added by Steam, force no conflict mode.
 (function($, async) {
@@ -40,6 +40,7 @@
 
     const COLOR_ERROR = '#8A4243';
     const COLOR_SUCCESS = '#407736';
+    const COLOR_SECONDFACTOR_REQUIRED = '738012';
     const COLOR_PENDING = '#908F44';
     const COLOR_PRICE_FAIR = '#496424';
     const COLOR_PRICE_CHEAP = '#837433';
@@ -110,6 +111,7 @@
     const SETTING_MAX_MISC_PRICE = 'SETTING_MAX_MISC_PRICE';
     const SETTING_PRICE_OFFSET = 'SETTING_PRICE_OFFSET';
     const SETTING_PRICE_MIN_CHECK_PRICE = 'SETTING_PRICE_MIN_CHECK_PRICE';
+    const SETTING_PRICE_MIN_LIST_PRICE = 'SETTING_PRICE_MIN_LIST_PRICE';
     const SETTING_PRICE_ALGORITHM = 'SETTING_PRICE_ALGORITHM';
     const SETTING_PRICE_IGNORE_LOWEST_Q = 'SETTING_PRICE_IGNORE_LOWEST_Q';
     const SETTING_PRICE_HISTORY_HOURS = 'SETTING_PRICE_HISTORY_HOURS';
@@ -119,6 +121,9 @@
     const SETTING_RELIST_AUTOMATICALLY = 'SETTING_RELIST_AUTOMATICALLY';
     const SETTING_MARKET_PAGE_COUNT = 'SETTING_MARKET_PAGE_COUNT';
     const SETTING_INVENTORY_PRICES = 'SETTING_INVENTORY_PRICES';
+    const SETTING_CONFIRMATOR = 'SETTING_CONFIRMATOR'
+    const SETTING_AUTOLISTING = 'SETTING_AUTOLISTING'
+    const SETTING_AUTOTRADEOFFER = 'SETTING_AUTOTRADEOFFER'
 
     var settingDefaults = {
         SETTING_MIN_NORMAL_PRICE: 0.05,
@@ -129,6 +134,7 @@
         SETTING_MAX_MISC_PRICE: 10,
         SETTING_PRICE_OFFSET: 0.00,
         SETTING_PRICE_MIN_CHECK_PRICE: 0.00,
+        SETTING_PRICE_MIN_LIST_PRICE: 0.00,
         SETTING_PRICE_ALGORITHM: 1,
         SETTING_PRICE_IGNORE_LOWEST_Q: 1,
         SETTING_PRICE_HISTORY_HOURS: 12,
@@ -136,7 +142,9 @@
         SETTING_TRADEOFFER_PRICE_LABELS: 1,
         SETTING_LAST_CACHE: 0,
         SETTING_RELIST_AUTOMATICALLY: 0,
-        SETTING_MARKET_PAGE_COUNT: 100
+        SETTING_MARKET_PAGE_COUNT: 100,
+        SETTING_AUTOLISTING: 0,
+        SETTING_AUTOTRADEOFFER: 0
     };
 
     function getSettingWithDefault(name) {
@@ -146,6 +154,234 @@
     function setSetting(name, value) {
         setLocalStorageItem(name, value);
     }
+    //#endregion
+
+    //#region Confirmator
+    var confirmator = getSettingWithDefault(SETTING_CONFIRMATOR) ?
+    (new Confirmator(JSON.parse(getSettingWithDefault(SETTING_CONFIRMATOR))))
+    : null;
+
+    function Confirmator(savedData) {
+        this.identitySecret = savedData.identity_secret;
+        this.deviceID = savedData.device_id;
+        this.lastTimestamp = 0;
+    }
+
+    Confirmator.prototype.getTimestamp = function() {
+        var self = this;
+        return new Promise(function(resolve) {
+            var timestamp = ~~(new Date().getTime() / 1000);
+
+            if (timestamp == self.timestamp) {
+                setTimeout(function() {
+                    // ensure that we don't use same timestamp
+                    self.lastTimestamp = timestamp = ~~(new Date().getTime() / 1000);
+                    resolve(timestamp);
+                }, 1000);
+            } else {
+                self.lastTimestamp = timestamp;
+                resolve(timestamp);
+            }
+        })
+    }
+
+    Confirmator.prototype.generateConfirmationKey = function(timestamp, tag) {
+        var encoder = new TextEncoder();
+        tagBuffer = encoder.encode(tag);
+
+        var buffer = new Uint8Array(8 + tagBuffer.length);
+        buffer.set(int64ToBytes(timestamp));
+        buffer.set(tagBuffer, 8);
+
+        const algorithm = {name: "HMAC", hash: "SHA-1"}
+        return crypto.subtle.importKey(
+            'raw',
+            base64Decode(this.identitySecret),
+            algorithm,
+            false,
+            ['sign', 'verify']
+        )
+        .then(function(key) {
+            return crypto.subtle.sign(algorithm.name, key, buffer);
+        })
+        .then(function(hashBuffer) {
+            return base64Encode(new Uint8Array(hashBuffer));
+        });
+    }
+
+    Confirmator.prototype.generateParams = function(tag) {
+        var self = this;
+
+        return self.getTimestamp()
+        .then(function(timestamp) {
+            return self.generateConfirmationKey(timestamp, tag)
+        })
+        .then(function(confirmationKey) {
+            return {
+                p: self.deviceID,
+                a: unsafeWindow.g_steamID,
+                k: confirmationKey,
+                t: self.lastTimestamp,
+                m: 'android',
+                tag: tag
+            }
+        })
+    }
+
+    Confirmator.prototype.getConfirmationsPage = function() {
+        return this.generateParams('conf')
+        .then(function(params) {
+            headers = {
+                'X-Requested-With': 'com.valvesoftware.android.steam.community'
+            }
+
+            return $.ajax({
+                url: 'https://steamcommunity.com/mobileconf/conf',
+                type: 'get',
+                data: params,
+                headers: headers
+            })
+        })
+    }
+
+    Confirmator.prototype.getConfirmations = function() {
+        return this.getConfirmationsPage()
+        .then(function(confirmationPage) {
+            var confirmationObject = $(confirmationPage);
+
+            var empty = confirmationObject.find('#mobileconf_empty');
+            if(empty.length > 0) {
+                if(!$(empty).hasClass('mobileconf_done')) {
+                    // An error occurred
+                    throw new Error(empty.find('div:nth-of-type(2)').text());
+                } else {
+                    return [];
+                }
+            }
+
+            // We have something to confirm
+            var confirmations = confirmationObject.find('#mobileconf_list');
+            if(!confirmations) {
+                throw new Error("Malformed response");
+            }
+
+            var confs = [];
+            Array.prototype.forEach.call(confirmations.find('.mobileconf_list_entry'), function(conf) {
+                conf = $(conf);
+                confs.push({
+                    "id": conf.data('confid'),
+                    "key": conf.data('key')
+                });
+            });
+
+            return confs;
+        })
+    }
+
+    Confirmator.prototype.getConfirmationDetailsPage = function(confirmation) {
+        return this.generateParams('details' + confirmation.id)
+        .then(function(params) {
+            return $.ajax({
+                url: 'https://steamcommunity.com/mobileconf/details/' + confirmation.id,
+                type: 'get',
+                data: params,
+                headers: headers
+            })
+        })
+        .then(function(resp) {
+            return resp.html;
+        })
+    }
+
+    Confirmator.prototype.getConfirmationDetails = function(confirmation) {
+        return this.getConfirmationDetailsPage(confirmation)
+        .then(function(confirmationDetailsPage) {
+            var confirmationDetailsPageObject = $(confirmationDetailsPage);
+
+            var scriptElementString = confirmationDetailsPageObject.find('script').text();
+            var regex = new RegExp('confiteminfo.{3}({.*}).{2}UserYou');
+            var match = scriptElementString.match(regex);
+
+            return JSON.parse(match[1]);
+        })
+    }
+
+    Confirmator.prototype.getTradeConfirmationDetails = function(confirmation) {
+        return this.getConfirmationDetailsPage(confirmation)
+        .then(function(confirmationDetailsPage) {
+            var confirmationDetailsPageObject = $(confirmationDetailsPage);
+
+            var id = confirmationDetailsPageObject.find('.tradeoffer').attr('id');
+            return id.substring('tradeofferid_'.length);
+        })
+    }
+
+    Confirmator.prototype.getConfirmationByAssetId = function(assetId) {
+        var self = this;
+
+        return this.getConfirmations()
+        .then(function(confirmations) {
+            function compareDetail(idx) {
+                return new Promise(function(resolve) {
+                    if (idx <= confirmations.length - 1) {
+                        self.getConfirmationDetails(confirmations[idx])
+                        .then(function(confirmationDetails) {
+                            if (confirmationDetails.id == assetId) resolve(confirmations[idx]);
+                            else compareDetail(idx + 1);
+                        })
+                    } else {
+                        resolve(null);
+                    }
+                })
+            }
+
+            if (!confirmations) return null;
+            return compareDetail(0);
+        })
+    }
+
+    Confirmator.prototype.getTradeConfirmationByTradeOfferId = function(tradeofferid) {
+        var self = this;
+
+        return this.getConfirmations()
+        .then(function(confirmations) {
+            function compareDetail(idx) {
+                return new Promise(function(resolve) {
+                    if (idx <= confirmations.length - 1) {
+                        self.getTradeConfirmationDetails(confirmations[idx])
+                        .then(function(tradeConfirmationDetails) {
+                            if (tradeConfirmationDetails == tradeofferid) resolve (confirmations[idx]);
+                            else compareDetail(idx + 1);
+                        })
+                    } else {
+                        resolve(null);
+                    }
+                })
+            }
+
+            if (!confirmations) return null;
+            return compareDetail(0);
+        })
+    }
+
+    Confirmator.prototype.sendConfirmation = function(confirmation) {
+        return this.generateParams('allow')
+        .then(function(params) {
+            params.op = 'allow';
+            params.cid = confirmation.id;
+            params.ck = confirmation.key;
+            headers = {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+
+            return $.ajax({
+                url: 'https://steamcommunity.com/mobileconf/ajaxop',
+                type: 'get',
+                data: params,
+                headers: headers
+            })
+        })
+    }    
     //#endregion
 
     //#region Storage
@@ -394,6 +630,33 @@
     function replaceNonNumbers(str) {
         return str.replace(/\D/g, '');
     }
+
+    function int64ToBytes(x, bigEndian=true) {
+        var bytes = new Uint8Array(8);
+    
+        for (var i = 0; i < bytes.length; ++i) {
+            bytes[i] = x & 0xff;
+            x >>= 8;
+        }
+    
+        if (bigEndian) bytes = bytes.reverse();
+        return bytes;
+    }
+    
+    function base64Decode(str) {
+        var decodedString = atob(str);
+        var bytes = new Uint8Array(decodedString.length);
+    
+        for (var i = 0; i < decodedString.length; ++i) {
+            bytes[i] = decodedString.charCodeAt(i);
+        }
+    
+        return bytes;
+    }
+    
+    function base64Encode(bytes) {
+        return btoa(String.fromCharCode(...bytes));
+    }
     //#endregion
 
     //#region Steam Market
@@ -411,7 +674,7 @@
                 appid: item.appid,
                 contextid: item.contextid,
                 assetid: itemId,
-                amount: 1,
+                amount: item.amount,
                 price: price
             },
             success: function(data) {
@@ -1064,6 +1327,14 @@
 
         return messageList.indexOf(message) !== -1;
     }
+
+    function isAutoListingReady() {
+        return Boolean(confirmator && getSettingWithDefault(SETTING_AUTOLISTING))
+    }
+
+    function isAutoTradeOfferReady() {
+        return Boolean(confirmator && getSettingWithDefault(SETTING_AUTOTRADEOFFER))
+    }
     //#endregion
 
     //#region Logging
@@ -1129,6 +1400,24 @@
         }
 
         var sellQueue = async.queue(function(task, next) {
+            if (market.getPriceIncludingFees(task.sellPrice) <= getSettingWithDefault(SETTING_PRICE_MIN_LIST_PRICE) * 100) {
+                totalNumberOfProcessedQueueItems++;
+
+                var digits = getNumberOfDigits(totalNumberOfQueuedItems);
+                var itemId = task.item.assetid || task.item.id;
+                var itemName = task.item.name || task.item.description.name;
+                itemName += parseInt(task.item.amount) > 1 ? ` (x${task.item.amount})` : '';
+                var padLeft = padLeftZero('' + totalNumberOfProcessedQueueItems, digits) + ' / ' + totalNumberOfQueuedItems;
+
+                logDOM(padLeft + ' - ' + itemName + ' is not listed due to ignoring price settings.');
+
+                $('#' + task.item.appid + '_' + task.item.contextid + '_' + itemId).css('background', COLOR_PRICE_NOT_CHECKED);
+                // Sound Notifications not implemented yet
+                // if (totalNumberOfQueuedItems === totalNumberOfProcessedQueueItems) {
+                //     soundEffect.play();
+                // }
+                next();
+            } else {
                 market.sellItem(task.item,
                     task.sellPrice,
                     function(err, data) {
@@ -1136,26 +1425,51 @@
 
                         var digits = getNumberOfDigits(totalNumberOfQueuedItems);
                         var itemId = task.item.assetid || task.item.id;
-                        var itemName = task.item.name || task.item.description.name;
+                        var itemName = (task.item.name || task.item.description.name) + (parseInt(task.item.amount) > 1 ? ('(x' + task.item.amount) + ')': '');
                         var padLeft = padLeftZero('' + totalNumberOfProcessedQueueItems, digits) + ' / ' + totalNumberOfQueuedItems;
 
                         if (!err) {
-                            logDOM(padLeft +
-                                ' - ' +
-                                itemName +
-                                ' listed for ' +
-                                (market.getPriceIncludingFees(task.sellPrice) / 100.0).toFixed(2) +
-                                currencySymbol +
-                                ', you will receive ' +
-                                (task.sellPrice / 100.0).toFixed(2) + currencySymbol +
-                                '.');
+                            var dom = padLeft + ' - ' + itemName + ' listed for ' + (market.getPriceIncludingFees(task.sellPrice) * parseInt(task.item.amount) / 100.0).toFixed(2) + currencySymbol + ', you will receive ' + (task.sellPrice * parseInt(task.item.amount) / 100.0).toFixed(2) + currencySymbol + '.';
+                            totalPriceWithoutFeesOnMarket += task.sellPrice * parseInt(task.item.amount);
+                            totalPriceWithFeesOnMarket += market.getPriceIncludingFees(task.sellPrice) * parseInt(task.item.amount);
 
-                            $('#' + task.item.appid + '_' + task.item.contextid + '_' + itemId)
-                                .css('background', COLOR_SUCCESS);
-
-                            totalPriceWithoutFeesOnMarket += task.sellPrice;
-                            totalPriceWithFeesOnMarket += market.getPriceIncludingFees(task.sellPrice);
                             updateTotals();
+                            if (data.needs_mobile_confirmation) {
+                                if (isAutoListingReady()) {
+                                    confirmator.getConfirmationByAssetId(task.item.assetid || task.item.id)
+                                    .then(function(confirmation) {
+                                        if (confirmation)
+                                            return confirmator.sendConfirmation(confirmation);
+                                        else
+                                            throw 'Unable to find confirmation';
+                                    })
+                                    .then(function(response) {
+                                        if (response.success)
+                                            $('#' + task.item.appid + '_' + task.item.contextid + '_' + itemId)
+                                            .css('background', COLOR_SUCCESS);
+                                        else
+                                            throw '2FA error occurs';
+
+                                        logDOM(dom);
+                                        next();
+                                    })
+                                    .catch(function(error) {
+                                        dom += '. ' + error.message;
+
+                                        logDOM(dom);
+                                        next();
+                                    })
+                                }
+                            }
+                            else {
+                                $('#' + task.item.appid + '_' + task.item.contextid + '_' + itemId)
+                                .css('background', COLOR_SECONDFACTOR_REQUIRED);
+
+                                dom += '. 2FA accept required';
+                                logDOM(dom);
+                                next();
+                            }
+                            return;
                         } else if (data != null && isRetryMessage(data.message)) {
                             logDOM(padLeft +
                                 ' - ' +
@@ -1188,6 +1502,7 @@
 
                         next();
                     });
+                }
             },
             1);
 
@@ -1623,54 +1938,65 @@
             var failed = 0;
             var itemName = item.name || item.description.name;
 
-            market.getPriceHistory(item,
-                true,
-                function(err, history, cachedHistory) {
-                    if (err) {
-                        logConsole('Failed to get price history for ' + itemName);
-
-                        if (err == ERROR_FAILED)
-                            failed += 1;
-                    }
-
-                    market.getItemOrdersHistogram(item,
-                        true,
-                        function(err, histogram, cachedListings) {
-                            if (err) {
-                                logConsole('Failed to get orders histogram for ' + itemName);
-
-                                if (err == ERROR_FAILED)
-                                    failed += 1;
-                            }
-
-                            if (failed > 0 && !ignoreErrors) {
-                                return callback(false, cachedHistory && cachedListings);
-                            }
-
-                            logConsole('============================')
-                            logConsole(itemName);
-
-                            var sellPrice = calculateSellPriceBeforeFees(history,
-                                histogram,
-                                true,
-                                priceInfo.minPriceBeforeFees,
-                                priceInfo.maxPriceBeforeFees);
-
-
-                            logConsole('Sell price: ' +
-                                sellPrice / 100.0 +
-                                ' (' +
-                                market.getPriceIncludingFees(sellPrice) / 100.0 +
-                                ')');
-
-                            sellQueue.push({
-                                item: item,
-                                sellPrice: sellPrice
-                            });
-
-                            return callback(true, cachedHistory && cachedListings);
-                        });
+            // Why do we need to check the price if the settings are set to the same minimum and maximum price?
+            if (priceInfo.maxPriceBeforeFees == priceInfo.minPriceBeforeFees) {
+                var sellPrice = calculateSellPriceBeforeFees(null, undefined, true, priceInfo.minPriceBeforeFees, priceInfo.maxPriceBeforeFees);
+                sellQueue.push({
+                    item: item,
+                    sellPrice: sellPrice
                 });
+
+                return callback(true, null);
+            } else {
+                market.getPriceHistory(item,
+                    true,
+                    function(err, history, cachedHistory) {
+                        if (err) {
+                            logConsole('Failed to get price history for ' + itemName);
+    
+                            if (err == ERROR_FAILED)
+                                failed += 1;
+                        }
+    
+                        market.getItemOrdersHistogram(item,
+                            true,
+                            function(err, histogram, cachedListings) {
+                                if (err) {
+                                    logConsole('Failed to get orders histogram for ' + itemName);
+    
+                                    if (err == ERROR_FAILED)
+                                        failed += 1;
+                                }
+    
+                                if (failed > 0 && !ignoreErrors) {
+                                    return callback(false, cachedHistory && cachedListings);
+                                }
+    
+                                logConsole('============================')
+                                logConsole(itemName);
+    
+                                var sellPrice = calculateSellPriceBeforeFees(history,
+                                    histogram,
+                                    true,
+                                    priceInfo.minPriceBeforeFees,
+                                    priceInfo.maxPriceBeforeFees);
+    
+    
+                                logConsole('Sell price: ' +
+                                    sellPrice / 100.0 +
+                                    ' (' +
+                                    market.getPriceIncludingFees(sellPrice) / 100.0 +
+                                    ')');
+    
+                                sellQueue.push({
+                                    item: item,
+                                    sellPrice: sellPrice
+                                });
+    
+                                return callback(true, cachedHistory && cachedListings);
+                            });
+                    });
+            }
         }
 
         // Initialize the inventory UI.
@@ -2047,7 +2373,7 @@
 
             $('#see_settings').remove();
             $('#global_action_menu')
-                .prepend('<span id="see_settings"><a href="javascript:void(0)">⬖ Steam Economy Enhancer</a></span>');
+                .prepend('<span id="see_settings"><a href="javascript:void(0)">💾 Steam Economy Enhancer</a></span>');
             $('#see_settings').on('click', '*', () => openSettings());
 
             var appId = getActiveInventory().m_appid;
@@ -2772,16 +3098,18 @@
 
             var totalPriceBuyer = 0;
             var totalPriceSeller = 0;
+            var totalAmount = 0;
             // Add the listings to the queue to be checked for the price.
             for (var i = 0; i < marketLists.length; i++) {
                 for (var j = 0; j < marketLists[i].items.length; j++) {
                     var listingid = replaceNonNumbers(marketLists[i].items[j].values().market_listing_item_name);
                     var assetInfo = getAssetInfoFromListingId(listingid);
 
+                    totalAmount += assetInfo.amount
                     if (!isNaN(assetInfo.priceBuyer))
-                        totalPriceBuyer += assetInfo.priceBuyer;
+                        totalPriceBuyer += assetInfo.priceBuyer * assetInfo.amount;
                     if (!isNaN(assetInfo.priceSeller))
-                        totalPriceSeller += assetInfo.priceSeller;
+                        totalPriceSeller += assetInfo.priceSeller * assetInfo.amount;
 
                     marketListingsQueue.push({
                         listingid,
@@ -2792,7 +3120,9 @@
                 }
             }
 
-            $('#my_market_selllistings_number').append('<span id="my_market_sellistings_total_price">, ' + (totalPriceBuyer / 100.0).toFixed(2) + currencySymbol + ' ➤ ' + (totalPriceSeller / 100.0).toFixed(2) + currencySymbol + '</span>');
+            $('#my_market_selllistings_number')
+            .append('<span id="my_market_sellistings_total_amount"> [' + totalAmount +']')
+            .append('<span id="my_market_sellistings_total_price">, ' + (totalPriceBuyer / 100.0).toFixed(2) + currencySymbol + ' ➤ ' + (totalPriceSeller / 100.0).toFixed(2) + currencySymbol + '</span>');
         }
 
 
@@ -2814,10 +3144,12 @@
             var appid = replaceNonNumbers(itemIds[2]);
             var contextid = replaceNonNumbers(itemIds[3]);
             var assetid = replaceNonNumbers(itemIds[4]);
+            var amount = parseInt(unsafeWindow.g_rgAssets[appid][contextid][assetid].amount);
             return {
                 appid,
                 contextid,
                 assetid,
+                amount,
                 priceBuyer,
                 priceSeller
             };
@@ -3225,7 +3557,7 @@
             });
 
             $('#see_settings').remove();
-            $('#global_action_menu').prepend('<span id="see_settings"><a href="javascript:void(0)">⬖ Steam Economy Enhancer</a></span>');
+            $('#global_action_menu').prepend('<span id="see_settings"><a href="javascript:void(0)">💾 Steam Economy Enhancer</a></span>');
             $('#see_settings').on('click', '*', () => openSettings());
 
             processMarketListings();
@@ -3423,6 +3755,227 @@
                 unsafeWindow.MoveItemToTrade(it);
             });
         });
+
+        $('#trade_confirmbtn').before(
+            $('<div id="trade_autoconfirmbtn" class="trade_confirmbtn ellipsis">' +
+            '<div class="cap left"></div>' +
+            '<div class="cap right"></div>' +
+            '<div id="trade_autoconfirmbtn_text">Accept with Auto Confirm</div>' +
+            '</div>')
+        );
+
+        (function modifyTradeOfferStatusManager() {
+            var old = unsafeWindow.CTradeOfferStateManager.UpdateConfirmButtonStatus.bind(unsafeWindow.CTradeOfferStateManager);
+            var updated = function() {
+                if (isAutoTradeOfferReady()) {
+                    if (g_bConfirmPending) {
+                        $('#trade_autoconfirmbtn').hide();
+                    } else {
+                        $('#trade_autoconfirmbtn').show();
+                    }
+                    if (UserYou.bReady && this.m_bCaptchaReady) {
+                        $('#trade_autoconfirmbtn').addClass('active');
+                    } else {
+                        $('#trade_autoconfirmbtn').removeClass('active');
+                    }
+                }
+                old();
+            };
+            unsafeWindow.CTradeOfferStateManager.UpdateConfirmButtonStatus = updated.bind(unsafeWindow.CTradeOfferStateManager);
+        })();
+
+        unsafeWindow.CTradeOfferStateManager.AutoConfirmTradeOffer = (function() {
+            if (!this.m_bCaptchaReady)
+                return;
+    
+            g_bConfirmPending = true;
+            this.UpdateConfirmButtonStatus();
+    
+            var StateManager = this;
+    
+            if (this.m_eTradeOfferState == CTradeOfferStateManager.TRADE_OFFER_STATE_NEW || this.m_eTradeOfferState == CTradeOfferStateManager.TRADE_OFFER_STATE_COUNTEROFFER) {
+                if (this.m_eTradeOfferState == CTradeOfferStateManager.TRADE_OFFER_STATE_COUNTEROFFER && !this.m_bChangesMade) {
+                    ShowConfirmDialog('AutoConfirmTradeOffer | Send Counter Offer',
+                    'You have not made any changes to this counter offer. Would you like to accept the original offer?',
+                    'Accept Trade')
+                    .done(function() {
+                        StateManager.m_eTradeOfferState = CTradeOfferStateManager.TRADE_OFFER_STATE_VIEW;
+                        var deferred = StateManager.ConfirmTradeOffer();
+    
+                        if (deferred)
+                            deferred.fail(function() {
+                                StateManager.m_eTradeOfferState = CTradeOfferStateManager.TRADE_OFFER_STATE_COUNTEROFFER;
+                                StateManager.UpdateConfirmButtonStatus();
+                            });
+    
+                    })
+                    .fail(function() {
+                        g_bConfirmPending = false;
+                        StateManager.UpdateConfirmButtonStatus();
+                    });
+    
+                    return null;
+                }
+    
+                var rgParams = {
+                    sessionid: g_sessionID,
+                    serverid: 1,
+                    partner: g_ulTradePartnerSteamID,
+                    tradeoffermessage: $('trade_offer_note') ? $('trade_offer_note').value : '',
+                    json_tradeoffer: V_ToJSON( g_rgCurrentTradeStatus ),
+                    captcha: CTradeOfferStateManager.GetCaptchaResponse()
+                };
+    
+                if (this.m_rgTradeOfferCreateParams)
+                    rgParams['trade_offer_create_params'] = V_ToJSON(this.m_rgTradeOfferCreateParams);
+    
+                if (this.m_eTradeOfferState == CTradeOfferStateManager.TRADE_OFFER_STATE_NEW) {
+                    Tutorial.OnCompletedTutorial();
+                }
+                else if (this.m_eTradeOfferState == CTradeOfferStateManager.TRADE_OFFER_STATE_COUNTEROFFER) {
+                    rgParams['tradeofferid_countered'] = this.m_nTradeOfferID;
+                }
+    
+                return $J.ajax({
+                        url: 'https://steamcommunity.com/tradeoffer/new/send',
+                        data: rgParams,
+                        type: 'POST',
+                        crossDomain: true,
+                        xhrFields: { withCredentials: true }
+                    })
+                    .done(function(data) {
+                        var bNeedsEmailConfirmation = data && data.needs_email_confirmation;
+                        var bNeedsMobileConfirmation = data && data.needs_mobile_confirmation;
+    
+                        var strText;
+                        if (bNeedsMobileConfirmation) {
+                            confirmator.getTradeConfirmationByTradeOfferId(data.tradeofferid)
+                            .then(function(confirmation) {
+                                if (confirmation)
+                                    return confirmator.sendConfirmation(confirmation);
+                                else
+                                    throw 'Unable to find confirmation';
+                            })
+                            .then(function(response) {
+                                if (response.success)
+                                    strText = 'Trade offer with Auto Confirmation sent successfully to %s.'.replace(/%s/, g_strTradePartnerPersonaName);
+                                else
+                                    throw '2FA error occurs';
+                            })
+                            .catch(function(error) {
+                                strText= 'An error occured during Auto Confirmation: ' + error.message;
+                            })
+                            .finally(function() {
+                                ShowAlertDialog('AutoConfirmTradeOffer', strText)
+                                .always(function() {
+                                    EndTradeOffer(UserYou.GetProfileURL() + '/tradeoffers/sent/', true);
+                                });
+                            })
+                        } else if (bNeedsEmailConfirmation) {
+                            ShowAlertDialog('AutoConfirmTradeOffer | Email confirmation needed',
+                            'In order to send this trade offer, you must complete an additional verification step. An email has been sent to your address (ending in "%s") with additional instructions.'.replace(/%s/, data.email_domain)
+                            )
+                            .always(function() {
+                                EndTradeOffer(UserYou.GetProfileURL() + '/tradeoffers/sent/', true);
+                            });
+                        } else {
+                            ShowAlertDialog('AutoConfirmTradeOffer | Trade Offer Sent',
+                            'Success! Your trade offer has been sent to %s.'.replace(/%s/, g_strTradePartnerPersonaName)
+                            )
+                            .always(function() {
+                                EndTradeOffer(UserYou.GetProfileURL() + '/tradeoffers/sent/', true);
+                            });
+                        }
+                            
+                }).fail(function(jqXHR) {
+                    var data = $J.parseJSON( jqXHR.responseText );
+                    g_bConfirmPending = false;
+                    StateManager.RefreshCaptcha();
+                    StateManager.UpdateConfirmButtonStatus();
+                    ShowAlertDialog('AutoConfirmTradeOffer | Make Offer', data && data.strError ? data.strError : 'There was an error sending your trade offer. Please try again later.');
+                });
+            } else if (this.m_eTradeOfferState == CTradeOfferStateManager.TRADE_OFFER_STATE_VIEW) {
+                var nTradeOfferID = this.m_nTradeOfferID;
+                var rgParams = {
+                    sessionid: g_sessionID,
+                    serverid: 1,				tradeofferid: nTradeOfferID,
+                    partner: g_ulTradePartnerSteamID,
+                    captcha: CTradeOfferStateManager.GetCaptchaResponse()
+                };
+    
+                return $J.ajax({
+                        url: 'https://steamcommunity.com/tradeoffer/' + nTradeOfferID + '/accept',
+                        data: rgParams,
+                        type: 'POST',
+                        crossDomain: true,
+                        xhrFields: { withCredentials: true }
+                    }
+                ).done(function(data) {
+                    var bNeedsEmailConfirmation = data && data.needs_email_confirmation;
+                    var bNeedsMobileConfirmation = data && data.needs_mobile_confirmation;
+    
+                    var strText;
+                    if (bNeedsMobileConfirmation) {
+                        confirmator.getTradeConfirmationByTradeOfferId(data.tradeofferid)
+                            .then(function(confirmation) {
+                                if (confirmation)
+                                    return confirmator.sendConfirmation(confirmation);
+                                else
+                                    throw 'Unable to find confirmation';
+                            })
+                            .then(function(response) {
+                                if (response.success)
+                                    strText = 'Trade offer with Auto Confirmation sent successfully to %s.'.replace(/%s/, g_strTradePartnerPersonaName);
+                                else
+                                    throw '2FA error occurs';
+                            })
+                            .catch(function(error) {
+                                strText= 'An error occured during Auto Confirmation: ' + error.message;
+                            })
+                            .finally(function() {
+                                ShowAlertDialog('AutoConfirmTradeOffer', strText)
+                                .always(function() {
+                                    EndTradeOffer(UserYou.GetProfileURL() + '/tradeoffers/sent/', true);
+                                });
+                            })
+                    } else if (bNeedsEmailConfirmation) {
+                        ShowAlertDialog('AutoConfirmTradeOffer | Additional confirmation needed',
+                        'In order to complete this trade, you must complete an additional verification step.  An email has been sent to your address (ending in "%s") with additional instructions.'.replace( /%s/, data.email_domain ))
+                        .always(function() {
+                            if (window.opener)
+                                window.close();
+                            else
+                                EndTradeOffer(UserYou.GetProfileURL() + '/tradeoffers/');
+                        });
+    
+                        if (window.opener && window.opener.postMessage) {
+                            MessageWindowOpener({ type: 'await_confirm', tradeofferid: nTradeOfferID });
+                        }
+                    } else {
+                        if (window.opener && window.opener.postMessage) {
+                            MessageWindowOpener( { type: 'accepted', tradeofferid: nTradeOfferID } );
+                        }
+    
+                        if (data.tradeid)
+                            window.location = 'https://steamcommunity.com/trade/' + data.tradeid + '/receipt';
+                        else
+                            EndTradeOffer(UserYou.GetProfileURL() + '/inventory/');
+                    }
+                }).fail(function(jqXHR) {
+                    var data = $J.parseJSON(jqXHR.responseText);
+                    g_bConfirmPending = false;
+                    StateManager.RefreshCaptcha();
+                    StateManager.UpdateConfirmButtonStatus();
+                    ShowAlertDialog('AutoConfirmTradeOffer | Accept Trade', data && data.strError ? data.strError : 'There was an error accepting this trade offer.  Please try again later.');
+                });
+            }
+        }).bind(unsafeWindow.CTradeOfferStateManager)
+
+        $('#trade_autoconfirmbtn').click(function() {
+            if ($(this).hasClass('active')) {
+                unsafeWindow.CTradeOfferStateManager.AutoConfirmTradeOffer();
+            }
+        })
     }
     //#endregion
 
@@ -3451,6 +4004,10 @@
             '<div style="margin-top:6px;">' +
             'Don\'t check market listings with prices of and below:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_MIN_CHECK_PRICE + '" value=' + getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE) + '>' +
             '<br/>' +
+            '<div style="margin-top:6px;">' +
+            'Don\'t list market listings with prices of and below:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_MIN_LIST_PRICE + '" value=' + getSettingWithDefault(SETTING_PRICE_MIN_LIST_PRICE) + '>' +
+            '<br/>' +
+            '</div>' +
             '</div>' +
             '<div style="margin-top:24px">' +
             'Show price labels in inventory:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_INVENTORY_PRICE_LABELS + '" ' + (getSettingWithDefault(SETTING_INVENTORY_PRICE_LABELS) == 1 ? 'checked=""' : '') + '>' +
@@ -3481,8 +4038,68 @@
             'Automatically relist overpriced market listings (slow on large inventories):&nbsp;<input id="' + SETTING_RELIST_AUTOMATICALLY + '" class="market_relist_auto" type="checkbox" ' + (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked=""' : '') + '>' +
             '</label>' +
             '</div>' +
+            '<div style="margin-top:24px;margin-bottom:6px;display:grid;grid-template-columns:1fr 1fr">' +
+            '<div style="display:flex;align-items:center">' +
+            '<label for="' + SETTING_CONFIRMATOR + '" class="btn_grey_black btn_small" style="cursor:pointer;background:linear-gradient(to right, #32363f 5%, #32363f 95%);box-shadow: 2px 2px 5px rgb(0 0 0 / 20%);transition: all 0.2s ease-out;padding: 0 15px;font-size:15px;line-height:30px;">Load SDA File</label>' +
+            '<input id="' + SETTING_CONFIRMATOR + '" type="file" accept=".maFile" style="width:0.1px;height:0.1px;opacity:0;overflow:hidden;position:absolute;z-index:-1;"/>' +
+            '<span id=sdaFileResult style="opacity:' + (getSettingWithDefault(SETTING_CONFIRMATOR) ? '1' : '0') + ';transition:opacity 0.2s linear;margin-left:10px">' + (getSettingWithDefault(SETTING_CONFIRMATOR) ? 'Loaded as '+ JSON.parse(getSettingWithDefault(SETTING_CONFIRMATOR)).account_name : '') + '</span>' +
             '</div>' +
-            '</div>');
+            '<div style="padding-left:10px;">' +
+            '<div>' +
+            'Auto accept market listings:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_AUTOLISTING + '" ' + (getSettingWithDefault(SETTING_AUTOLISTING) == 1 ? 'checked=""' : '') + (getSettingWithDefault(SETTING_CONFIRMATOR) ? '' : ' disabled') + '>' +
+            '</div>' +
+            '<div>' +
+            'Allow auto confirmation for trade offers:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_AUTOTRADEOFFER + '" ' + (getSettingWithDefault(SETTING_AUTOTRADEOFFER) == 1 ? 'checked=""' : '') + (getSettingWithDefault(SETTING_CONFIRMATOR) ? '' : ' disabled') + '>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>')
+            .on('change', '#' + SETTING_CONFIRMATOR, function() {
+                var [file] = this.files;
+                var reader = new FileReader();
+
+                reader.addEventListener('load', function() {
+                    try {
+                        var sdaContent = JSON.parse(reader.result);
+                        if (!sdaContent.account_name || !sdaContent.device_id || !sdaContent.identity_secret) {
+                            $('#sdaFileResult')
+                            .text('Not a valid SDA File')
+                            .css('color', 'red')
+                            .css('opacity', 1);
+                            return;
+                        }
+
+                        $('#sdaFileResult')
+                        .text('Loaded as ' + sdaContent.account_name)
+                        .css('opacity', '1');
+
+                        var confirmatorKeys = {
+                            account_name: sdaContent.account_name,
+                            device_id: sdaContent.device_id,
+                            identity_secret: sdaContent.identity_secret
+                        }
+
+                        $('#' + SETTING_AUTOLISTING).removeAttr('disabled');
+                        $('#' + SETTING_AUTOTRADEOFFER).removeAttr('disabled');
+
+                        // Save as plain text
+                        // Identity Secret only use for confirmation purposes
+                        // Any request valid from "Logged on" accs
+                        // With second factor "shared_secret" is used for login purposes
+                        setSetting(SETTING_CONFIRMATOR, JSON.stringify(confirmatorKeys));
+
+                    } catch (SyntaxError) {
+                        $('#sdaFileResult')
+                        .text('Not a JSON compatible')
+                        .css('color', 'red')
+                        .css('opacity', '1');
+                        return;
+                    }
+                    
+                });
+
+                if (file) reader.readAsText(file);
+            })
 
         var dialog = unsafeWindow.ShowConfirmDialog('Steam Economy Enhancer', price_options).done(function() {
             setSetting(SETTING_MIN_NORMAL_PRICE, $('#' + SETTING_MIN_NORMAL_PRICE, price_options).val());
@@ -3493,6 +4110,7 @@
             setSetting(SETTING_MAX_MISC_PRICE, $('#' + SETTING_MAX_MISC_PRICE, price_options).val());
             setSetting(SETTING_PRICE_OFFSET, $('#' + SETTING_PRICE_OFFSET, price_options).val());
             setSetting(SETTING_PRICE_MIN_CHECK_PRICE, $('#' + SETTING_PRICE_MIN_CHECK_PRICE, price_options).val());
+            setSetting(SETTING_PRICE_MIN_LIST_PRICE, $('#' + SETTING_PRICE_MIN_LIST_PRICE, price_options).val());
             setSetting(SETTING_PRICE_ALGORITHM, $('#' + SETTING_PRICE_ALGORITHM, price_options).val());
             setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $('#' + SETTING_PRICE_IGNORE_LOWEST_Q, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_PRICE_HISTORY_HOURS, $('#' + SETTING_PRICE_HISTORY_HOURS, price_options).val());
@@ -3500,6 +4118,8 @@
             setSetting(SETTING_RELIST_AUTOMATICALLY, $('#' + SETTING_RELIST_AUTOMATICALLY, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_INVENTORY_PRICE_LABELS, $('#' + SETTING_INVENTORY_PRICE_LABELS, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_TRADEOFFER_PRICE_LABELS, $('#' + SETTING_TRADEOFFER_PRICE_LABELS, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_AUTOLISTING, $('#' + SETTING_AUTOLISTING, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_AUTOTRADEOFFER, $('#' + SETTING_AUTOTRADEOFFER, price_options).prop('checked') ? 1 : 0);
 
             window.location.reload();
         });
