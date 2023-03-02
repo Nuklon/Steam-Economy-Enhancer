@@ -1710,6 +1710,9 @@
                     } else {
                         previousSelection = selectedIndex; // Save previous.
                     }
+                },
+                selected: function(e, ui) {
+                    updateButtons();
                 }
             });
 
