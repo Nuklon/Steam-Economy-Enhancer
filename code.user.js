@@ -1735,10 +1735,7 @@
                 $(this).find('.inventory_page').each(function() {
                     var inventory_page = this;
 
-                    $(inventory_page).find('.itemHolder').each(function() {
-                        if (!$(this).hasClass('ui-selected'))
-                            return;
-
+                    $(inventory_page).find('.itemHolder.ui-selected:not([style*=none])').each(function() {
                         $(this).find('.item').each(function() {
                             var matches = this.id.match(/_(\-?\d+)$/);
                             if (matches) {
