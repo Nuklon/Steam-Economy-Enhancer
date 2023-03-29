@@ -1237,6 +1237,53 @@
                 logDOM('Could not retrieve the inventory...');
             });
         }
+        
+        function gemAllDuplicateItems() {
+            loadAllInventories().then(function () {
+                var items = getInventoryItems();
+                var filteredItems = [];
+                var numberOfQueuedItems = 0;
+
+                filteredItems = items.filter((e, i) => items.map(m => m.classid).indexOf(e.classid) !== i);
+
+                filteredItems.forEach(function (item) {
+                    if (item.queued != null) {
+                        return;
+                    }
+
+                    if (item.owner_actions == null) {
+                        return;
+                    }
+
+                    var canTurnIntoGems = false;
+                    for (var owner_action in item.owner_actions) {
+                        if (item.owner_actions[owner_action].link != null && item.owner_actions[owner_action].link.includes('GetGooValue')) {
+                            canTurnIntoGems = true;
+                        }
+                    }
+
+                    if (!canTurnIntoGems)
+                        return;
+
+                    item.queued = true;
+                    scrapQueue.push(item);
+                    numberOfQueuedItems++;
+                });
+
+                if (numberOfQueuedItems > 0) {
+                    totalNumberOfQueuedItems += numberOfQueuedItems;
+
+                    $('#inventory_items_spinner').remove();
+                    $('#inventory_sell_buttons').append('<div id="inventory_items_spinner">' +
+                        spinnerBlock +
+                        '<div style="text-align:center">Processing ' + numberOfQueuedItems + ' items</div>' +
+                        '</div>');
+                }
+            },
+            function () {
+                logDOM('Could not retrieve the inventory...');
+            });
+        }
 
         function sellAllCards() {
             loadAllInventories().then(function() {
@@ -1515,8 +1562,8 @@
             var hasInvalidItem = false;
 
             items.forEach(function(item) {
-				if (item.contextid != contextid || item.commodity == false)
-				    hasInvalidItem = true;
+                if (item.contextid != contextid || item.commodity == false)
+                    hasInvalidItem = true;
             });
 
             return !hasInvalidItem;
@@ -1527,7 +1574,7 @@
                 // We have to construct an URL like this
                 // https://steamcommunity.com/market/multisell?appid=730&contextid=2&items[]=Falchion%20Case&qty[]=100
 
-				var appid = items[0].appid;
+                var appid = items[0].appid;
                 var contextid = items[0].contextid;
 
                 var itemsWithQty = {};
@@ -2052,6 +2099,7 @@
             var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_all separator-btn-right"><span>Sell All Items</span></a>' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_all_duplicates separator-btn-right"><span>Sell All Duplicate Items</span></a>' +
+                '<a class="btn_green_white_innerfade btn_medium_wide gem_all_duplicates separator-btn-right"><span>Turn All Duplicate Items Into Gems</span></a>' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_selected separator-btn-right" style="display:none"><span>Sell Selected Items</span></a>' +
                 '<a class="btn_green_white_innerfade btn_medium_wide sell_manual separator-btn-right" style="display:none"><span>Sell Manually</span></a>' +
                 (showMiscOptions ?
@@ -2093,6 +2141,7 @@
                     });
                 $('.sell_selected').on('click', '*', sellSelectedItems);
                 $('.sell_all_duplicates').on('click', '*', sellAllDuplicateItems);
+                $('.gem_all_duplicates').on('click', '*', gemAllDuplicateItems);
                 $('.sell_manual').on('click', '*', sellSelectedItemsManually);
                 $('.sell_all_cards').on('click', '*', sellAllCards);
                 $('.sell_all_crates').on('click', '*', sellAllCrates);
