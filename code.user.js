@@ -29,6 +29,20 @@
 (function($, async) {
     $.noConflict(true);
 
+    var ChangeHashName = {
+        "1186460-Lv Lingji (Trading Card)": "1186460-Lv Lingji",
+        "1186460-Zang Guang (Trading Card)": "1186460-Zang Guang",
+        "1186460-Zhang Chengyuan (Trading Card)": "1186460-Zhang Chengyuan",
+        "1186460-Hua Jieyu (Trading Card)": "1186460-Hua Jieyu",
+        "1186460-Archer (Profile Background)": "1186460-Archer",
+        "1186460-Saber (Profile Background)": "1186460-Saber",
+        "1186460-Assassin (Profile Background)": "1186460-Assassin",
+        "1186460-Berserker (Profile Background)": "1186460-Berserker",
+        "1186460-Heroine (Profile Background)": "1186460-Heroine",
+        "1345740-mengyetong (Trading Card)": "1345740-mengyetong",
+        "340220-LMG Soldier #2 (Foil)": "340220-LMG%20Soldier%20%232%20(Foil)",
+    }
+
     var DateTime = luxon.DateTime;
 
     const STEAM_INVENTORY_ID = 753;
@@ -1670,6 +1684,10 @@
             var failed = 0;
             var itemName = item.name || item.description.name;
 
+            if (ChangeHashName[item.description.market_hash_name]) {
+                item.description.market_hash_name = ChangeHashName[item.description.market_hash_name]
+            }
+
             market.getPriceHistory(item,
                 true,
                 function(err, history, cachedHistory) {
@@ -2453,6 +2471,10 @@
                     market_hash_name: market_hash_name
                 }
             };
+
+            if (ChangeHashName[item.description.market_hash_name]) {
+                item.description.market_hash_name = ChangeHashName[item.description.market_hash_name]
+            }
 
             var failed = 0;
 
