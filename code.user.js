@@ -43,7 +43,7 @@
         "340220-LMG Soldier #2 (Foil)": "340220-LMG%20Soldier%20%232%20(Foil)",
     }
 
-    var SameHashNameCard = {
+    var ChangeSameHashNameCard = {
         "1478160-Irin (Trading Card)": true,
     }
 
@@ -1688,7 +1688,7 @@
             var failed = 0;
             var itemName = item.name || item.description.name;
 
-            if(SameHashNameCard[item.description.market_hash_name]){
+            if(ChangeSameHashNameCard[item.description.market_hash_name]){
                 let link = item.owner_actions[1].link;
                 let assetid_values = link.match(/'%assetid%',\s*((?:\d+,?\s*)+)/)[1];
                 let item_type = assetid_values.split(",")[1].trim();
@@ -2483,7 +2483,7 @@
                 }
             };
 
-            if(SameHashNameCard[item.description.market_hash_name]){
+            if(ChangeSameHashNameCard[item.description.market_hash_name]){
                 let link = asset.owner_actions[1].link;
                 let assetid_values = link.match(/'%assetid%',\s*((?:\d+,?\s*)+)/)[1];
                 let item_type = assetid_values.split(",")[1].trim();
