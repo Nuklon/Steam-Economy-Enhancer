@@ -3351,12 +3351,13 @@
                 return a[1] - b[1];
             }).reverse();
 
-            var totalText = '<strong>Number of items: ' + sortable.length + ', worth ' + (totalPrice / 100).toFixed(2) + currencySymbol + '<br/><br/></strong>';
-
+            var totalText = '<strong>Number of unique items: ' + sortable.length + ', worth ' + (totalPrice / 100).toFixed(2) + currencySymbol + '<br/><br/></strong>';
+            var totalNumOfItems
             for (var i = 0; i < sortable.length; i++) {
                 totalText += sortable[i][1] + 'x ' + sortable[i][0] + '<br/>';
+                totalNumOfItems += sortable[i][1];
             }
-
+            totalText += '<br/><strong>Total items: ' + totalNumOfItems + '</strong><br/>';
             return totalText;
         }
     }
