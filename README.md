@@ -23,7 +23,7 @@ It adds the following features to the Steam Inventory:
 It adds the following features to the Steam Tradeoffers:
 
 *    A summary of all items from both parties.
-	- Includes total number of items, number of unique items and item count breakdown (how many of each items there are)
+	* Includes total number of items, number of unique items and item count breakdown (how many of each items there are)
 *    Select all items of the current page.
 *    Shows the lowest listed price for each inventory item.
 
