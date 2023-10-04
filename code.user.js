@@ -34,17 +34,22 @@
         "1186460-Zang Guang (Trading Card)": "1186460-Zang Guang",
         "1186460-Zhang Chengyuan (Trading Card)": "1186460-Zhang Chengyuan",
         "1186460-Hua Jieyu (Trading Card)": "1186460-Hua Jieyu",
+        "1186460-Lv Lingji (Foil Trading Card)": "1186460-Lv Lingji (Foil)",
+        "1186460-Zang Guang (Foil Trading Card)": "1186460-Zang Guang (Foil)",
+        "1186460-Zhang Chengyuan (Foil Trading Card)": "1186460-Zhang Chengyuan (Foil)",
+        "1186460-Hua Jieyu (Foil Trading Card)": "1186460-Hua Jieyu (Foil)",
         "1186460-Archer (Profile Background)": "1186460-Archer",
         "1186460-Saber (Profile Background)": "1186460-Saber",
         "1186460-Assassin (Profile Background)": "1186460-Assassin",
         "1186460-Berserker (Profile Background)": "1186460-Berserker",
         "1186460-Heroine (Profile Background)": "1186460-Heroine",
         "1345740-mengyetong (Trading Card)": "1345740-mengyetong",
-        "340220-LMG Soldier #2 (Foil)": "340220-LMG%20Soldier%20%232%20(Foil)",
+        "1345740-mengyetong (Foil Trading Card)": "1345740-mengyetong (Foil)",
     }
 
     var ChangeSameHashNameCard = {
         "1478160-Irin (Trading Card)": true,
+        "1478160-Irin (Foil Trading Card)": true,
     }
 
     var DateTime = luxon.DateTime;
