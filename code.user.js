@@ -717,7 +717,7 @@
         var url = window.location.protocol + '//steamcommunity.com/market/listings/' + appid + '/' + market_name;
         $.get(url,
                 function(page) {
-                    var matches = /Market_LoadOrderSpread\( (.+) \);/.exec(page);
+                    var matches = /Market_LoadOrderSpread\( (\d+) \);/.exec(page);
                     if (matches == null) {
                         callback(ERROR_DATA);
                         return;
