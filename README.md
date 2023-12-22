@@ -5,7 +5,7 @@ A free userscript to enhance your Steam Inventory, Steam Market and Steam Tradeo
 It adds the following features to the Steam Market:
 
 *    Detect overpriced and underpriced items.
-*    Select all (overpriced) items and remove them at once.
+*    Select 5/25/100/all (overpriced) items and remove them at once.
 *    (Automatically) relist overpriced items.
 *    Sort and search items by name, price or date.
 *    Total price for listings, as seller and buyer.
@@ -22,7 +22,7 @@ It adds the following features to the Steam Inventory:
 
 It adds the following features to the Steam Tradeoffers:
 
-*    A summary of all items from both parties.
+*    A summary of all items from both parties that includes total number of items, number of unique items and item count breakdown (how many of each item there are)
 *    Select all items of the current page.
 *    Shows the lowest listed price for each inventory item.
 
