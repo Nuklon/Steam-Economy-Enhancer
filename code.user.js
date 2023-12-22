@@ -676,7 +676,7 @@
         var url = window.location.protocol + '//steamcommunity.com/market/listings/' + appid + '/' + market_name;
         $.get(url,
                 function(page) {
-                    var matches = /Market_LoadOrderSpread\( (.+) \);/.exec(page);
+                    var matches = /Market_LoadOrderSpread\( (\d+) \);/.exec(page);
                     if (matches == null) {
                         callback(ERROR_DATA);
                         return;
@@ -2582,7 +2582,7 @@
                         $('.actual_content', listingUI).css('background', COLOR_PENDING);
 
                         setTimeout(function() {
-                            var baseUrl = $('.header_notification_items').first().attr('href') + 'json/';
+                            var baseUrl = document.querySelector('a.submenuitem[href$="/inventory/"]').href + 'json/';
                             var itemName = $('.market_listing_item_name_link', listingUI).first().attr('href');
                             var marketHashNameIndex = itemName.lastIndexOf('/') + 1;
                             var marketHashName = itemName.substring(marketHashNameIndex);
