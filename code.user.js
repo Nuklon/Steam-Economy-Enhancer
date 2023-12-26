@@ -29,6 +29,29 @@
 (function($, async) {
     $.noConflict(true);
 
+    var ChangeHashName = {
+        "1186460-Lv Lingji (Trading Card)": "1186460-Lv Lingji",
+        "1186460-Zang Guang (Trading Card)": "1186460-Zang Guang",
+        "1186460-Zhang Chengyuan (Trading Card)": "1186460-Zhang Chengyuan",
+        "1186460-Hua Jieyu (Trading Card)": "1186460-Hua Jieyu",
+        "1186460-Lv Lingji (Foil Trading Card)": "1186460-Lv Lingji (Foil)",
+        "1186460-Zang Guang (Foil Trading Card)": "1186460-Zang Guang (Foil)",
+        "1186460-Zhang Chengyuan (Foil Trading Card)": "1186460-Zhang Chengyuan (Foil)",
+        "1186460-Hua Jieyu (Foil Trading Card)": "1186460-Hua Jieyu (Foil)",
+        "1186460-Archer (Profile Background)": "1186460-Archer",
+        "1186460-Saber (Profile Background)": "1186460-Saber",
+        "1186460-Assassin (Profile Background)": "1186460-Assassin",
+        "1186460-Berserker (Profile Background)": "1186460-Berserker",
+        "1186460-Heroine (Profile Background)": "1186460-Heroine",
+        "1345740-mengyetong (Trading Card)": "1345740-mengyetong",
+        "1345740-mengyetong (Foil Trading Card)": "1345740-mengyetong (Foil)",
+    }
+
+    var ChangeSameHashNameCard = {
+        "1478160-Irin (Trading Card)": true,
+        "1478160-Irin (Foil Trading Card)": true,
+    }
+
     var DateTime = luxon.DateTime;
 
     const STEAM_INVENTORY_ID = 753;
@@ -446,7 +469,25 @@
                 callback(ERROR_SUCCESS, data);
             },
             error: function() {
-                return callback(ERROR_FAILED);
+                $.ajax({
+                    type: "POST",
+                    url: window.location.protocol + '//steamcommunity.com/market/cancelbuyorder/',
+                    data: {
+                        sessionid: sessionId,
+                        buy_orderid: item
+                    },
+                    success: function (data) {
+                        callback(ERROR_SUCCESS, data);
+                    },
+                    error: function () {
+                        return callback(ERROR_FAILED);
+                    },
+                    crossDomain: true,
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    dataType: 'json'
+                });
             },
             crossDomain: true,
             xhrFields: {
@@ -1670,6 +1711,17 @@
             var failed = 0;
             var itemName = item.name || item.description.name;
 
+            if(ChangeSameHashNameCard[item.description.market_hash_name]){
+                let link = item.owner_actions[1].link;
+                let assetid_values = link.match(/'%assetid%',\s*((?:\d+,?\s*)+)/)[1];
+                let item_type = assetid_values.split(",")[1].trim();
+                item.description.market_hash_name=item.description.market_hash_name+'-'+item_type;
+            }
+
+            if (ChangeHashName[item.description.market_hash_name]) {
+                item.description.market_hash_name = ChangeHashName[item.description.market_hash_name]
+            }
+
             market.getPriceHistory(item,
                 true,
                 function(err, history, cachedHistory) {
@@ -2453,6 +2505,17 @@
                     market_hash_name: market_hash_name
                 }
             };
+
+            if(ChangeSameHashNameCard[item.description.market_hash_name]){
+                let link = asset.owner_actions[1].link;
+                let assetid_values = link.match(/'%assetid%',\s*((?:\d+,?\s*)+)/)[1];
+                let item_type = assetid_values.split(",")[1].trim();
+                item.description.market_hash_name=item.description.market_hash_name+'-'+item_type;
+            }
+
+            if (ChangeHashName[item.description.market_hash_name]) {
+                item.description.market_hash_name = ChangeHashName[item.description.market_hash_name]
+            }
 
             var failed = 0;
 
