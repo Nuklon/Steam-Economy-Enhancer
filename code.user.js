@@ -3151,11 +3151,6 @@
                 '</a>' +
                 '<span class="separator-small"></span>' +
 
-                '<a class="item_market_action_button item_market_action_button_green select_hundred_from_page market_listing_button">' +
-                '<span class="item_market_action_button_contents" style="text-transform:none">Select 100</span>' +
-                '</a>' +
-                '<span class="separator-small"></span>' +
-
                 '<a class="item_market_action_button item_market_action_button_green remove_selected market_listing_button">' +
                 '<span class="item_market_action_button_contents" style="text-transform:none">Remove selected</span>' +
                 '</a>' +
@@ -3250,27 +3245,6 @@
 
                 updateMarketSelectAllButton();
             });
-
-            $('.select_hundred_from_page').on('click', '*', function() {
-                var selectionGroup = $(this).parent().parent().parent().parent();
-                var marketList = getListFromContainer(selectionGroup);
-
-                var invert = $('.market_select_item:checked', selectionGroup).length == $('.market_select_item', selectionGroup).length;
-
-                var count = 0
-                for (var i = 0; i < marketList.matchingItems.length; i++) {
-                    if(count == 100){
-                        break;
-                    }
-                    if(!$('.market_select_item', marketList.matchingItems[i].elm).prop('checked')){
-                        $('.market_select_item', marketList.matchingItems[i].elm).prop('checked', true);
-                        count += 1;
-                    }
-                }
-
-                updateMarketSelectAllButton();
-            });
-
 
             $('#market_removelisting_dialog_accept').on('click', '*', function() {
                 // This is when a user removed an item through the Remove/Cancel button.
