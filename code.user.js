@@ -1585,7 +1585,7 @@
 
                 var itemsString = '';
                 for (var itemName in itemsWithQty) {
-                    itemsString += '&items[]=' + encodeURI(itemName) + '&qty[]=' + itemsWithQty[itemName];
+                    itemsString += '&items[]=' + encodeURIComponent(itemName) + '&qty[]=' + itemsWithQty[itemName];
                 }
 
                 var baseUrl = 'https://steamcommunity.com/market/multisell';
