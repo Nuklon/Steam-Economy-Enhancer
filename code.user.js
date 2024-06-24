@@ -1,29 +1,35 @@
 // ==UserScript==
-// @name        Steam Economy Enhancer
-// @icon        https://upload.wikimedia.org/wikipedia/commons/8/83/Steam_icon_logo.svg
-// @namespace   https://github.com/Nuklon
-// @author      Nuklon
-// @license     MIT
-// @version     6.9.3
-// @description Enhances the Steam Inventory and Steam Market.
-// @include     *://steamcommunity.com/id/*/inventory*
-// @include     *://steamcommunity.com/profiles/*/inventory*
-// @include     *://steamcommunity.com/market*
-// @include     *://steamcommunity.com/tradeoffer*
-// @require     https://code.jquery.com/jquery-3.3.1.min.js
-// @require     https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
-// @require     https://raw.githubusercontent.com/kapetan/jquery-observe/ca67b735bb3ae8d678d1843384ebbe7c02466c61/jquery-observe.js
-// @require     https://cdnjs.cloudflare.com/ajax/libs/async/2.6.0/async.js
-// @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.7.1/localforage.min.js
-// @require     https://moment.github.io/luxon/global/luxon.min.js
-// @require     https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.js
-// @require     https://raw.githubusercontent.com/rmariuzzo/checkboxes.js/91bec667e9172ceb063df1ecb7505e8ed0bae9ba/src/jquery.checkboxes.js
-// @grant       unsafeWindow
-// @homepageURL https://github.com/Nuklon/Steam-Economy-Enhancer
-// @supportURL  https://github.com/Nuklon/Steam-Economy-Enhancer/issues
-// @downloadURL https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
-// @updateURL   https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
+// @name         Steam Economy Enhancer
+// @icon         https://upload.wikimedia.org/wikipedia/commons/8/83/Steam_icon_logo.svg
+// @namespace    https://github.com/Nuklon
+// @author       Nuklon
+// @license      MIT
+// @version      6.9.3
+// @description  Enhances the Steam Inventory and Steam Market.
+// @match        https://steamcommunity.com/id/*/inventory*
+// @match        https://steamcommunity.com/profiles/*/inventory*
+// @match        https://steamcommunity.com/market*
+// @match        https://steamcommunity.com/tradeoffer*
+// @require      https://code.jquery.com/jquery-3.3.1.min.js
+// @require      https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
+// @require      https://raw.githubusercontent.com/kapetan/jquery-observe/ca67b735bb3ae8d678d1843384ebbe7c02466c61/jquery-observe.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/async/2.6.0/async.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/localforage/1.7.1/localforage.min.js
+// @require      https://moment.github.io/luxon/global/luxon.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.js
+// @require      https://raw.githubusercontent.com/rmariuzzo/checkboxes.js/91bec667e9172ceb063df1ecb7505e8ed0bae9ba/src/jquery.checkboxes.js
+// @grant        unsafeWindow
+// @homepageURL  https://github.com/Nuklon/Steam-Economy-Enhancer
+// @homepage     https://github.com/Nuklon/Steam-Economy-Enhancer
+// @supportURL   https://github.com/Nuklon/Steam-Economy-Enhancer/issues
+// @downloadURL  https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
+// @updateURL    https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
 // ==/UserScript==
+
+/* disable some eslint rules until the code is cleaned up */
+/* global unsafeWindow, luxon, jQuery, async, localforage */
+/* eslint no-undef: off, no-unused-vars: off */
+
 // jQuery is already added by Steam, force no conflict mode.
 (function($, async) {
     $.noConflict(true);
@@ -1807,7 +1813,7 @@
 
                     $(inventory_page).find('.itemHolder.ui-selected:not([style*=none])').each(function() {
                         $(this).find('.item').each(function() {
-                            var matches = this.id.match(/_(\-?\d+)$/);
+                            var matches = this.id.match(/_(-?\d+)$/);
                             if (matches) {
                                 ids.push(matches[1]);
                             }
@@ -2246,8 +2252,8 @@
             var arr = [];
 
             for (var child in getActiveInventory().m_rgChildInventories) {
-                for (var key in getActiveInventory().m_rgChildInventories[child].m_rgAssets) {
-                    var value = getActiveInventory().m_rgChildInventories[child].m_rgAssets[key];
+                for (const key in getActiveInventory().m_rgChildInventories[child].m_rgAssets) {
+                    const value = getActiveInventory().m_rgChildInventories[child].m_rgAssets[key];
                     if (typeof value === 'object') {
                         // Merges the description in the normal object, this is done to keep the layout consistent with the market page, which is also flattened.
                         Object.assign(value, value.description);
@@ -2259,8 +2265,8 @@
             }
 
             // Some inventories (e.g. BattleBlock Theater) do not have child inventories, they have just one.
-            for (var key in getActiveInventory().m_rgAssets) {
-                var value = getActiveInventory().m_rgAssets[key];
+            for (const key in getActiveInventory().m_rgAssets) {
+                const value = getActiveInventory().m_rgAssets[key];
                 if (typeof value === 'object') {
                     // Merges the description in the normal object, this is done to keep the layout consistent with the market page, which is also flattened.
                     Object.assign(value, value.description);
@@ -3364,8 +3370,8 @@
             var arr = [];
 
             for (var child in getActiveInventory().rgChildInventories) {
-                for (var key in getActiveInventory().rgChildInventories[child].rgInventory) {
-                    var value = getActiveInventory().rgChildInventories[child].rgInventory[key];
+                for (const key in getActiveInventory().rgChildInventories[child].rgInventory) {
+                    const value = getActiveInventory().rgChildInventories[child].rgInventory[key];
                     if (typeof value === 'object') {
                         // Merges the description in the normal object, this is done to keep the layout consistent with the market page, which is also flattened.
                         Object.assign(value, value.description);
@@ -3377,8 +3383,8 @@
             }
 
             // Some inventories (e.g. BattleBlock Theater) do not have child inventories, they have just one.
-            for (var key in getActiveInventory().rgInventory) {
-                var value = getActiveInventory().rgInventory[key];
+            for (const key in getActiveInventory().rgInventory) {
+                const value = getActiveInventory().rgInventory[key];
                 if (typeof value === 'object') {
                     // Merges the description in the normal object, this is done to keep the layout consistent with the market page, which is also flattened.
                     Object.assign(value, value.description);
@@ -3394,7 +3400,7 @@
         function sumTradeOfferAssets(assets, user) {
             var total = {};
             var totalPrice = 0;
-            for (var i = 0; i < assets.length; i++) {
+            for (let i = 0; i < assets.length; i++) {
                 var rgItem = user.findAsset(assets[i].appid, assets[i].contextid, assets[i].assetid);
 
                 var text = '';
@@ -3445,7 +3451,7 @@
 
             var totalText = '<strong>Number of unique items: ' + sortable.length + ', worth ' + formatPrice(totalPrice) + '<br/><br/></strong>';
             var totalNumOfItems = 0;
-            for (var i = 0; i < sortable.length; i++) {
+            for (let i = 0; i < sortable.length; i++) {
                 totalText += sortable[i][1] + 'x ' + sortable[i][0] + '<br/>';
                 totalNumOfItems += sortable[i][1];
             }
@@ -3459,13 +3465,13 @@
     var lastTradeOfferSum = 0;
 
     function hasLoadedAllTradeOfferItems() {
-        for (var i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.them.assets.length; i++) {
-            var asset = UserThem.findAsset(unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].assetid);
+        for (let i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.them.assets.length; i++) {
+            const asset = UserThem.findAsset(unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].assetid);
             if (asset == null)
                 return false;
         }
-        for (var i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.me.assets.length; i++) {
-            var asset = UserYou.findAsset(unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].assetid);
+        for (let i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.me.assets.length; i++) {
+            const asset = UserYou.findAsset(unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].assetid);
             if (asset == null)
                 return false;
         }
@@ -3482,12 +3488,12 @@
 
         var updateInventoryPricesInTrade = function() {
             var items = [];
-            for (var i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.them.assets.length; i++) {
-                var asset = UserThem.findAsset(unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].assetid);
+            for (let i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.them.assets.length; i++) {
+                const asset = UserThem.findAsset(unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].assetid);
                 items.push(asset);
             }
-            for (var i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.me.assets.length; i++) {
-                var asset = UserYou.findAsset(unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].assetid);
+            for (let i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.me.assets.length; i++) {
+                const asset = UserYou.findAsset(unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].assetid);
                 items.push(asset);
             }
             setInventoryPrices(items);
