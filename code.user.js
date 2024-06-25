@@ -90,7 +90,15 @@
         market.walletInfo.wallet_currency :
         3;
 
-    var currencySymbol = unsafeWindow.GetCurrencySymbol(unsafeWindow.GetCurrencyCode(currencyId));
+    const currencyCountry =
+        isLoggedIn &&
+        market != null &&
+        market.walletInfo != null &&
+        market.walletInfo.wallet_country != null ?
+        market.walletInfo.wallet_country :
+        'US';
+
+    const currencyCode = unsafeWindow.GetCurrencyCode(currencyId);
 
     function SteamMarket(appContext, inventoryUrl, walletInfo) {
         this.appContext = appContext;
@@ -218,6 +226,10 @@
     //#endregion
 
     //#region Price helpers
+    function formatPrice(valueInCents) {
+        return unsafeWindow.v_currencyformat(valueInCents, currencyCode, currencyCountry);
+    }
+
     function getPriceInformationFromItem(item) {
         var isTradingCard = getIsTradingCard(item);
         var isFoilTradingCard = getIsFoilTradingCard(item);
@@ -1116,11 +1128,9 @@
 
             if (totalPriceWithFeesOnMarket > 0) {
                 totals.innerHTML += '<div><strong>Total listed for ' +
-                    (totalPriceWithFeesOnMarket / 100.0).toFixed(2) +
-                    currencySymbol +
+                    formatPrice(totalPriceWithFeesOnMarket) +
                     ', you will receive ' +
-                    (totalPriceWithoutFeesOnMarket / 100).toFixed(2) +
-                    currencySymbol +
+                    formatPrice(totalPriceWithoutFeesOnMarket) +
                     '.</strong></div>';
             }
             if (totalScrap > 0) {
@@ -1144,10 +1154,9 @@
                                 ' - ' +
                                 itemName +
                                 ' listed for ' +
-                                (market.getPriceIncludingFees(task.sellPrice) / 100.0).toFixed(2) +
-                                currencySymbol +
+                                formatPrice(market.getPriceIncludingFees(task.sellPrice)) +
                                 ', you will receive ' +
-                                (task.sellPrice / 100.0).toFixed(2) + currencySymbol +
+                                formatPrice(task.sellPrice) +
                                 '.');
 
                             $('#' + task.item.appid + '_' + task.item.contextid + '_' + itemId)
@@ -2031,8 +2040,7 @@
                             '">' +
                             '<span class="item_market_action_button_edge item_market_action_button_left"></span>' +
                             '<span class="item_market_action_button_contents">' +
-                            (e / 100.0) +
-                            currencySymbol +
+                            formatPrice(e) +
                             '</span>' +
                             '<span class="item_market_action_button_edge item_market_action_button_right"></span>' +
                             '<span class="item_market_action_button_preload"></span>' +
@@ -2320,7 +2328,7 @@
 
                     var itemPrice = sellPrice == 65535 ?
                         '∞' :
-                        (market.getPriceIncludingFees(sellPrice) / 100.0).toFixed(2) + currencySymbol;
+                        formatPrice(market.getPriceIncludingFees(sellPrice));
 
                     var elementName = (currentPage == PAGE_TRADEOFFER ? '#item' : '#') +
                         item.appid +
@@ -2484,7 +2492,7 @@
                             // The 'histogram.highest_buy_order' is not reliable as Steam is caching this value, but it gives some idea for older titles/listings.
                             var highestBuyOrderPrice = (histogram == null || histogram.highest_buy_order == null ?
                                 '-' :
-                                ((histogram.highest_buy_order / 100) + currencySymbol));
+                                formatPrice(histogram.highest_buy_order));
                             $('.market_table_value > span:nth-child(1) > span:nth-child(1) > span:nth-child(1)',
                                 listingUI).append(' ➤ <span title="This is likely the highest buy order price.">' +
                                 highestBuyOrderPrice +
@@ -2521,7 +2529,7 @@
                             listingUI.addClass('price_' + sellPriceWithOffset);
 
                             $('.market_listing_my_price', listingUI).last().prop('title',
-                                'The best price is ' + (sellPriceWithoutOffsetWithFees / 100.0) + currencySymbol + '.');
+                                'The best price is ' + formatPrice(sellPriceWithoutOffsetWithFees) + '.');
 
                             if (sellPriceWithoutOffsetWithFees < price) {
                                 logConsole('Sell price is too high.');
@@ -2824,7 +2832,7 @@
                 }
             }
 
-            $('#my_market_selllistings_number').append('<span id="my_market_sellistings_total_price">, ' + (totalPriceBuyer / 100.0).toFixed(2) + currencySymbol + ' ➤ ' + (totalPriceSeller / 100.0).toFixed(2) + currencySymbol + '</span>');
+            $('#my_market_selllistings_number').append('<span id="my_market_sellistings_total_price">, ' + formatPrice(totalPriceBuyer) + ' ➤ ' + formatPrice(totalPriceSeller) + '</span>');
         }
 
 
@@ -3405,7 +3413,7 @@
                 return a[1] - b[1];
             }).reverse();
 
-            var totalText = '<strong>Number of unique items: ' + sortable.length + ', worth ' + (totalPrice / 100).toFixed(2) + currencySymbol + '<br/><br/></strong>';
+            var totalText = '<strong>Number of unique items: ' + sortable.length + ', worth ' + formatPrice(totalPrice) + '<br/><br/></strong>';
             var totalNumOfItems = 0;
             for (var i = 0; i < sortable.length; i++) {
                 totalText += sortable[i][1] + 'x ' + sortable[i][0] + '<br/>';
