@@ -2579,23 +2579,6 @@
             );
         }, 1);
 
-        // Gets the price, in cents, from a market listing.
-        function getPriceFromMarketListing(listing) {
-            let priceLabel = listing.trim().replace('--', '00');
-
-            // Fixes RUB, which has a dot at the end.
-            if (priceLabel[priceLabel.length - 1] === '.' || priceLabel[priceLabel.length - 1] === ',') {
-                priceLabel = priceLabel.slice(0, -1);
-            }
-
-            // For round numbers (e.g., 100 EUR).
-            if (priceLabel.indexOf('.') === -1 && priceLabel.indexOf(',') === -1) {
-                priceLabel = priceLabel + ',00';
-            }
-
-            return parseInt(replaceNonNumbers(priceLabel));
-        }
-
         function marketListingsQueueWorker(listing, ignoreErrors, callback) {
             const asset = unsafeWindow.g_rgAssets[listing.appid][listing.contextid][listing.assetid];
 
@@ -2645,7 +2628,7 @@
             const listingUI = $(getListingFromLists(listing.listingid).elm);
 
             const game_name = asset.type;
-            const price = getPriceFromMarketListing($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text());
+            const price = unsafeWindow.GetPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text());
 
             if (price <= getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE) * 100) {
                 $('.market_listing_my_price', listingUI).last().css('background', COLOR_PRICE_NOT_CHECKED);
@@ -3107,8 +3090,8 @@
                 return {};
             }
 
-            const priceBuyer = getPriceFromMarketListing($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listing.elm).text());
-            const priceSeller = getPriceFromMarketListing($('.market_listing_price > span:nth-child(1) > span:nth-child(3)', listing.elm).text());
+            const priceBuyer = unsafeWindow.GetPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listing.elm).text());
+            const priceSeller = unsafeWindow.GetPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(3)', listing.elm).text());
             const itemIds = actionButton.split(',');
             const appid = replaceNonNumbers(itemIds[2]);
             const contextid = replaceNonNumbers(itemIds[3]);
@@ -3377,14 +3360,12 @@
                     sortFunction: function(a, b) {
                         let listingPriceA = $(a.values().market_listing_price).text();
                         listingPriceA = listingPriceA.substr(0, listingPriceA.indexOf('('));
-                        listingPriceA = listingPriceA.replace('--', '00');
 
                         let listingPriceB = $(b.values().market_listing_price).text();
                         listingPriceB = listingPriceB.substr(0, listingPriceB.indexOf('('));
-                        listingPriceB = listingPriceB.replace('--', '00');
 
-                        const firstPrice = parseInt(replaceNonNumbers(listingPriceA));
-                        const secondPrice = parseInt(replaceNonNumbers(listingPriceB));
+                        const firstPrice = unsafeWindow.GetPriceValueAsInt(listingPriceA);
+                        const secondPrice = unsafeWindow.GetPriceValueAsInt(listingPriceB);
 
                         return firstPrice - secondPrice;
                     }
