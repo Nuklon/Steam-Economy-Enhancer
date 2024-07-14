@@ -30,8 +30,6 @@
 
     var DateTime = luxon.DateTime;
 
-    const STEAM_INVENTORY_ID = 753;
-
     const PAGE_MARKET = 0;
     const PAGE_MARKET_LISTING = 1;
     const PAGE_TRADEOFFER = 2;
@@ -114,10 +112,10 @@
     const SETTING_PRICE_HISTORY_HOURS = 'SETTING_PRICE_HISTORY_HOURS';
     const SETTING_INVENTORY_PRICE_LABELS = 'SETTING_INVENTORY_PRICE_LABELS';
     const SETTING_TRADEOFFER_PRICE_LABELS = 'SETTING_TRADEOFFER_PRICE_LABELS';
+    const SETTING_QUICK_SELL_BUTTONS = 'SETTING_QUICK_SELL_BUTTONS';
     const SETTING_LAST_CACHE = 'SETTING_LAST_CACHE';
     const SETTING_RELIST_AUTOMATICALLY = 'SETTING_RELIST_AUTOMATICALLY';
     const SETTING_MARKET_PAGE_COUNT = 'SETTING_MARKET_PAGE_COUNT';
-    const SETTING_INVENTORY_PRICES = 'SETTING_INVENTORY_PRICES';
 
     var settingDefaults = {
         SETTING_MIN_NORMAL_PRICE: 0.05,
@@ -133,6 +131,7 @@
         SETTING_PRICE_HISTORY_HOURS: 12,
         SETTING_INVENTORY_PRICE_LABELS: 1,
         SETTING_TRADEOFFER_PRICE_LABELS: 1,
+        SETTING_QUICK_SELL_BUTTONS: 1,
         SETTING_LAST_CACHE: 0,
         SETTING_RELIST_AUTOMATICALLY: 0,
         SETTING_MARKET_PAGE_COUNT: 100
@@ -1968,6 +1967,10 @@
             var scrap = $('#' + item_info_id + '_scrap_content');
             scrap.next().insertBefore(scrap);
 
+            // Skip unmarketable items
+            if (!selectedItem.marketable)
+              return;
+
             // Starting at prices are already retrieved in the table.
             //$('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(2)')
             //    .remove(); // Starting at: x,xx.
@@ -1984,11 +1987,40 @@
                 }
             };
 
+            var ownerActions = $('#' + item_info_id + '_item_owner_actions');
+
+            // Move market link to a button
+            ownerActions.append('<a class="btn_small btn_grey_white_innerfade" href="/market/listings/' + appid + '/' + market_hash_name + '"><span>View in Community Market</span></a>');
+            $('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(1)').hide();
+
+            // ownerActions is hidden on other games' inventories, we need to show it to have a "Market" button visible
+            ownerActions.show();
+
+            var isBoosterPack = selectedItem.name.toLowerCase().endsWith('booster pack');
+            if (isBoosterPack) {
+                var tradingCardsUrl = "/market/search?q=&category_753_Game%5B%5D=tag_app_" + selectedItem.market_fee_app + "&category_753_item_class%5B%5D=tag_item_class_2&appid=753";
+                ownerActions.append('<br/> <a class="btn_small btn_grey_white_innerfade" href="' + tradingCardsUrl + '"><span>View trading cards in Community Market</span></a>');
+            }
+
+            if (getSettingWithDefault(SETTING_QUICK_SELL_BUTTONS) != 1) {
+                return;
+            }
+
+            // Ignored queued items.
+            if (selectedItem.queued != null) {
+                return;
+            }
+
             market.getItemOrdersHistogram(item,
                 false,
                 function(err, histogram) {
                     if (err) {
                         logConsole('Failed to get orders histogram for ' + (selectedItem.name || selectedItem.description.name));
+                        return;
+                    }
+
+                    // Ignored queued items.
+                    if (selectedItem.queued != null) {
                         return;
                     }
 
@@ -2002,24 +2034,6 @@
                         '</div>');
 
                     $('#' + item_info_id + '_item_market_actions > div').after(groupMain);
-
-                    var ownerActions = $('#' + item_info_id + '_item_owner_actions');
-                    // ownerActions is hidden on other games' inventories, we need to show it to have a "Market" button visible
-                    ownerActions.show();
-
-                    ownerActions.append('<a class="btn_small btn_grey_white_innerfade" href="/market/listings/' + appid + '/' + market_hash_name + '"><span>View in Community Market</span></a>');
-                    $('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(1)').hide();
-
-                    var isBoosterPack = selectedItem.name.toLowerCase().endsWith('booster pack');
-                    if (isBoosterPack) {
-                        var tradingCardsUrl = "/market/search?q=&category_753_Game%5B%5D=tag_app_" + selectedItem.market_fee_app + "&category_753_item_class%5B%5D=tag_item_class_2&appid=753";
-                        ownerActions.append('<br/> <a class="btn_small btn_grey_white_innerfade" href="' + tradingCardsUrl + '"><span>View trading cards in Community Market</span></a>');
-                    }
-
-                    // Ignored queued items.
-                    if (selectedItem.queued != null) {
-                        return;
-                    }
 
                     // Generate quick sell buttons.
                     var prices = [];
@@ -3562,6 +3576,9 @@
             '<div style="margin-top:6px">' +
             'Show price labels in trade offers:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_TRADEOFFER_PRICE_LABELS + '" ' + (getSettingWithDefault(SETTING_TRADEOFFER_PRICE_LABELS) == 1 ? 'checked=""' : '') + '>' +
             '</div>' +
+            '<div style="margin-top:6px">' +
+            'Show quick sell info and buttons:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_QUICK_SELL_BUTTONS + '" ' + (getSettingWithDefault(SETTING_QUICK_SELL_BUTTONS) == 1 ? 'checked=""' : '') + '>' +
+            '</div>' +
             '<div style="margin-top:24px">' +
             '<div style="margin-bottom:6px;">' +
             'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
@@ -3604,6 +3621,7 @@
             setSetting(SETTING_RELIST_AUTOMATICALLY, $('#' + SETTING_RELIST_AUTOMATICALLY, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_INVENTORY_PRICE_LABELS, $('#' + SETTING_INVENTORY_PRICE_LABELS, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_TRADEOFFER_PRICE_LABELS, $('#' + SETTING_TRADEOFFER_PRICE_LABELS, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_QUICK_SELL_BUTTONS, $('#' + SETTING_QUICK_SELL_BUTTONS, price_options).prop('checked') ? 1 : 0);
 
             window.location.reload();
         });
