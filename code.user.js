@@ -434,10 +434,6 @@
             error: function(data) {
                 return callback(ERROR_FAILED, data);
             },
-            crossDomain: true,
-            xhrFields: {
-                withCredentials: true
-            },
             dataType: 'json'
         });
     };
@@ -536,10 +532,6 @@
                 error: function(data) {
                     return callback(ERROR_FAILED, data);
                 },
-                crossDomain: true,
-                xhrFields: {
-                    withCredentials: true
-                },
                 dataType: 'json'
             });
         } catch (e) {
@@ -575,10 +567,6 @@
                 error: function(data) {
                     return callback(ERROR_FAILED, data);
                 },
-                crossDomain: true,
-                xhrFields: {
-                    withCredentials: true
-                },
                 dataType: 'json'
             });
         } catch (e) {
@@ -611,10 +599,6 @@
                 },
                 error: function(data) {
                     return callback(ERROR_FAILED, data);
-                },
-                crossDomain: true,
-                xhrFields: {
-                    withCredentials: true
                 },
                 dataType: 'json'
             });
