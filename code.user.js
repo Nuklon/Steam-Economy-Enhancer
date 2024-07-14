@@ -434,11 +434,31 @@
 
     // Removes an item.
     // Item is the unique item id.
-    SteamMarket.prototype.removeListing = function(item, callback /*err, data*/ ) {
+    SteamMarket.prototype.removeListing = function(item, isBuyOrder, callback /*err, data*/ ) {
         var sessionId = readCookie('sessionid');
+
+        if (isBuyOrder) {
+            $.ajax({
+                type: "POST",
+                url: window.location.origin + '/market/cancelbuyorder/',
+                data: {
+                    sessionid: sessionId,
+                    buy_orderid: item
+                },
+                success: function (data) {
+                    callback(ERROR_SUCCESS, data);
+                },
+                error: function () {
+                    return callback(ERROR_FAILED);
+                },
+                dataType: 'json'
+            });
+            return;
+        }
+
         $.ajax({
             type: "POST",
-            url: window.location.protocol + '//steamcommunity.com/market/removelisting/' + item,
+            url: window.location.origin + '/market/removelisting/' + item,
             data: {
                 sessionid: sessionId
             },
@@ -447,10 +467,6 @@
             },
             error: function() {
                 return callback(ERROR_FAILED);
-            },
-            crossDomain: true,
-            xhrFields: {
-                withCredentials: true
             },
             dataType: 'json'
         });
@@ -2576,7 +2592,7 @@
         function marketOverpricedQueueWorker(item, ignoreErrors, callback) {
             var listingUI = getListingFromLists(item.listing).elm;
 
-            market.removeListing(item.listing,
+            market.removeListing(item.listing, false,
                 function(errorRemove, data) {
                     if (!errorRemove) {
                         $('.actual_content', listingUI).css('background', COLOR_PENDING);
@@ -2686,8 +2702,9 @@
 
         function marketRemoveQueueWorker(listingid, ignoreErrors, callback) {
             var listingUI = getListingFromLists(listingid).elm;
+            var isBuyOrder = listingUI.id.startsWith('mybuyorder_');
 
-            market.removeListing(listingid,
+            market.removeListing(listingid, isBuyOrder,
                 function(errorRemove, data) {
                     if (!errorRemove) {
                         $('.actual_content', listingUI).css('background', COLOR_SUCCESS);
