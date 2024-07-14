@@ -82,7 +82,7 @@
            ? unsafeWindow.g_strInventoryLoadURL
            : typeof unsafeWindow.g_strProfileURL !== 'undefined' && unsafeWindow.g_strProfileURL != null
               ? unsafeWindow.g_strProfileURL + '/inventory/json/'
-              : 'https://steamcommunity.com/my/inventory/json/',
+              : window.location.origin + '/my/inventory/json/',
         isLoggedIn ? unsafeWindow.g_rgWalletInfo : undefined);
 
     var currencyId =
@@ -421,7 +421,7 @@
         var itemId = item.assetid || item.id;
         $.ajax({
             type: "POST",
-            url: 'https://steamcommunity.com/market/sellitem/',
+            url: window.location.origin + '/market/sellitem/',
             data: {
                 sessionid: sessionId,
                 appid: item.appid,
@@ -439,10 +439,6 @@
             },
             error: function(data) {
                 return callback(ERROR_FAILED, data);
-            },
-            crossDomain: true,
-            xhrFields: {
-                withCredentials: true
             },
             dataType: 'json'
         });
@@ -542,10 +538,6 @@
                 error: function(data) {
                     return callback(ERROR_FAILED, data);
                 },
-                crossDomain: true,
-                xhrFields: {
-                    withCredentials: true
-                },
                 dataType: 'json'
             });
         } catch (e) {
@@ -581,10 +573,6 @@
                 error: function(data) {
                     return callback(ERROR_FAILED, data);
                 },
-                crossDomain: true,
-                xhrFields: {
-                    withCredentials: true
-                },
                 dataType: 'json'
             });
         } catch (e) {
@@ -618,10 +606,6 @@
                 error: function(data) {
                     return callback(ERROR_FAILED, data);
                 },
-                crossDomain: true,
-                xhrFields: {
-                    withCredentials: true
-                },
                 dataType: 'json'
             });
         } catch (e) {
@@ -636,8 +620,8 @@
 
     // Get the current price history for an item.
     SteamMarket.prototype.getCurrentPriceHistory = function(appid, market_name, callback) {
-        var url = window.location.protocol +
-            '//steamcommunity.com/market/pricehistory/?appid=' +
+        var url = window.location.origin +
+            '/market/pricehistory/?appid=' +
             appid +
             '&market_hash_name=' +
             market_name;
@@ -705,7 +689,7 @@
 
     // Get the item name id from a market item.
     SteamMarket.prototype.getCurrentMarketItemNameId = function(appid, market_name, callback) {
-        var url = window.location.protocol + '//steamcommunity.com/market/listings/' + appid + '/' + market_name;
+        var url = window.location.origin + '/market/listings/' + appid + '/' + market_name;
         $.get(url,
                 function(page) {
                     var matches = /Market_LoadOrderSpread\( (\d+) \);/.exec(page);
@@ -788,8 +772,8 @@
                         callback(ERROR_FAILED);
                     return;
                 }
-                var url = window.location.protocol +
-                    '//steamcommunity.com/market/itemordershistogram?country=' +
+                var url = window.location.origin +
+                    '/market/itemordershistogram?country=' +
                     country +
                     '&language=english&currency=' +
                     currencyId +
@@ -1617,7 +1601,7 @@
                     itemsString += '&items[]=' + encodeURIComponent(itemName) + '&qty[]=' + itemsWithQty[itemName];
                 }
 
-                var baseUrl = 'https://steamcommunity.com/market/multisell';
+                var baseUrl = window.location.origin + '/market/multisell';
                 var redirectUrl = baseUrl + '?appid=' + appid + '&contextid=' + contextid + itemsString;
 
                 var dialog = unsafeWindow.ShowDialog('Steam Economy Enhancer', '<iframe frameBorder="0" height="650" width="900" src="' + redirectUrl + '"></iframe>');
@@ -2753,7 +2737,7 @@
         }
 
         var marketListingsItemsQueue = async.queue(function(listing, next) {
-                $.get(window.location.protocol + '//steamcommunity.com/market/mylistings?count=100&start=' + listing,
+                $.get(window.location.origin + '/market/mylistings?count=100&start=' + listing,
                         function(data) {
                             if (!data || !data.success) {
                                 next();
