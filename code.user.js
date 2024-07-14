@@ -522,13 +522,30 @@
 
     SteamMarket.prototype.getGooValue = function(item, callback) {
         try {
+            var appid = item.market_fee_app;
+
+            for (const action of item.owner_actions) {
+                if (!action.link || !action.link.startsWith('javascript:GetGooValue')) {
+                    continue;
+                }
+
+                var rgMatches = action.link.match( /GetGooValue\( *'?(?:[%a-z0-9]+)'? *, *'?(?:[%a-z0-9]+)'? *, *'?(?<appid>[0-9]+)'?/ );
+
+                if (!rgMatches) {
+                    continue;
+                }
+
+                appid = rgMatches.groups.appid;
+                break;
+            }
+
             var sessionId = readCookie('sessionid');
             $.ajax({
                 type: "GET",
                 url: this.inventoryUrlBase + 'ajaxgetgoovalue/',
                 data: {
                     sessionid: sessionId,
-                    appid: item.market_fee_app,
+                    appid: appid,
                     assetid: item.assetid,
                     contextid: item.contextid
                 },
@@ -1381,7 +1398,7 @@
                         return callback(false);
                     }
 
-                    item.goo_value_expected = parseInt(goo.goo_value);
+                    item.goo_value_expected = parseInt(goo.goo_value, 10);
 
                     market.grindIntoGoo(item,
                         function(err, result) {
