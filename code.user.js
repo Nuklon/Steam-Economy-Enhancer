@@ -13,7 +13,6 @@
 // @require     https://code.jquery.com/jquery-3.3.1.min.js
 // @require     https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
 // @require     https://raw.githubusercontent.com/kapetan/jquery-observe/ca67b735bb3ae8d678d1843384ebbe7c02466c61/jquery-observe.js
-// @require     https://cdnjs.cloudflare.com/ajax/libs/paginationjs/2.1.2/pagination.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/async/2.6.0/async.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.7.1/localforage.min.js
 // @require     https://moment.github.io/luxon/global/luxon.min.js
