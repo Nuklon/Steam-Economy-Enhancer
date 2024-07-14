@@ -10,13 +10,13 @@
 // @match        https://steamcommunity.com/profiles/*/inventory*
 // @match        https://steamcommunity.com/market*
 // @match        https://steamcommunity.com/tradeoffer*
-// @require      https://code.jquery.com/jquery-3.3.1.min.js
-// @require      https://code.jquery.com/ui/1.12.1/jquery-ui.min.js
-// @require      https://raw.githubusercontent.com/kapetan/jquery-observe/ca67b735bb3ae8d678d1843384ebbe7c02466c61/jquery-observe.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.3/jquery-ui.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/async/2.6.0/async.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/localforage/1.7.1/localforage.min.js
-// @require      https://moment.github.io/luxon/global/luxon.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.js
+// @require      https://raw.githubusercontent.com/kapetan/jquery-observe/ca67b735bb3ae8d678d1843384ebbe7c02466c61/jquery-observe.js
 // @require      https://raw.githubusercontent.com/rmariuzzo/checkboxes.js/91bec667e9172ceb063df1ecb7505e8ed0bae9ba/src/jquery.checkboxes.js
 // @grant        unsafeWindow
 // @homepageURL  https://github.com/Nuklon/Steam-Economy-Enhancer
