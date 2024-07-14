@@ -78,11 +78,7 @@
             PAGE_INVENTORY);
 
     var market = new SteamMarket(unsafeWindow.g_rgAppContextData,
-        typeof unsafeWindow.g_strInventoryLoadURL !== 'undefined' && unsafeWindow.g_strInventoryLoadURL != null
-           ? unsafeWindow.g_strInventoryLoadURL
-           : typeof unsafeWindow.g_strProfileURL !== 'undefined' && unsafeWindow.g_strProfileURL != null
-              ? unsafeWindow.g_strProfileURL + '/inventory/json/'
-              : window.location.origin + '/my/inventory/json/',
+        getInventoryUrl(),
         isLoggedIn ? unsafeWindow.g_rgWalletInfo : undefined);
 
     var currencyId =
@@ -110,6 +106,27 @@
         this.inventoryUrlBase = inventoryUrl.replace('/inventory/json', '');
         if (!this.inventoryUrlBase.endsWith('/'))
             this.inventoryUrlBase += '/';
+    }
+
+
+    function getInventoryUrl() {
+        if (unsafeWindow.g_strInventoryLoadURL) {
+            return unsafeWindow.g_strInventoryLoadURL;
+        }
+
+        let profileUrl = window.location.origin + '/my/';
+
+        if (unsafeWindow.g_strProfileURL) {
+            profileUrl = unsafeWindow.g_strProfileURL;
+        } else {
+            const avatar = document.querySelector( '#global_actions a.user_avatar' );
+
+            if (avatar) {
+                profileUrl = avatar.href;
+            }
+        }
+
+        return profileUrl.replace(/\/$/, '') + '/inventory/json/';
     }
 
     //#region Settings
@@ -2603,14 +2620,13 @@
                         $('.actual_content', listingUI).css('background', COLOR_PENDING);
 
                         setTimeout(function() {
-                            var baseUrl = document.querySelector('a.submenuitem[href$="/inventory/"]').href + 'json/';
                             var itemName = $('.market_listing_item_name_link', listingUI).first().attr('href');
                             var marketHashNameIndex = itemName.lastIndexOf('/') + 1;
                             var marketHashName = itemName.substring(marketHashNameIndex);
                             var decodedMarketHashName = decodeURIComponent(itemName.substring(marketHashNameIndex));
                             var newAssetId = -1;
 
-                            unsafeWindow.RequestFullInventory(baseUrl + item.appid + "/" + item.contextid + "/", {}, null, null, function(transport) {
+                            unsafeWindow.RequestFullInventory(market.inventoryUrl + item.appid + "/" + item.contextid + "/", {}, null, null, function(transport) {
                                 if (transport.responseJSON && transport.responseJSON.success) {
                                     var inventory = transport.responseJSON.rgInventory;
 
