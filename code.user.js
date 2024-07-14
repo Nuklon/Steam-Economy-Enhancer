@@ -529,7 +529,7 @@
                     continue;
                 }
 
-                var rgMatches = action.link.match( /GetGooValue\( *'?(?:[%a-z0-9]+)'? *, *'?(?:[%a-z0-9]+)'? *, *'?(?<appid>[0-9]+)'?/ );
+                var rgMatches = action.link.match( /GetGooValue\( *'%contextid%', *'%assetid%', *'?(?<appid>[0-9]+)'?/ );
 
                 if (!rgMatches) {
                     continue;
