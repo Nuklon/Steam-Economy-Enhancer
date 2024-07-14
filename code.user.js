@@ -2402,12 +2402,6 @@
                 });
         }, 1);
 
-        marketListingsQueue.drain = function() {
-            injectJs(function() {
-                g_bMarketWindowHidden = false;
-            })
-        };
-
         // Gets the price, in cents, from a market listing.
         function getPriceFromMarketListing(listing) {
             var priceLabel = listing.trim().replace('--', '00');
@@ -2811,11 +2805,6 @@
             myMarketListings.show();
 
             fillMarketListingsQueue();
-
-            injectJs(function() {
-                g_bMarketWindowHidden =
-                    true; // Limits the number of requests made to steam by stopping constant polling of popular listings.
-            });
         };
 
 
@@ -3700,14 +3689,6 @@
         style.type = 'text/css';
         style.innerHTML = css;
         head.appendChild(style);
-    }
-
-    function injectJs(js) {
-        var script = document.createElement('script');
-        script.setAttribute("type", "application/javascript");
-        script.textContent = '(' + js + ')();';
-        document.body.appendChild(script);
-        document.body.removeChild(script);
     }
 
     $.fn.delayedEach = function(timeout, callback, continuous) {
