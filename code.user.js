@@ -2157,26 +2157,28 @@
             var showMiscOptions = appId == 753;
             var TF2 = appId == 440;
 
-            var sellButtons = $('<div id="inventory_sell_buttons" style="margin-bottom:12px;">' +
-                '<a class="btn_green_white_innerfade btn_medium_wide sell_all separator-btn-right"><span>Sell All Items</span></a>' +
-                '<a class="btn_green_white_innerfade btn_medium_wide sell_all_duplicates separator-btn-right"><span>Sell All Duplicate Items</span></a>' +
-                '<a class="btn_green_white_innerfade btn_medium_wide sell_selected separator-btn-right" style="display:none"><span>Sell Selected Items</span></a>' +
-                '<a class="btn_green_white_innerfade btn_medium_wide sell_manual separator-btn-right" style="display:none"><span>Sell Manually</span></a>' +
+            var sellButtons = $('<div id="inventory_sell_buttons" class="see_inventory_buttons">' +
+                '<a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>Sell All Items</span></a>' +
+                '<a class="btn_green_white_innerfade btn_medium_wide sell_all_duplicates"><span>Sell All Duplicate Items</span></a>' +
+                '<a class="btn_green_white_innerfade btn_medium_wide sell_selected" style="display:none"><span>Sell Selected Items</span></a>' +
+                '<a class="btn_green_white_innerfade btn_medium_wide sell_manual" style="display:none"><span>Sell Manually</span></a>' +
                 (showMiscOptions ?
-                    '<a class="btn_green_white_innerfade btn_medium_wide sell_all_cards separator-btn-right"><span>Sell All Cards</span></a>' +
-                    '<div style="margin-top:12px;">' +
-                    '<a class="btn_darkblue_white_innerfade btn_medium_wide turn_into_gems separator-btn-right" style="display:none"><span>Turn Selected Items Into Gems</span></a>' +
-                    '<a class="btn_darkblue_white_innerfade btn_medium_wide gem_all_duplicates separator-btn-right"><span>Turn All Duplicate Items Into Gems</span></a>' +
-                    '<a class="btn_darkblue_white_innerfade btn_medium_wide unpack_booster_packs separator-btn-right" style="display:none"><span>Unpack Selected Booster Packs</span></a>' +
+                    '<a class="btn_green_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>' +
+                    '<div class="see_inventory_buttons">' +
+                    '<a class="btn_darkblue_white_innerfade btn_medium_wide turn_into_gems" style="display:none"><span>Turn Selected Items Into Gems</span></a>' +
+                    '<a class="btn_darkblue_white_innerfade btn_medium_wide gem_all_duplicates"><span>Turn All Duplicate Items Into Gems</span></a>' +
+                    '<a class="btn_darkblue_white_innerfade btn_medium_wide unpack_booster_packs" style="display:none"><span>Unpack Selected Booster Packs</span></a>' +
                     '</div>' :
                     '') +
-                (TF2 ? '<a class="btn_green_white_innerfade btn_medium_wide sell_all_crates separator-btn-right"><span>Sell All Crates</span></a>' : '') +
+                (TF2 ? '<a class="btn_green_white_innerfade btn_medium_wide sell_all_crates"><span>Sell All Crates</span></a>' : '') +
                 '</div>');
 
             var reloadButton =
                 $('<a id="inventory_reload_button" class="btn_darkblue_white_innerfade btn_medium_wide reload_inventory" style="margin-right:12px"><span>Reload Inventory</span></a>');
 
-            $('#inventory_logos')[0].style.height = 'auto';
+            const logo = $('#inventory_logos')[0];
+            logo.style.height = 'auto';
+            logo.style.maxHeight = 'unset';
 
             $('#inventory_applogo').hide(); // Hide the Steam/game logo, we don't need to see it twice.
             $('#inventory_applogo').after(logger);
@@ -3678,7 +3680,8 @@
         '.inventory_item_price { top: 0px;position: absolute;right: 0;background: #3571a5;padding: 2px;color: white; font-size:11px; border: 1px solid #666666;}' +
         '.separator-large {display:inline-block;width:6px;}' +
         '.separator-small {display:inline-block;width:1px;}' +
-        '.separator-btn-right {margin-right:12px;}' +
+        '.see_inventory_buttons {display:flex;flex-wrap:wrap;gap:10px;}' +
+        '.see_inventory_buttons > .see_inventory_buttons {flex-basis: 100%;}' +
         '.pagination { padding-left: 0px; }' +
         '.pagination li { display:inline-block; padding: 5px 10px;background: rgba(255, 255, 255, 0.10); margin-right: 6px; border: 1px solid #666666; }' +
         '.pagination li.active { background: rgba(255, 255, 255, 0.25); }');
