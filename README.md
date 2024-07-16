@@ -1,4 +1,4 @@
-# Steam Economy Enhancer
+# <img src="assets/icon.svg" width="32" align="center"> Steam Economy Enhancer
 
 A free userscript to enhance your Steam Inventory, Steam Market and Steam Tradeoffers.
 
