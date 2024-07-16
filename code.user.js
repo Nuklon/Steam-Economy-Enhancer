@@ -2915,6 +2915,12 @@
             $('.market_listing_table_header', market_listing_see.parent())
                 .append('<input class="search" id="market_name_search" placeholder="Search..." />');
 
+            let pageSize = parseInt(getSettingWithDefault(SETTING_MARKET_PAGE_COUNT), 10);
+
+            if (isNaN(pageSize) || pageSize < 1) {
+                pageSize = settingDefaults[SETTING_MARKET_PAGE_COUNT];
+            }
+
             var options = {
                 valueNames: [
                     'market_listing_game_name', 'market_listing_item_name_link', 'market_listing_price',
@@ -2938,7 +2944,7 @@
                     left: 100,
                     right: 100
                 }],
-                page: parseInt(getSettingWithDefault(SETTING_MARKET_PAGE_COUNT))
+                page: pageSize,
             };
 
             var list = new List(market_listing_see.parent().attr('id'), options);
@@ -3576,7 +3582,7 @@
             '<br/>' +
             '</div>' +
             '<div style="margin-bottom:6px;">' +
-            'Hours to use for the average history calculated price:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" step="2" id="' + SETTING_PRICE_HISTORY_HOURS + '" value=' + getSettingWithDefault(SETTING_PRICE_HISTORY_HOURS) + '>' +
+            'Hours to use for the average history calculated price:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" min="0" step="2" id="' + SETTING_PRICE_HISTORY_HOURS + '" value=' + getSettingWithDefault(SETTING_PRICE_HISTORY_HOURS) + '>' +
             '</div>' +
             '<div style="margin-bottom:6px;">' +
             'The value to add to the calculated price (minimum and maximum are respected):&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
@@ -3616,7 +3622,7 @@
             '<br/>' +
             '</div>' +
             '<div style="margin-top:24px;margin-bottom:6px;">' +
-            'Market items per page:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MARKET_PAGE_COUNT + '" value=' + getSettingWithDefault(SETTING_MARKET_PAGE_COUNT) + '>' +
+            'Market items per page:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" min="1" step="5" id="' + SETTING_MARKET_PAGE_COUNT + '" value=' + getSettingWithDefault(SETTING_MARKET_PAGE_COUNT) + '>' +
             '<br/>' +
             '<div style="margin-top:6px;">' +
             'Automatically relist overpriced market listings (slow on large inventories):&nbsp;<input id="' + SETTING_RELIST_AUTOMATICALLY + '" class="market_relist_auto" type="checkbox" ' + (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked=""' : '') + '>' +
