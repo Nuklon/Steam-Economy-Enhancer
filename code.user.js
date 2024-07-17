@@ -2405,6 +2405,28 @@
     //#region Market
     if (currentPage == PAGE_MARKET || currentPage == PAGE_MARKET_LISTING) {
         var marketListingsRelistedAssets = [];
+        let marketProgressBar;
+
+        function increaseMarketProgressMax() {
+            let value = marketProgressBar.max;
+
+            // Reset the progress bar if it already completed
+            if (marketProgressBar.value === value) {
+                marketProgressBar.value = 0;
+                value = 0;
+            }
+
+            marketProgressBar.max = value + 1;
+            marketProgressBar.removeAttribute('hidden');
+        }
+
+        function increaseMarketProgress() {
+            marketProgressBar.value += 1;
+
+            if (marketProgressBar.value === marketProgressBar.max) {
+                marketProgressBar.setAttribute('hidden', 'true');
+            }
+        }
 
         var marketListingsQueue = async.queue(function(listing, next) {
             marketListingsQueueWorker(listing,
@@ -2412,18 +2434,20 @@
                 function(success, cached) {
                     if (success) {
                         setTimeout(function() {
-                                next();
-                            },
-                            cached ? 0 : getRandomInt(1000, 1500));
+                            increaseMarketProgress();
+                            next();
+                        },
+                        cached ? 0 : getRandomInt(1000, 1500));
                     } else {
                         setTimeout(function() {
-                                marketListingsQueueWorker(listing,
-                                    true,
-                                    function(success, cached) {
-                                        next(); // Go to the next queue item, regardless of success.
-                                    });
-                            },
-                            cached ? 0 : getRandomInt(30000, 45000));
+                            marketListingsQueueWorker(listing,
+                                true,
+                                function(success, cached) {
+                                    increaseMarketProgress();
+                                    next(); // Go to the next queue item, regardless of success.
+                                });
+                        },
+                        cached ? 0 : getRandomInt(30000, 45000));
                     }
                 });
         }, 1);
@@ -2613,18 +2637,20 @@
                     function(success) {
                         if (success) {
                             setTimeout(function() {
-                                    next();
-                                },
-                                getRandomInt(1000, 1500));
+                                increaseMarketProgress();
+                                next();
+                            },
+                            getRandomInt(1000, 1500));
                         } else {
                             setTimeout(function() {
-                                    marketOverpricedQueueWorker(item,
-                                        true,
-                                        function(success) {
-                                            next(); // Go to the next queue item, regardless of success.
-                                        });
-                                },
-                                getRandomInt(30000, 45000));
+                                marketOverpricedQueueWorker(item,
+                                    true,
+                                    function(success) {
+                                        increaseMarketProgress();
+                                        next(); // Go to the next queue item, regardless of success.
+                                    });
+                            },
+                            getRandomInt(30000, 45000));
                         }
                     });
             },
@@ -2714,6 +2740,7 @@
                     appid: assetInfo.appid,
                     sellPrice: price
                 });
+                increaseMarketProgressMax();
             }
         }
 
@@ -2723,18 +2750,20 @@
                     function(success) {
                         if (success) {
                             setTimeout(function() {
-                                    next();
-                                },
-                                getRandomInt(50, 100));
+                                increaseMarketProgress();
+                                next();
+                            },
+                            getRandomInt(50, 100));
                         } else {
                             setTimeout(function() {
-                                    marketRemoveQueueWorker(listingid,
-                                        true,
-                                        function(success) {
-                                            next(); // Go to the next queue item, regardless of success.
-                                        });
-                                },
-                                getRandomInt(30000, 45000));
+                                marketRemoveQueueWorker(listingid,
+                                    true,
+                                    function(success) {
+                                        increaseMarketProgress();
+                                        next(); // Go to the next queue item, regardless of success.
+                                    });
+                            },
+                            getRandomInt(30000, 45000));
                         }
                     });
             },
@@ -2775,6 +2804,7 @@
                 $.get(window.location.origin + '/market/mylistings?count=100&start=' + listing,
                         function(data) {
                             if (!data || !data.success) {
+                                increaseMarketProgress();
                                 next();
                                 return;
                             }
@@ -2788,10 +2818,12 @@
                             // g_rgAssets
                             unsafeWindow.MergeWithAssetArray(data.assets); // This is a method from Steam.
 
+                            increaseMarketProgress();
                             next();
                         },
                         'json')
                     .fail(function(data) {
+                        increaseMarketProgress();
                         next();
                         return;
                     });
@@ -2873,6 +2905,7 @@
                         contextid: assetInfo.contextid,
                         assetid: assetInfo.assetid
                     });
+                    increaseMarketProgressMax();
                 }
             }
 
@@ -2949,9 +2982,13 @@
                 page: pageSize,
             };
 
-            var list = new List(market_listing_see.parent().attr('id'), options);
-            list.on('searchComplete', updateMarketSelectAllButton);
-            marketLists.push(list);
+            try {
+                var list = new List(market_listing_see.parent().get(0), options);
+                list.on('searchComplete', updateMarketSelectAllButton);
+                marketLists.push(list);
+            } catch (e) {
+                console.error(e);
+            }
         }
 
         // Adds checkboxes to market listings.
@@ -3005,6 +3042,7 @@
 
                 while (currentCount < totalCount) {
                     marketListingsItemsQueue.push(currentCount);
+                    increaseMarketProgressMax();
                     currentCount += 100;
                 }
             } else {
@@ -3043,6 +3081,7 @@
                         contextid: assetInfo.contextid,
                         assetid: assetInfo.assetid
                     });
+                    increaseMarketProgressMax();
                 })
             }
         }
@@ -3190,6 +3229,9 @@
 
         // Initialize the market UI.
         function initializeMarketUI() {
+            $('.market_header_text').append('<progress id="see_market_progress" value="1" max="1" hidden>');
+            marketProgressBar = document.getElementById('see_market_progress');
+
             // Sell orders.
             $('.my_market_header').first().append(
                 '<div class="market_listing_buttons">' +
@@ -3336,6 +3378,7 @@
                     if ($('.market_select_item', $(marketList.matchingItems[i].elm)).prop('checked')) {
                         var listingid = replaceNonNumbers(marketList.matchingItems[i].values().market_listing_item_name);
                         marketRemoveQueue.push(listingid);
+                        increaseMarketProgressMax();
                     }
                 }
             });
@@ -3688,6 +3731,8 @@
         '.separator-small {display:inline-block;width:1px;}' +
         '.see_inventory_buttons {display:flex;flex-wrap:wrap;gap:10px;}' +
         '.see_inventory_buttons > .see_inventory_buttons {flex-basis: 100%;}' +
+        '#see_market_progress { display: block; width: 50%; height: 20px; }' +
+        '#see_market_progress[hidden] { visibility: hidden; }' +
         '.pagination { padding-left: 0px; }' +
         '.pagination li { display:inline-block; padding: 5px 10px;background: rgba(255, 255, 255, 0.10); margin-right: 6px; border: 1px solid #666666; }' +
         '.pagination li.active { background: rgba(255, 255, 255, 0.25); }');
