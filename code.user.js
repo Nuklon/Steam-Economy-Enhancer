@@ -2408,7 +2408,15 @@
         let marketProgressBar;
 
         function increaseMarketProgressMax() {
-            marketProgressBar.max += 1;
+            let value = marketProgressBar.max;
+
+            // Reset the progress bar if it already completed
+            if (marketProgressBar.value === value) {
+                marketProgressBar.value = 0;
+                value = 0;
+            }
+
+            marketProgressBar.max = value + 1;
             marketProgressBar.removeAttribute('hidden');
         }
 
