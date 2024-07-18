@@ -3,9 +3,10 @@ import pluginJs from "@eslint/js";
 import userscripts from 'eslint-plugin-userscripts';
 
 export default [
-  {languageOptions: { globals: globals.browser }},
-  pluginJs.configs.recommended,
   {
+    languageOptions: {
+      globals: globals.browser
+    },
     files: ['*.user.js'],
     plugins: {
       userscripts: {
@@ -13,7 +14,10 @@ export default [
       }
     },
     rules: {
-      ...userscripts.configs.recommended.rules
+      ...userscripts.configs.recommended.rules,
+      ...pluginJs.configs.recommended.rules,
+      "no-var": "error",
+      "prefer-const": "error",
     },
     settings: {
       userscriptVersions: {
