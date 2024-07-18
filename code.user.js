@@ -27,7 +27,7 @@
 // ==/UserScript==
 
 /* disable some eslint rules until the code is cleaned up */
-/* global unsafeWindow, luxon, jQuery, async, localforage */
+/* global unsafeWindow, luxon, jQuery, async, List, localforage */
 /* eslint no-undef: off */
 
 // jQuery is already added by Steam, force no conflict mode.
@@ -3503,12 +3503,12 @@
 
     function hasLoadedAllTradeOfferItems() {
         for (let i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.them.assets.length; i++) {
-            const asset = UserThem.findAsset(unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].assetid);
+            const asset = unsafeWindow.UserThem.findAsset(unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].assetid);
             if (asset == null)
                 return false;
         }
         for (let i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.me.assets.length; i++) {
-            const asset = UserYou.findAsset(unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].assetid);
+            const asset = unsafeWindow.UserYou.findAsset(unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].assetid);
             if (asset == null)
                 return false;
         }
@@ -3526,11 +3526,11 @@
         var updateInventoryPricesInTrade = function() {
             var items = [];
             for (let i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.them.assets.length; i++) {
-                const asset = UserThem.findAsset(unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].assetid);
+                const asset = unsafeWindow.UserThem.findAsset(unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].assetid);
                 items.push(asset);
             }
             for (let i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.me.assets.length; i++) {
-                const asset = UserYou.findAsset(unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].assetid);
+                const asset = unsafeWindow.UserYou.findAsset(unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].assetid);
                 items.push(asset);
             }
             setInventoryPrices(items);
@@ -3550,8 +3550,8 @@
             $('#trade_offer_your_sum').remove();
             $('#trade_offer_their_sum').remove();
 
-            var your_sum = sumTradeOfferAssets(unsafeWindow.g_rgCurrentTradeStatus.me.assets, UserYou);
-            var their_sum = sumTradeOfferAssets(unsafeWindow.g_rgCurrentTradeStatus.them.assets, UserThem);
+            var your_sum = sumTradeOfferAssets(unsafeWindow.g_rgCurrentTradeStatus.me.assets, unsafeWindow.UserYou);
+            var their_sum = sumTradeOfferAssets(unsafeWindow.g_rgCurrentTradeStatus.them.assets, unsafeWindow.UserThem);
 
             $('div.offerheader:nth-child(1) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_your_sum">' + your_sum + '</div>');
             $('div.offerheader:nth-child(3) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_their_sum">' + their_sum + '</div>');
