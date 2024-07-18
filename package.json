@@ -3,10 +3,12 @@
   "name": "@nuklon/steam-economy-enhancer",
   "license": "MIT",
   "scripts": {
+    "fix": "eslint --fix",
     "test": "eslint"
   },
   "devDependencies": {
     "@eslint/js": "^9.5.0",
+    "@stylistic/eslint-plugin": "^2.3.0",
     "eslint": "^9.5.0",
     "eslint-plugin-userscripts": "^0.5.3",
     "globals": "^15.6.0"
