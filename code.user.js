@@ -300,7 +300,7 @@
             // Highest average price in the last xx hours.
             const timeAgo = Date.now() - getSettingWithDefault(SETTING_PRICE_HISTORY_HOURS) * 60 * 60 * 1000;
 
-            history.forEach(function(historyItem) {
+            history.forEach((historyItem) => {
                 const d = new Date(historyItem[0]);
                 if (d.getTime() > timeAgo) {
                     highest += historyItem[1] * historyItem[2];
@@ -529,14 +529,14 @@
                 const storage_hash = 'pricehistory_' + appid + '+' + market_name;
 
                 storageSession.getItem(storage_hash).
-                    then(function(value) {
+                    then((value) => {
                         if (value != null) {
                             callback(ERROR_SUCCESS, value, true);
                         } else {
                             market.getCurrentPriceHistory(appid, market_name, callback);
                         }
                     }).
-                    catch(function() {
+                    catch(() => {
                         market.getCurrentPriceHistory(appid, market_name, callback);
                     });
             } else {
@@ -672,7 +672,7 @@
 
         $.get(
             url,
-            function(data) {
+            (data) => {
                 if (!data || !data.success || !data.prices) {
                     callback(ERROR_DATA);
                     return;
@@ -692,7 +692,7 @@
             },
             'json'
         ).
-            fail(function(data) {
+            fail((data) => {
                 if (!data || !data.responseJSON) {
                     return callback(ERROR_FAILED);
                 }
@@ -719,14 +719,14 @@
             const storage_hash = 'itemnameid_' + appid + '+' + market_name;
 
             storagePersistent.getItem(storage_hash).
-                then(function(value) {
+                then((value) => {
                     if (value != null) {
                         callback(ERROR_SUCCESS, value);
                     } else {
                         return market.getCurrentMarketItemNameId(appid, market_name, callback);
                     }
                 }).
-                catch(function() {
+                catch(() => {
                     return market.getCurrentMarketItemNameId(appid, market_name, callback);
                 });
         } catch {
@@ -739,7 +739,7 @@
         const url = window.location.origin + '/market/listings/' + appid + '/' + market_name;
         $.get(
             url,
-            function(page) {
+            (page) => {
                 const matches = (/Market_LoadOrderSpread\( (\d+) \);/).exec(page);
                 if (matches == null) {
                     callback(ERROR_DATA);
@@ -755,7 +755,7 @@
                 callback(ERROR_SUCCESS, item_nameid);
             }
         ).
-            fail(function(e) {
+            fail((e) => {
                 return callback(ERROR_FAILED, e.status);
             });
     };
@@ -791,14 +791,14 @@
             if (cache) {
                 const storage_hash = 'itemordershistogram_' + appid + '+' + market_name;
                 storageSession.getItem(storage_hash).
-                    then(function(value) {
+                    then((value) => {
                         if (value != null) {
                             callback(ERROR_SUCCESS, value, true);
                         } else {
                             market.getCurrentItemOrdersHistogram(item, market_name, callback);
                         }
                     }).
-                    catch(function() {
+                    catch(() => {
                         market.getCurrentItemOrdersHistogram(item, market_name, callback);
                     });
             } else {
@@ -814,7 +814,7 @@
     SteamMarket.prototype.getCurrentItemOrdersHistogram = function(item, market_name, callback) {
         market.getMarketItemNameId(
             item,
-            function(error, item_nameid) {
+            (error, item_nameid) => {
                 if (error) {
                     if (item_nameid != 429) { // 429 = Too many requests made.
                         callback(ERROR_DATA);
@@ -834,7 +834,7 @@
 
                 $.get(
                     url,
-                    function(histogram) {
+                    (histogram) => {
                         // Store the histogram in the session storage.
                         const storage_hash = 'itemordershistogram_' + item.appid + '+' + market_name;
                         storageSession.setItem(storage_hash, histogram);
@@ -842,7 +842,7 @@
                         callback(ERROR_SUCCESS, histogram, false);
                     }
                 ).
-                    fail(function() {
+                    fail(() => {
                         return callback(ERROR_FAILED, null);
                     });
             }
@@ -947,7 +947,7 @@
                 : null;
         if (tags != null) {
             let isTaggedAsCrate = false;
-            tags.forEach(function(arrayItem) {
+            tags.forEach((arrayItem) => {
                 if (arrayItem.category == 'Type') {
                     if (arrayItem.internal_name == 'Supply Crate') {
                         isTaggedAsCrate = true;
@@ -973,7 +973,7 @@
                 : null;
         if (tags != null) {
             let isTaggedAsTradingCard = false;
-            tags.forEach(function(arrayItem) {
+            tags.forEach((arrayItem) => {
                 if (arrayItem.category == 'item_class') {
                     if (arrayItem.internal_name == 'item_class_2') { // trading card.
                         isTaggedAsTradingCard = true;
@@ -1021,7 +1021,7 @@
                 : null;
         if (tags != null) {
             let isTaggedAsFoilTradingCard = false;
-            tags.forEach(function(arrayItem) {
+            tags.forEach((arrayItem) => {
                 if (arrayItem.category == 'cardborder' && arrayItem.internal_name == 'cardborder_1') { // foil border.
                     isTaggedAsFoilTradingCard = true;
                 }
@@ -1223,11 +1223,11 @@
         }
 
         const sellQueue = async.queue(
-            function(task, next) {
+            (task, next) => {
                 market.sellItem(
                     task.item,
                     task.sellPrice,
-                    function(err, data) {
+                    (err, data) => {
                         totalNumberOfProcessedQueueItems++;
 
                         const digits = getNumberOfDigits(totalNumberOfQueuedItems);
@@ -1263,7 +1263,7 @@
                             sellQueue.unshift(task);
                             sellQueue.pause();
 
-                            setTimeout(function() {
+                            setTimeout(() => {
                                 sellQueue.resume();
                             }, getRandomInt(30000, 45000));
                         } else {
@@ -1295,11 +1295,11 @@
 
         function sellAllItems() {
             loadAllInventories().then(
-                function() {
+                () => {
                     const items = getInventoryItems();
                     const filteredItems = [];
 
-                    items.forEach(function(item) {
+                    items.forEach((item) => {
                         if (!item.marketable) {
                             return;
                         }
@@ -1309,7 +1309,7 @@
 
                     sellItems(filteredItems);
                 },
-                function() {
+                () => {
                     logDOM('Could not retrieve the inventory...');
                 }
             );
@@ -1317,12 +1317,12 @@
 
         function sellAllDuplicateItems() {
             loadAllInventories().then(
-                function() {
+                () => {
                     const items = getInventoryItems();
                     const marketableItems = [];
                     let filteredItems = [];
 
-                    items.forEach(function(item) {
+                    items.forEach((item) => {
                         if (!item.marketable) {
                             return;
                         }
@@ -1334,7 +1334,7 @@
 
                     sellItems(filteredItems);
                 },
-                function() {
+                () => {
                     logDOM('Could not retrieve the inventory...');
                 }
             );
@@ -1342,14 +1342,14 @@
 
         function gemAllDuplicateItems() {
             loadAllInventories().then(
-                function() {
+                () => {
                     const items = getInventoryItems();
                     let filteredItems = [];
                     let numberOfQueuedItems = 0;
 
                     filteredItems = items.filter((e, i) => items.map((m) => m.classid).indexOf(e.classid) !== i);
 
-                    filteredItems.forEach(function(item) {
+                    filteredItems.forEach((item) => {
                         if (item.queued != null) {
                             return;
                         }
@@ -1384,7 +1384,7 @@
                         '</div>');
                     }
                 },
-                function() {
+                () => {
                     logDOM('Could not retrieve the inventory...');
                 }
             );
@@ -1392,11 +1392,11 @@
 
         function sellAllCards() {
             loadAllInventories().then(
-                function() {
+                () => {
                     const items = getInventoryItems();
                     const filteredItems = [];
 
-                    items.forEach(function(item) {
+                    items.forEach((item) => {
                         if (!getIsTradingCard(item) || !item.marketable) {
                             return;
                         }
@@ -1406,7 +1406,7 @@
 
                     sellItems(filteredItems);
                 },
-                function() {
+                () => {
                     logDOM('Could not retrieve the inventory...');
                 }
             );
@@ -1414,10 +1414,10 @@
 
         function sellAllCrates() {
             loadAllInventories().then(
-                function() {
+                () => {
                     const items = getInventoryItems();
                     const filteredItems = [];
-                    items.forEach(function(item) {
+                    items.forEach((item) => {
                         if (!getIsCrate(item) || !item.marketable) {
                             return;
                         }
@@ -1426,16 +1426,16 @@
 
                     sellItems(filteredItems);
                 },
-                function() {
+                () => {
                     logDOM('Could not retrieve the inventory...');
                 }
             );
         }
 
-        const scrapQueue = async.queue(function(item, next) {
-            scrapQueueWorker(item, function(success) {
+        const scrapQueue = async.queue((item, next) => {
+            scrapQueueWorker(item, (success) => {
                 if (success) {
-                    setTimeout(function() {
+                    setTimeout(() => {
                         next();
                     }, 250);
                 } else {
@@ -1447,7 +1447,7 @@
                         numberOfFailedRequests = 0;
                     }
 
-                    setTimeout(function() {
+                    setTimeout(() => {
                         next();
                     }, delay);
                 }
@@ -1464,7 +1464,7 @@
 
             market.getGooValue(
                 item,
-                function(err, goo) {
+                (err, goo) => {
                     totalNumberOfProcessedQueueItems++;
 
                     const digits = getNumberOfDigits(totalNumberOfQueuedItems);
@@ -1482,7 +1482,7 @@
 
                     market.grindIntoGoo(
                         item,
-                        function(err) {
+                        (err) => {
                             if (err != ERROR_SUCCESS) {
                                 logConsole('Failed to turn item into gems for ' + itemName);
                                 logDOM(padLeft + ' - ' + itemName + ' not turned into gems due to unknown error.');
@@ -1507,10 +1507,10 @@
             );
         }
 
-        const boosterQueue = async.queue(function(item, next) {
-            boosterQueueWorker(item, function(success) {
+        const boosterQueue = async.queue((item, next) => {
+            boosterQueueWorker(item, (success) => {
                 if (success) {
-                    setTimeout(function() {
+                    setTimeout(() => {
                         next();
                     }, 250);
                 } else {
@@ -1522,7 +1522,7 @@
                         numberOfFailedRequests = 0;
                     }
 
-                    setTimeout(function() {
+                    setTimeout(() => {
                         next();
                     }, delay);
                 }
@@ -1539,7 +1539,7 @@
 
             market.unpackBoosterPack(
                 item,
-                function(err) {
+                (err) => {
                     totalNumberOfProcessedQueueItems++;
 
                     const digits = getNumberOfDigits(totalNumberOfQueuedItems);
@@ -1566,11 +1566,11 @@
         function turnSelectedItemsIntoGems() {
             const ids = getSelectedItems();
 
-            loadAllInventories().then(function() {
+            loadAllInventories().then(() => {
                 const items = getInventoryItems();
 
                 let numberOfQueuedItems = 0;
-                items.forEach(function(item) {
+                items.forEach((item) => {
                     // Ignored queued items.
                     if (item.queued != null) {
                         return;
@@ -1608,7 +1608,7 @@
                     '<div style="text-align:center">Processing ' + numberOfQueuedItems + ' items</div>' +
                     '</div>');
                 }
-            }, function() {
+            }, () => {
                 logDOM('Could not retrieve the inventory...');
             });
         }
@@ -1617,11 +1617,11 @@
         function unpackSelectedBoosterPacks() {
             const ids = getSelectedItems();
 
-            loadAllInventories().then(function() {
+            loadAllInventories().then(() => {
                 const items = getInventoryItems();
 
                 let numberOfQueuedItems = 0;
-                items.forEach(function(item) {
+                items.forEach((item) => {
                     // Ignored queued items.
                     if (item.queued != null) {
                         return;
@@ -1659,13 +1659,13 @@
                     '<div style="text-align:center">Processing ' + numberOfQueuedItems + ' items</div>' +
                     '</div>');
                 }
-            }, function() {
+            }, () => {
                 logDOM('Could not retrieve the inventory...');
             });
         }
 
         function sellSelectedItems() {
-            getInventorySelectedMarketableItems(function(items) {
+            getInventorySelectedMarketableItems((items) => {
                 sellItems(items);
             });
         }
@@ -1676,7 +1676,7 @@
             const contextid = items[0].contextid;
             let hasInvalidItem = false;
 
-            items.forEach(function(item) {
+            items.forEach((item) => {
                 if (item.contextid != contextid || item.commodity == false) {
                     hasInvalidItem = true;
                 }
@@ -1686,7 +1686,7 @@
         }
 
         function sellSelectedItemsManually() {
-            getInventorySelectedMarketableItems(function(items) {
+            getInventorySelectedMarketableItems((items) => {
                 // We have to construct an URL like this
                 // https://steamcommunity.com/market/multisell?appid=730&contextid=2&items[]=Falchion%20Case&qty[]=100
 
@@ -1695,7 +1695,7 @@
 
                 const itemsWithQty = {};
 
-                items.forEach(function(item) {
+                items.forEach((item) => {
                     itemsWithQty[item.market_hash_name] = itemsWithQty[item.market_hash_name] + 1 || 1;
                 });
 
@@ -1708,8 +1708,8 @@
                 const redirectUrl = baseUrl + '?appid=' + appid + '&contextid=' + contextid + itemsString;
 
                 const dialog = unsafeWindow.ShowDialog('Steam Economy Enhancer', '<iframe frameBorder="0" height="650" width="900" src="' + redirectUrl + '"></iframe>');
-                dialog.OnDismiss(function() {
-                    items.forEach(function(item) {
+                dialog.OnDismiss(() => {
+                    items.forEach((item) => {
                         const itemId = item.assetid || item.id;
                         $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_PENDING);
                     });
@@ -1726,7 +1726,7 @@
 
             let numberOfQueuedItems = 0;
 
-            items.forEach(function(item) {
+            items.forEach((item) => {
                 // Ignored queued items.
                 if (item.queued != null) {
                     return;
@@ -1749,14 +1749,14 @@
             }
         }
 
-        const itemQueue = async.queue(function(item, next) {
+        const itemQueue = async.queue((item, next) => {
             itemQueueWorker(
                 item,
                 item.ignoreErrors,
-                function(success, cached) {
+                (success, cached) => {
                     if (success) {
                         setTimeout(
-                            function() {
+                            () => {
                                 next();
                             },
                             cached ? 0 : getRandomInt(1000, 1500)
@@ -1776,7 +1776,7 @@
                         }
 
                         setTimeout(
-                            function() {
+                            () => {
                                 next();
                             },
                             cached ? 0 : delay
@@ -1795,7 +1795,7 @@
             market.getPriceHistory(
                 item,
                 true,
-                function(err, history, cachedHistory) {
+                (err, history, cachedHistory) => {
                     if (err) {
                         logConsole('Failed to get price history for ' + itemName);
 
@@ -1807,7 +1807,7 @@
                     market.getItemOrdersHistogram(
                         item,
                         true,
-                        function(err, histogram, cachedListings) {
+                        (err, histogram, cachedListings) => {
                             if (err) {
                                 logConsole('Failed to get orders histogram for ' + itemName);
 
@@ -1859,7 +1859,7 @@
             $('.games_list_tabs').on(
                 'click',
                 '*',
-                function() {
+                () => {
                     updateInventoryUI(isOwnInventory);
                 }
             );
@@ -1935,11 +1935,11 @@
         function getInventorySelectedMarketableItems(callback) {
             const ids = getSelectedItems();
 
-            loadAllInventories().then(function() {
+            loadAllInventories().then(() => {
                 const items = getInventoryItems();
                 const filteredItems = [];
 
-                items.forEach(function(item) {
+                items.forEach((item) => {
                     if (!item.marketable) {
                         return;
                     }
@@ -1951,7 +1951,7 @@
                 });
 
                 callback(filteredItems);
-            }, function() {
+            }, () => {
                 logDOM('Could not retrieve the inventory...');
             });
         }
@@ -1960,11 +1960,11 @@
         function getInventorySelectedGemsItems(callback) {
             const ids = getSelectedItems();
 
-            loadAllInventories().then(function() {
+            loadAllInventories().then(() => {
                 const items = getInventoryItems();
                 const filteredItems = [];
 
-                items.forEach(function(item) {
+                items.forEach((item) => {
                     let canTurnIntoGems = false;
                     for (const owner_action in item.owner_actions) {
                         if (item.owner_actions[owner_action].link != null && item.owner_actions[owner_action].link.includes('GetGooValue')) {
@@ -1983,7 +1983,7 @@
                 });
 
                 callback(filteredItems);
-            }, function() {
+            }, () => {
                 logDOM('Could not retrieve the inventory...');
             });
         }
@@ -1992,11 +1992,11 @@
         function getInventorySelectedBoosterPackItems(callback) {
             const ids = getSelectedItems();
 
-            loadAllInventories().then(function() {
+            loadAllInventories().then(() => {
                 const items = getInventoryItems();
                 const filteredItems = [];
 
-                items.forEach(function(item) {
+                items.forEach((item) => {
                     let canOpenBooster = false;
                     for (const owner_action in item.owner_actions) {
                         if (item.owner_actions[owner_action].link != null && item.owner_actions[owner_action].link.includes('OpenBooster')) {
@@ -2015,14 +2015,14 @@
                 });
 
                 callback(filteredItems);
-            }, function() {
+            }, () => {
                 logDOM('Could not retrieve the inventory...');
             });
         }
 
         // Updates the (selected) sell ... items button.
         function updateSellSelectedButton() {
-            getInventorySelectedMarketableItems(function(items) {
+            getInventorySelectedMarketableItems((items) => {
                 const selectedItems = items.length;
                 if (items.length == 0) {
                     $('.sell_selected').hide();
@@ -2042,7 +2042,7 @@
 
         // Updates the (selected) turn into ... gems button.
         function updateTurnIntoGemsButton() {
-            getInventorySelectedGemsItems(function(items) {
+            getInventorySelectedGemsItems((items) => {
                 const selectedItems = items.length;
                 if (items.length == 0) {
                     $('.turn_into_gems').hide();
@@ -2056,7 +2056,7 @@
 
         // Updates the (selected) open ... booster packs button.
         function updateOpenBoosterPacksButton() {
-            getInventorySelectedBoosterPackItems(function(items) {
+            getInventorySelectedBoosterPackItems((items) => {
                 const selectedItems = items.length;
                 if (items.length == 0) {
                     $('.unpack_booster_packs').hide();
@@ -2141,7 +2141,7 @@
             market.getItemOrdersHistogram(
                 item,
                 false,
-                function(err, histogram) {
+                (err, histogram) => {
                     if (err) {
                         logConsole('Failed to get orders histogram for ' + (selectedItem.name || selectedItem.description.name));
                         return;
@@ -2181,7 +2181,7 @@
                     prices = prices.filter((v, i) => prices.indexOf(v) === i).sort((a, b) => a - b);
 
                     let buttons = ' ';
-                    prices.forEach(function(e) {
+                    prices.forEach((e) => {
                         buttons +=
                             '<a class="item_market_action_button item_market_action_button_green quick_sell" id="quick_sell' +
                             e +
@@ -2224,7 +2224,7 @@
 
                     $('.quick_sell_custom').on(
                         'click',
-                        function() {
+                        () => {
                             let price = $('#quick_sell_input', $('#' + item_info_id + '_item_market_actions', item_info)).val() * 100;
                             price = market.getPriceBeforeFees(price);
 
@@ -2285,7 +2285,7 @@
 
             $('#logger').on(
                 'scroll',
-                function() {
+                () => {
                     const hasUserScrolledToBottom =
                         $('#logger').prop('scrollHeight') - $('#logger').prop('clientHeight') <=
                         $('#logger').prop('scrollTop') + 1;
@@ -2301,7 +2301,7 @@
                 $('.sell_all').on(
                     'click',
                     '*',
-                    function() {
+                    () => {
                         sellAllItems();
                     }
                 );
@@ -2320,13 +2320,13 @@
             $('.reload_inventory').on(
                 'click',
                 '*',
-                function() {
+                () => {
                     window.location.reload();
                 }
             );
 
             loadAllInventories().then(
-                function() {
+                () => {
                     const updateInventoryPrices = function() {
                         if (getSettingWithDefault(SETTING_INVENTORY_PRICE_LABELS) == 1) {
                             setInventoryPrices(getInventoryItems());
@@ -2339,12 +2339,12 @@
                     $('#inventory_pagecontrols').observe(
                         'childlist',
                         '*',
-                        function() {
+                        () => {
                             updateInventoryPrices();
                         }
                     );
                 },
-                function() {
+                () => {
                     logDOM('Could not retrieve the inventory...');
                 }
             );
@@ -2352,11 +2352,11 @@
 
         // Loads the specified inventories.
         function loadInventories(inventories) {
-            return new Promise(function(resolve) {
+            return new Promise((resolve) => {
                 inventories.reduce(
-                    function(promise, inventory) {
-                        return promise.then(function() {
-                            return inventory.LoadCompleteInventory().done(function() {});
+                    (promise, inventory) => {
+                        return promise.then(() => {
+                            return inventory.LoadCompleteInventory().done(() => {});
                         });
                     },
                     Promise.resolve()
@@ -2424,7 +2424,7 @@
         function setInventoryPrices(items) {  
             inventoryPriceQueue.kill();
 
-            items.forEach(function(item) {
+            items.forEach((item) => {
                 if (!item.marketable) {
                     return;
                 }
@@ -2438,14 +2438,14 @@
         }
 
         const inventoryPriceQueue = async.queue(
-            function(item, next) {
+            (item, next) => {
                 inventoryPriceQueueWorker(
                     item,
                     false,
-                    function(success, cached) {
+                    (success, cached) => {
                         if (success) {
                             setTimeout(
-                                function() {
+                                () => {
                                     next();
                                 },
                                 cached ? 0 : getRandomInt(1000, 1500)
@@ -2466,7 +2466,7 @@
                                 numberOfFailedRequests = 0;
                             }
 
-                            setTimeout(function() {
+                            setTimeout(() => {
                                 next();
                             }, cached ? 0 : delay);
                         }
@@ -2484,7 +2484,7 @@
             market.getItemOrdersHistogram(
                 item,
                 true,
-                function(err, histogram, cachedListings) {
+                (err, histogram, cachedListings) => {
                     if (err) {
                         logConsole('Failed to get orders histogram for ' + itemName);
 
@@ -2547,14 +2547,14 @@
             }
         }
 
-        const marketListingsQueue = async.queue(function(listing, next) {
+        const marketListingsQueue = async.queue((listing, next) => {
             marketListingsQueueWorker(
                 listing,
                 false,
-                function(success, cached) {
+                (success, cached) => {
                     if (success) {
                         setTimeout(
-                            function() {
+                            () => {
                                 increaseMarketProgress();
                                 next();
                             },
@@ -2562,11 +2562,11 @@
                         );
                     } else {
                         setTimeout(
-                            function() {
+                            () => {
                                 marketListingsQueueWorker(
                                     listing,
                                     true,
-                                    function() {
+                                    () => {
                                         increaseMarketProgress();
                                         next(); // Go to the next queue item, regardless of success.
                                     }
@@ -2668,7 +2668,7 @@
             market.getPriceHistory(
                 item,
                 true,
-                function(errorPriceHistory, history, cachedHistory) {
+                (errorPriceHistory, history, cachedHistory) => {
                     if (errorPriceHistory) {
                         logConsole('Failed to get price history for ' + game_name);
 
@@ -2680,7 +2680,7 @@
                     market.getItemOrdersHistogram(
                         item,
                         true,
-                        function(errorHistogram, histogram, cachedListings) {
+                        (errorHistogram, histogram, cachedListings) => {
                             if (errorHistogram) {
                                 logConsole('Failed to get orders histogram for ' + game_name);
 
@@ -2774,14 +2774,14 @@
         }
 
         const marketOverpricedQueue = async.queue(
-            function(item, next) {
+            (item, next) => {
                 marketOverpricedQueueWorker(
                     item,
                     false,
-                    function(success) {
+                    (success) => {
                         if (success) {
                             setTimeout(
-                                function() {
+                                () => {
                                     increaseMarketProgress();
                                     next();
                                 },
@@ -2789,11 +2789,11 @@
                             );
                         } else {
                             setTimeout(
-                                function() {
+                                () => {
                                     marketOverpricedQueueWorker(
                                         item,
                                         true,
-                                        function() {
+                                        () => {
                                             increaseMarketProgress();
                                             next(); // Go to the next queue item, regardless of success.
                                         }
@@ -2813,18 +2813,18 @@
 
             market.removeListing(
                 item.listing, false,
-                function(errorRemove) {
+                (errorRemove) => {
                     if (!errorRemove) {
                         $('.actual_content', listingUI).css('background', COLOR_PENDING);
 
-                        setTimeout(function() {
+                        setTimeout(() => {
                             const itemName = $('.market_listing_item_name_link', listingUI).first().attr('href');
                             const marketHashNameIndex = itemName.lastIndexOf('/') + 1;
                             const marketHashName = itemName.substring(marketHashNameIndex);
                             const decodedMarketHashName = decodeURIComponent(itemName.substring(marketHashNameIndex));
                             let newAssetId = -1;
 
-                            unsafeWindow.RequestFullInventory(market.inventoryUrl + item.appid + '/' + item.contextid + '/', {}, null, null, function(transport) {
+                            unsafeWindow.RequestFullInventory(market.inventoryUrl + item.appid + '/' + item.contextid + '/', {}, null, null, (transport) => {
                                 if (transport.responseJSON && transport.responseJSON.success) {
                                     const inventory = transport.responseJSON.rgInventory;
 
@@ -2846,11 +2846,11 @@
                                     market.sellItem(
                                         item,
                                         item.sellPrice,
-                                        function(errorSell) {
+                                        (errorSell) => {
                                             if (!errorSell) {
                                                 $('.actual_content', listingUI).css('background', COLOR_SUCCESS);
 
-                                                setTimeout(function() {
+                                                setTimeout(() => {
                                                     removeListingFromLists(item.listing);
                                                 }, 3000);
 
@@ -2902,14 +2902,14 @@
         }
 
         const marketRemoveQueue = async.queue(
-            function(listingid, next) {
+            (listingid, next) => {
                 marketRemoveQueueWorker(
                     listingid,
                     false,
-                    function(success) {
+                    (success) => {
                         if (success) {
                             setTimeout(
-                                function() {
+                                () => {
                                     increaseMarketProgress();
                                     next();
                                 },
@@ -2917,11 +2917,11 @@
                             );
                         } else {
                             setTimeout(
-                                function() {
+                                () => {
                                     marketRemoveQueueWorker(
                                         listingid,
                                         true,
-                                        function() {
+                                        () => {
                                             increaseMarketProgress();
                                             next(); // Go to the next queue item, regardless of success.
                                         }
@@ -2942,12 +2942,12 @@
 
             market.removeListing(
                 listingid, isBuyOrder,
-                function(errorRemove) {
+                (errorRemove) => {
                     if (!errorRemove) {
                         $('.actual_content', listingUI).css('background', COLOR_SUCCESS);
 
                         setTimeout(
-                            function() {
+                            () => {
                                 removeListingFromLists(listingid);
 
                                 const numberOfListings = marketLists[0].size;
@@ -2972,10 +2972,10 @@
         }
 
         const marketListingsItemsQueue = async.queue(
-            function(listing, next) {
+            (listing, next) => {
                 $.get(
                     window.location.origin + '/market/mylistings?count=100&start=' + listing,
-                    function(data) {
+                    (data) => {
                         if (!data || !data.success) {
                             increaseMarketProgress();
                             next();
@@ -2996,7 +2996,7 @@
                     },
                     'json'
                 ).
-                    fail(function() {
+                    fail(() => {
                         increaseMarketProgress();
                         next();
                         return;
@@ -3188,7 +3188,7 @@
                     '<input type="checkbox" class="market_select_item"/>' +
                     '</div>');
 
-                    $('.market_select_item', this).change(function() {
+                    $('.market_select_item', this).change(() => {
                         updateMarketSelectAllButton();
                     });
                 }
@@ -3538,7 +3538,7 @@
                 updateMarketSelectAllButton();
             });
 
-            $('#market_removelisting_dialog_accept').on('click', '*', function() {
+            $('#market_removelisting_dialog_accept').on('click', '*', () => {
                 // This is when a user removed an item through the Remove/Cancel button.
                 // Ideally, it should remove this item from the list (instead of just the UI element which Steam does), but I'm not sure how to get the current item yet.
                 window.location.reload();
@@ -3576,7 +3576,7 @@
                 }
             });
 
-            $('.market_relist_auto').change(function() {
+            $('.market_relist_auto').change(() => {
                 setSetting(SETTING_RELIST_AUTOMATICALLY, $('.market_relist_auto').is(':checked') ? 1 : 0);
             });
 
@@ -3701,7 +3701,7 @@
                 ]);
             }
 
-            sortable.sort(function(a, b) {
+            sortable.sort((a, b) => {
                 return a[1] - b[1];
             }).reverse();
 
@@ -3757,7 +3757,7 @@
             setInventoryPrices(items);
         };
 
-        $('.trade_right > div > div > div > .trade_item_box').observe('childlist subtree', function() {
+        $('.trade_right > div > div > div > .trade_item_box').observe('childlist subtree', () => {
             if (!hasLoadedAllTradeOfferItems()) {
                 return;
             }
@@ -3786,7 +3786,7 @@
         $('#inventory_pagecontrols').observe(
             'childlist',
             '*',
-            function() {
+            () => {
                 updateInventoryPrices();
             }
         );
@@ -3806,8 +3806,8 @@
             '</div>'
         );
 
-        $('.select_all').on('click', '*', function() {
-            $('.inventory_ctn:visible > .inventory_page:visible > .itemHolder:visible').delayedEach(250, function(i, it) {
+        $('.select_all').on('click', '*', () => {
+            $('.inventory_ctn:visible > .inventory_page:visible > .itemHolder:visible').delayedEach(250, (i, it) => {
                 const item = it.rgItem;
                 if (item.is_stackable) {
                     return;
@@ -3885,7 +3885,7 @@
             '</div>' +
             '</div>');
 
-        unsafeWindow.ShowConfirmDialog('Steam Economy Enhancer', price_options).done(function() {
+        unsafeWindow.ShowConfirmDialog('Steam Economy Enhancer', price_options).done(() => {
             setSetting(SETTING_MIN_NORMAL_PRICE, $('#' + SETTING_MIN_NORMAL_PRICE, price_options).val());
             setSetting(SETTING_MAX_NORMAL_PRICE, $('#' + SETTING_MAX_NORMAL_PRICE, price_options).val());
             setSetting(SETTING_MIN_FOIL_PRICE, $('#' + SETTING_MIN_FOIL_PRICE, price_options).val());
@@ -3948,7 +3948,7 @@
         '.pagination li.active { background: rgba(255, 255, 255, 0.25); }'
     );
 
-    $(document).ready(function() {
+    $(document).ready(() => {
         // Make sure the user is logged in, there's not much we can do otherwise.
         if (!isLoggedIn) {
             return;
@@ -3991,7 +3991,7 @@
             const cur = $els[index];
             callback.call(cur, index, cur);
 
-            setTimeout(function() {
+            setTimeout(() => {
                 iterator(++index);
             }, timeout);
         };

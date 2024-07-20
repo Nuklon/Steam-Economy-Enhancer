@@ -27,6 +27,7 @@ export default [
       curly: ['error', 'all'],
       'no-var': 'error',
       'prefer-const': 'error',
+      'prefer-arrow-callback': 'error',
     }
   },
   {
