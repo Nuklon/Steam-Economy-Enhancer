@@ -25,10 +25,12 @@ export default [
       '@stylistic/quotes': ['error', 'single'],
       '@stylistic/space-before-function-paren': ['error', 'never'],
       '@stylistic/spaced-comment': 'off',
+      '@stylistic/template-curly-spacing': ['error', 'never'],
       curly: ['error', 'all'],
       'no-var': 'error',
-      'prefer-const': 'error',
       'prefer-arrow-callback': 'error',
+      'prefer-const': 'error',
+      'prefer-template': 'error',
     }
   },
   {

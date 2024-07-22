@@ -115,7 +115,7 @@
             return unsafeWindow.g_strInventoryLoadURL;
         }
 
-        let profileUrl = window.location.origin + '/my/';
+        let profileUrl = `${window.location.origin}/my/`;
 
         if (unsafeWindow.g_strProfileURL) {
             profileUrl = unsafeWindow.g_strProfileURL;
@@ -127,7 +127,7 @@
             }
         }
 
-        return profileUrl.replace(/\/$/, '') + '/inventory/json/';
+        return `${profileUrl.replace(/\/$/, '')}/inventory/json/`;
     }
 
     //#region Settings
@@ -200,14 +200,14 @@
         setSetting(SETTING_LAST_CACHE, lastCache + 1);
 
         storageSession = localforage.createInstance({
-            name: 'see_session_' + lastCache
+            name: `see_session_${lastCache}`
         });
 
         storageSession.clear(); // Clear any previous data.
         setSessionStorageItem('SESSION', lastCache);
     } else {
         storageSession = localforage.createInstance({
-            name: 'see_session_' + getSessionStorageItem('SESSION')
+            name: `see_session_${getSessionStorageItem('SESSION')}`
         });
     }
 
@@ -215,7 +215,7 @@
         try {
             return localStorage.getItem(name);
         } catch (e) {
-            logConsole('Failed to get local storage item ' + name + ', ' + e + '.');
+            logConsole(`Failed to get local storage item ${name}, ${e}.`);
             return null;
         }
     }
@@ -225,7 +225,7 @@
             localStorage.setItem(name, value);
             return true;
         } catch (e) {
-            logConsole('Failed to set local storage item ' + name + ', ' + e + '.');
+            logConsole(`Failed to set local storage item ${name}, ${e}.`);
             return false;
         }
     }
@@ -234,7 +234,7 @@
         try {
             return sessionStorage.getItem(name);
         } catch (e) {
-            logConsole('Failed to get session storage item ' + name + ', ' + e + '.');
+            logConsole(`Failed to get session storage item ${name}, ${e}.`);
             return null;
         }
     }
@@ -244,7 +244,7 @@
             sessionStorage.setItem(name, value);
             return true;
         } catch (e) {
-            logConsole('Failed to set session storage item ' + name + ', ' + e + '.');
+            logConsole(`Failed to set session storage item ${name}, ${e}.`);
             return false;
         }
     }
@@ -429,7 +429,7 @@
 
     function padLeftZero(str, max) {
         str = str.toString();
-        return str.length < max ? padLeftZero('0' + str, max) : str;
+        return str.length < max ? padLeftZero(`0${str}`, max) : str;
     }
 
     function replaceNonNumbers(str) {
@@ -446,7 +446,7 @@
         const itemId = item.assetid || item.id;
         $.ajax({
             type: 'POST',
-            url: window.location.origin + '/market/sellitem/',
+            url: `${window.location.origin}/market/sellitem/`,
             data: {
                 sessionid: sessionId,
                 appid: item.appid,
@@ -477,7 +477,7 @@
         if (isBuyOrder) {
             $.ajax({
                 type: 'POST',
-                url: window.location.origin + '/market/cancelbuyorder/',
+                url: `${window.location.origin}/market/cancelbuyorder/`,
                 data: {
                     sessionid: sessionId,
                     buy_orderid: item
@@ -495,7 +495,7 @@
 
         $.ajax({
             type: 'POST',
-            url: window.location.origin + '/market/removelisting/' + item,
+            url: `${window.location.origin}/market/removelisting/${item}`,
             data: {
                 sessionid: sessionId
             },
@@ -526,7 +526,7 @@
             const appid = item.appid;
 
             if (cache) {
-                const storage_hash = 'pricehistory_' + appid + '+' + market_name;
+                const storage_hash = `pricehistory_${appid}+${market_name}`;
 
                 storageSession.getItem(storage_hash).
                     then((value) => {
@@ -569,7 +569,7 @@
             const sessionId = readCookie('sessionid');
             $.ajax({
                 type: 'GET',
-                url: this.inventoryUrlBase + 'ajaxgetgoovalue/',
+                url: `${this.inventoryUrlBase}ajaxgetgoovalue/`,
                 data: {
                     sessionid: sessionId,
                     appid: appid,
@@ -603,7 +603,7 @@
             const sessionId = readCookie('sessionid');
             $.ajax({
                 type: 'POST',
-                url: this.inventoryUrlBase + 'ajaxgrindintogoo/',
+                url: `${this.inventoryUrlBase}ajaxgrindintogoo/`,
                 data: {
                     sessionid: sessionId,
                     appid: item.market_fee_app,
@@ -638,7 +638,7 @@
             const sessionId = readCookie('sessionid');
             $.ajax({
                 type: 'POST',
-                url: this.inventoryUrlBase + 'ajaxunpackbooster/',
+                url: `${this.inventoryUrlBase}ajaxunpackbooster/`,
                 data: {
                     sessionid: sessionId,
                     appid: item.market_fee_app,
@@ -664,11 +664,7 @@
 
     // Get the current price history for an item.
     SteamMarket.prototype.getCurrentPriceHistory = function(appid, market_name, callback) {
-        const url = window.location.origin +
-          '/market/pricehistory/?appid=' +
-          appid +
-          '&market_hash_name=' +
-          market_name;
+        const url = `${window.location.origin}/market/pricehistory/?appid=${appid}&market_hash_name=${market_name}`;
 
         $.get(
             url,
@@ -685,7 +681,7 @@
                 }
 
                 // Store the price history in the session storage.
-                const storage_hash = 'pricehistory_' + appid + '+' + market_name;
+                const storage_hash = `pricehistory_${appid}+${market_name}`;
                 storageSession.setItem(storage_hash, data.prices);
 
                 callback(ERROR_SUCCESS, data.prices, false);
@@ -716,7 +712,7 @@
             }
 
             const appid = item.appid;
-            const storage_hash = 'itemnameid_' + appid + '+' + market_name;
+            const storage_hash = `itemnameid_${appid}+${market_name}`;
 
             storagePersistent.getItem(storage_hash).
                 then((value) => {
@@ -736,7 +732,7 @@
 
     // Get the item name id from a market item.
     SteamMarket.prototype.getCurrentMarketItemNameId = function(appid, market_name, callback) {
-        const url = window.location.origin + '/market/listings/' + appid + '/' + market_name;
+        const url = `${window.location.origin}/market/listings/${appid}/${market_name}`;
         $.get(
             url,
             (page) => {
@@ -749,7 +745,7 @@
                 const item_nameid = matches[1];
 
                 // Store the item name id in the persistent storage.
-                const storage_hash = 'itemnameid_' + appid + '+' + market_name;
+                const storage_hash = `itemnameid_${appid}+${market_name}`;
                 storagePersistent.setItem(storage_hash, item_nameid);
 
                 callback(ERROR_SUCCESS, item_nameid);
@@ -789,7 +785,7 @@
             const appid = item.appid;
 
             if (cache) {
-                const storage_hash = 'itemordershistogram_' + appid + '+' + market_name;
+                const storage_hash = `itemordershistogram_${appid}+${market_name}`;
                 storageSession.getItem(storage_hash).
                     then((value) => {
                         if (value != null) {
@@ -823,20 +819,13 @@
                     }
                     return;
                 }
-                const url = window.location.origin +
-                  '/market/itemordershistogram?country=' +
-                  country +
-                  '&language=english&currency=' +
-                  currencyId +
-                  '&item_nameid=' +
-                  item_nameid +
-                  '&two_factor=0';
+                const url = `${window.location.origin}/market/itemordershistogram?country=${country}&language=english&currency=${currencyId}&item_nameid=${item_nameid}&two_factor=0`;
 
                 $.get(
                     url,
                     (histogram) => {
                         // Store the histogram in the session storage.
-                        const storage_hash = 'itemordershistogram_' + item.appid + '+' + market_name;
+                        const storage_hash = `itemordershistogram_${item.appid}+${market_name}`;
                         storageSession.setItem(storage_hash, histogram);
 
                         callback(ERROR_SUCCESS, histogram, false);
@@ -1143,7 +1132,7 @@
     }
 
     function readCookie(name) {
-        const nameEQ = name + '=';
+        const nameEQ = `${name}=`;
         const ca = document.cookie.split(';');
         for (let i = 0; i < ca.length; i++) {
             let c = ca[i];
@@ -1181,7 +1170,7 @@
     }
 
     function logDOM(text) {
-        logger.innerHTML += text + '<br/>';
+        logger.innerHTML += `${text}<br/>`;
 
         updateScroll();
     }
@@ -1211,14 +1200,10 @@
             totals.innerHTML = '';
 
             if (totalPriceWithFeesOnMarket > 0) {
-                totals.innerHTML += '<div><strong>Total listed for ' +
-                formatPrice(totalPriceWithFeesOnMarket) +
-                ', you will receive ' +
-                formatPrice(totalPriceWithoutFeesOnMarket) +
-                '.</strong></div>';
+                totals.innerHTML += `<div><strong>Total listed for ${formatPrice(totalPriceWithFeesOnMarket)}, you will receive ${formatPrice(totalPriceWithoutFeesOnMarket)}.</strong></div>`;
             }
             if (totalScrap > 0) {
-                totals.innerHTML += '<div><strong>Total scrap ' + totalScrap + '.</strong></div>';
+                totals.innerHTML += `<div><strong>Total scrap ${totalScrap}.</strong></div>`;
             }
         }
 
@@ -1233,31 +1218,19 @@
                         const digits = getNumberOfDigits(totalNumberOfQueuedItems);
                         const itemId = task.item.assetid || task.item.id;
                         const itemName = task.item.name || task.item.description.name;
-                        const padLeft = padLeftZero('' + totalNumberOfProcessedQueueItems, digits) + ' / ' + totalNumberOfQueuedItems;
+                        const padLeft = `${padLeftZero(`${totalNumberOfProcessedQueueItems}`, digits)} / ${totalNumberOfQueuedItems}`;
 
                         if (!err) {
-                            logDOM(padLeft +
-                            ' - ' +
-                            itemName +
-                            ' listed for ' +
-                            formatPrice(market.getPriceIncludingFees(task.sellPrice)) +
-                            ', you will receive ' +
-                            formatPrice(task.sellPrice) +
-                            '.');
+                            logDOM(`${padLeft} - ${itemName} listed for ${formatPrice(market.getPriceIncludingFees(task.sellPrice))}, you will receive ${formatPrice(task.sellPrice)}.`);
 
-                            $('#' + task.item.appid + '_' + task.item.contextid + '_' + itemId).
+                            $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).
                                 css('background', COLOR_SUCCESS);
 
                             totalPriceWithoutFeesOnMarket += task.sellPrice;
                             totalPriceWithFeesOnMarket += market.getPriceIncludingFees(task.sellPrice);
                             updateTotals();
                         } else if (data != null && isRetryMessage(data.message)) {
-                            logDOM(padLeft +
-                            ' - ' +
-                            itemName +
-                            ' retrying listing because ' +
-                            data.message[0].toLowerCase() +
-                            data.message.slice(1));
+                            logDOM(`${padLeft} - ${itemName} retrying listing because ${data.message[0].toLowerCase()}${data.message.slice(1)}`);
 
                             totalNumberOfProcessedQueueItems--;
                             sellQueue.unshift(task);
@@ -1268,17 +1241,12 @@
                             }, getRandomInt(30000, 45000));
                         } else {
                             if (data != null && data.responseJSON != null && data.responseJSON.message != null) {
-                                logDOM(padLeft +
-                                ' - ' +
-                                itemName +
-                                ' not added to market because ' +
-                                data.responseJSON.message[0].toLowerCase() +
-                                data.responseJSON.message.slice(1));
+                                logDOM(`${padLeft} - ${itemName} not added to market because ${data.responseJSON.message[0].toLowerCase()}${data.responseJSON.message.slice(1)}`);
                             } else {
-                                logDOM(padLeft + ' - ' + itemName + ' not added to market.');
+                                logDOM(`${padLeft} - ${itemName} not added to market.`);
                             }
 
-                            $('#' + task.item.appid + '_' + task.item.contextid + '_' + itemId).
+                            $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).
                                 css('background', COLOR_ERROR);
                         }
 
@@ -1378,9 +1346,9 @@
                         totalNumberOfQueuedItems += numberOfQueuedItems;
 
                         $('#inventory_items_spinner').remove();
-                        $('#inventory_sell_buttons').append('<div id="inventory_items_spinner">' +
-                        spinnerBlock +
-                        '<div style="text-align:center">Processing ' + numberOfQueuedItems + ' items</div>' +
+                        $('#inventory_sell_buttons').append(`<div id="inventory_items_spinner">${
+                        spinnerBlock
+                        }<div style="text-align:center">Processing ${numberOfQueuedItems} items</div>` +
                         '</div>');
                     }
                 },
@@ -1468,13 +1436,13 @@
                     totalNumberOfProcessedQueueItems++;
 
                     const digits = getNumberOfDigits(totalNumberOfQueuedItems);
-                    const padLeft = padLeftZero('' + totalNumberOfProcessedQueueItems, digits) + ' / ' + totalNumberOfQueuedItems;
+                    const padLeft = `${padLeftZero(`${totalNumberOfProcessedQueueItems}`, digits)} / ${totalNumberOfQueuedItems}`;
 
                     if (err != ERROR_SUCCESS) {
-                        logConsole('Failed to get gems value for ' + itemName);
-                        logDOM(padLeft + ' - ' + itemName + ' not turned into gems due to missing gems value.');
+                        logConsole(`Failed to get gems value for ${itemName}`);
+                        logDOM(`${padLeft} - ${itemName} not turned into gems due to missing gems value.`);
 
-                        $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_ERROR);
+                        $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_ERROR);
                         return callback(false);
                     }
 
@@ -1484,18 +1452,18 @@
                         item,
                         (err) => {
                             if (err != ERROR_SUCCESS) {
-                                logConsole('Failed to turn item into gems for ' + itemName);
-                                logDOM(padLeft + ' - ' + itemName + ' not turned into gems due to unknown error.');
+                                logConsole(`Failed to turn item into gems for ${itemName}`);
+                                logDOM(`${padLeft} - ${itemName} not turned into gems due to unknown error.`);
 
-                                $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_ERROR);
+                                $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_ERROR);
                                 return callback(false);
                             }
 
                             logConsole('============================');
                             logConsole(itemName);
-                            logConsole('Turned into ' + goo.goo_value + ' gems');
-                            logDOM(padLeft + ' - ' + itemName + ' turned into ' + item.goo_value_expected + ' gems.');
-                            $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_SUCCESS);
+                            logConsole(`Turned into ${goo.goo_value} gems`);
+                            logDOM(`${padLeft} - ${itemName} turned into ${item.goo_value_expected} gems.`);
+                            $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_SUCCESS);
 
                             totalScrap += item.goo_value_expected;
                             updateTotals();
@@ -1543,18 +1511,18 @@
                     totalNumberOfProcessedQueueItems++;
 
                     const digits = getNumberOfDigits(totalNumberOfQueuedItems);
-                    const padLeft = padLeftZero('' + totalNumberOfProcessedQueueItems, digits) + ' / ' + totalNumberOfQueuedItems;
+                    const padLeft = `${padLeftZero(`${totalNumberOfProcessedQueueItems}`, digits)} / ${totalNumberOfQueuedItems}`;
 
                     if (err != ERROR_SUCCESS) {
-                        logConsole('Failed to unpack booster pack ' + itemName);
-                        logDOM(padLeft + ' - ' + itemName + ' not unpacked.');
+                        logConsole(`Failed to unpack booster pack ${itemName}`);
+                        logDOM(`${padLeft} - ${itemName} not unpacked.`);
 
-                        $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_ERROR);
+                        $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_ERROR);
                         return callback(false);
                     }
 
-                    logDOM(padLeft + ' - ' + itemName + ' unpacked.');
-                    $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_SUCCESS);
+                    logDOM(`${padLeft} - ${itemName} unpacked.`);
+                    $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_SUCCESS);
 
                     callback(true);
                 }
@@ -1603,9 +1571,9 @@
                     totalNumberOfQueuedItems += numberOfQueuedItems;
 
                     $('#inventory_items_spinner').remove();
-                    $('#inventory_sell_buttons').append('<div id="inventory_items_spinner">' +
-                    spinnerBlock +
-                    '<div style="text-align:center">Processing ' + numberOfQueuedItems + ' items</div>' +
+                    $('#inventory_sell_buttons').append(`<div id="inventory_items_spinner">${
+                    spinnerBlock
+                    }<div style="text-align:center">Processing ${numberOfQueuedItems} items</div>` +
                     '</div>');
                 }
             }, () => {
@@ -1654,9 +1622,9 @@
                     totalNumberOfQueuedItems += numberOfQueuedItems;
 
                     $('#inventory_items_spinner').remove();
-                    $('#inventory_sell_buttons').append('<div id="inventory_items_spinner">' +
-                    spinnerBlock +
-                    '<div style="text-align:center">Processing ' + numberOfQueuedItems + ' items</div>' +
+                    $('#inventory_sell_buttons').append(`<div id="inventory_items_spinner">${
+                    spinnerBlock
+                    }<div style="text-align:center">Processing ${numberOfQueuedItems} items</div>` +
                     '</div>');
                 }
             }, () => {
@@ -1701,17 +1669,17 @@
 
                 let itemsString = '';
                 for (const itemName in itemsWithQty) {
-                    itemsString += '&items[]=' + encodeURIComponent(itemName) + '&qty[]=' + itemsWithQty[itemName];
+                    itemsString += `&items[]=${encodeURIComponent(itemName)}&qty[]=${itemsWithQty[itemName]}`;
                 }
 
-                const baseUrl = window.location.origin + '/market/multisell';
-                const redirectUrl = baseUrl + '?appid=' + appid + '&contextid=' + contextid + itemsString;
+                const baseUrl = `${window.location.origin}/market/multisell`;
+                const redirectUrl = `${baseUrl}?appid=${appid}&contextid=${contextid}${itemsString}`;
 
-                const dialog = unsafeWindow.ShowDialog('Steam Economy Enhancer', '<iframe frameBorder="0" height="650" width="900" src="' + redirectUrl + '"></iframe>');
+                const dialog = unsafeWindow.ShowDialog('Steam Economy Enhancer', `<iframe frameBorder="0" height="650" width="900" src="${redirectUrl}"></iframe>`);
                 dialog.OnDismiss(() => {
                     items.forEach((item) => {
                         const itemId = item.assetid || item.id;
-                        $('#' + item.appid + '_' + item.contextid + '_' + itemId).css('background', COLOR_PENDING);
+                        $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_PENDING);
                     });
                 });
             });
@@ -1742,9 +1710,9 @@
                 totalNumberOfQueuedItems += numberOfQueuedItems;
 
                 $('#inventory_items_spinner').remove();
-                $('#inventory_sell_buttons').append('<div id="inventory_items_spinner">' +
-                spinnerBlock +
-                '<div style="text-align:center">Processing ' + numberOfQueuedItems + ' items</div>' +
+                $('#inventory_sell_buttons').append(`<div id="inventory_items_spinner">${
+                spinnerBlock
+                }<div style="text-align:center">Processing ${numberOfQueuedItems} items</div>` +
                 '</div>');
             }
         }
@@ -1797,7 +1765,7 @@
                 true,
                 (err, history, cachedHistory) => {
                     if (err) {
-                        logConsole('Failed to get price history for ' + itemName);
+                        logConsole(`Failed to get price history for ${itemName}`);
 
                         if (err == ERROR_FAILED) {
                             failed += 1;
@@ -1809,7 +1777,7 @@
                         true,
                         (err, histogram, cachedListings) => {
                             if (err) {
-                                logConsole('Failed to get orders histogram for ' + itemName);
+                                logConsole(`Failed to get orders histogram for ${itemName}`);
 
                                 if (err == ERROR_FAILED) {
                                     failed += 1;
@@ -1832,11 +1800,7 @@
                             );
 
 
-                            logConsole('Sell price: ' +
-                            sellPrice / 100.0 +
-                            ' (' +
-                            market.getPriceIncludingFees(sellPrice) / 100.0 +
-                            ')');
+                            logConsole(`Sell price: ${sellPrice / 100.0} (${market.getPriceIncludingFees(sellPrice) / 100.0})`);
 
                             sellQueue.push({
                                 item: item,
@@ -2031,11 +1995,11 @@
                     $('.sell_selected').show();
                     if (canSellSelectedItemsManually(items)) {
                         $('.sell_manual').show();
-                        $('.sell_manual > span').text('Sell ' + selectedItems + (selectedItems == 1 ? ' Item Manual' : ' Items Manual'));
+                        $('.sell_manual > span').text(`Sell ${selectedItems}${selectedItems == 1 ? ' Item Manual' : ' Items Manual'}`);
                     } else {
                         $('.sell_manual').hide();
                     }
-                    $('.sell_selected > span').text('Sell ' + selectedItems + (selectedItems == 1 ? ' Item' : ' Items'));
+                    $('.sell_selected > span').text(`Sell ${selectedItems}${selectedItems == 1 ? ' Item' : ' Items'}`);
                 }
             });
         }
@@ -2049,7 +2013,7 @@
                 } else {
                     $('.turn_into_gems').show();
                     $('.turn_into_gems > span').
-                        text('Turn ' + selectedItems + (selectedItems == 1 ? ' Item Into Gems' : ' Items Into Gems'));
+                        text(`Turn ${selectedItems}${selectedItems == 1 ? ' Item Into Gems' : ' Items Into Gems'}`);
                 }
             });
         }
@@ -2063,7 +2027,7 @@
                 } else {
                     $('.unpack_booster_packs').show();
                     $('.unpack_booster_packs > span').
-                        text('Unpack ' + selectedItems + (selectedItems == 1 ? ' Booster Pack' : ' Booster Packs'));
+                        text(`Unpack ${selectedItems}${selectedItems == 1 ? ' Booster Pack' : ' Booster Packs'}`);
                 }
             });
         }
@@ -2075,7 +2039,7 @@
         }
 
         function updateInventorySelection(selectedItem) {
-            const item_info = $('#iteminfo' + unsafeWindow.iActiveSelectView);
+            const item_info = $(`#iteminfo${unsafeWindow.iActiveSelectView}`);
 
             if (!item_info.length) {
                 return;
@@ -2089,7 +2053,7 @@
             const item_info_id = item_info.attr('id');
 
             // Move scrap to bottom, this is of little interest.
-            const scrap = $('#' + item_info_id + '_scrap_content');
+            const scrap = $(`#${item_info_id}_scrap_content`);
             scrap.next().insertBefore(scrap);
 
             // Skip unmarketable items
@@ -2114,19 +2078,19 @@
                 }
             };
 
-            const ownerActions = $('#' + item_info_id + '_item_owner_actions');
+            const ownerActions = $(`#${item_info_id}_item_owner_actions`);
 
             // Move market link to a button
-            ownerActions.append('<a class="btn_small btn_grey_white_innerfade" href="/market/listings/' + appid + '/' + market_hash_name + '"><span>View in Community Market</span></a>');
-            $('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(1)').hide();
+            ownerActions.append(`<a class="btn_small btn_grey_white_innerfade" href="/market/listings/${appid}/${market_hash_name}"><span>View in Community Market</span></a>`);
+            $(`#${item_info_id}_item_market_actions > div:nth-child(1) > div:nth-child(1)`).hide();
 
             // ownerActions is hidden on other games' inventories, we need to show it to have a "Market" button visible
             ownerActions.show();
 
             const isBoosterPack = selectedItem.name.toLowerCase().endsWith('booster pack');
             if (isBoosterPack) {
-                const tradingCardsUrl = '/market/search?q=&category_753_Game%5B%5D=tag_app_' + selectedItem.market_fee_app + '&category_753_item_class%5B%5D=tag_item_class_2&appid=753';
-                ownerActions.append('<br/> <a class="btn_small btn_grey_white_innerfade" href="' + tradingCardsUrl + '"><span>View trading cards in Community Market</span></a>');
+                const tradingCardsUrl = `/market/search?q=&category_753_Game%5B%5D=tag_app_${selectedItem.market_fee_app}&category_753_item_class%5B%5D=tag_item_class_2&appid=753`;
+                ownerActions.append(`<br/> <a class="btn_small btn_grey_white_innerfade" href="${tradingCardsUrl}"><span>View trading cards in Community Market</span></a>`);
             }
 
             if (getSettingWithDefault(SETTING_QUICK_SELL_BUTTONS) != 1) {
@@ -2143,7 +2107,7 @@
                 false,
                 (err, histogram) => {
                     if (err) {
-                        logConsole('Failed to get orders histogram for ' + (selectedItem.name || selectedItem.description.name));
+                        logConsole(`Failed to get orders histogram for ${selectedItem.name || selectedItem.description.name}`);
                         return;
                     }
 
@@ -2163,7 +2127,7 @@
                         </div>
                     </div>`);
 
-                    $('#' + item_info_id + '_item_market_actions > div').after(groupMain);
+                    $(`#${item_info_id}_item_market_actions > div`).after(groupMain);
 
                     // Generate quick sell buttons.
                     let prices = [];
@@ -2192,9 +2156,9 @@
                         </a>`;
                     });
 
-                    $('#' + item_info_id + '_item_market_actions', item_info).append(buttons);
+                    $(`#${item_info_id}_item_market_actions`, item_info).append(buttons);
 
-                    $('#' + item_info_id + '_item_market_actions', item_info).append(`<div style="display:flex">
+                    $(`#${item_info_id}_item_market_actions`, item_info).append(`<div style="display:flex">
                         <input id="quick_sell_input" style="background-color: black;color: white;border: transparent;max-width:65px;text-align:center;" type="number" value="${histogram.lowest_sell_order / 100}" step="0.01" />&nbsp;
                         <a class="item_market_action_button item_market_action_button_green quick_sell_custom">
                             <span class="item_market_action_button_edge item_market_action_button_left"></span>
@@ -2222,7 +2186,7 @@
                     $('.quick_sell_custom').on(
                         'click',
                         () => {
-                            let price = $('#quick_sell_input', $('#' + item_info_id + '_item_market_actions', item_info)).val() * 100;
+                            let price = $('#quick_sell_input', $(`#${item_info_id}_item_market_actions`, item_info)).val() * 100;
                             price = market.getPriceBeforeFees(price);
 
                             totalNumberOfQueuedItems++;
@@ -2489,7 +2453,7 @@
                 true,
                 (err, histogram, cachedListings) => {
                     if (err) {
-                        logConsole('Failed to get orders histogram for ' + itemName);
+                        logConsole(`Failed to get orders histogram for ${itemName}`);
 
                         if (err == ERROR_FAILED) {
                             failed += 1;
@@ -2506,16 +2470,11 @@
                         ? '∞'
                         : formatPrice(market.getPriceIncludingFees(sellPrice));
 
-                    const elementName = (currentPage == PAGE_TRADEOFFER ? '#item' : '#') +
-                      item.appid +
-                      '_' +
-                      item.contextid +
-                      '_' +
-                      item.id;
+                    const elementName = `${(currentPage == PAGE_TRADEOFFER ? '#item' : '#')}${item.appid}_${item.contextid}_${item.id}`;
                     const element = $(elementName);
 
                     $('.inventory_item_price', element).remove();
-                    element.append('<span class="inventory_item_price price_' + (sellPrice == 65535 ? 0 : market.getPriceIncludingFees(sellPrice)) + '">' + itemPrice + '</span>');
+                    element.append(`<span class="inventory_item_price price_${sellPrice == 65535 ? 0 : market.getPriceIncludingFees(sellPrice)}">${itemPrice}</span>`);
 
                     return callback(true, cachedListings);
                 }
@@ -2656,7 +2615,7 @@
                 true,
                 (errorPriceHistory, history, cachedHistory) => {
                     if (errorPriceHistory) {
-                        logConsole('Failed to get price history for ' + game_name);
+                        logConsole(`Failed to get price history for ${game_name}`);
 
                         if (errorPriceHistory == ERROR_FAILED) {
                             failed += 1;
@@ -2668,7 +2627,7 @@
                         true,
                         (errorHistogram, histogram, cachedListings) => {
                             if (errorHistogram) {
-                                logConsole('Failed to get orders histogram for ' + game_name);
+                                logConsole(`Failed to get orders histogram for ${game_name}`);
 
                                 if (errorHistogram == ERROR_FAILED) {
                                     failed += 1;
@@ -2687,14 +2646,14 @@
                             $(
                                 '.market_table_value > span:nth-child(1) > span:nth-child(1) > span:nth-child(1)',
                                 listingUI
-                            ).append(' ➤ <span title="This is likely the highest buy order price.">' +
-                            highestBuyOrderPrice +
-                            '</span>');
+                            ).append(` ➤ <span title="This is likely the highest buy order price.">${
+                            highestBuyOrderPrice
+                            }</span>`);
 
                             logConsole('============================');
                             logConsole(JSON.stringify(listing));
-                            logConsole(game_name + ': ' + asset.name);
-                            logConsole('Current price: ' + price / 100.0);
+                            logConsole(`${game_name}: ${asset.name}`);
+                            logConsole(`Current price: ${price / 100.0}`);
 
                             // Calculate two prices here, one without the offset and one with the offset.
                             // The price without the offset is required to not relist the item constantly when you have the lowest price (i.e., with a negative offset).
@@ -2717,17 +2676,13 @@
 
                             const sellPriceWithoutOffsetWithFees = market.getPriceIncludingFees(sellPriceWithoutOffset);
 
-                            logConsole('Calculated price: ' +
-                            sellPriceWithoutOffsetWithFees / 100.0 +
-                            ' (' +
-                            sellPriceWithoutOffset / 100.0 +
-                            ')');
+                            logConsole(`Calculated price: ${sellPriceWithoutOffsetWithFees / 100.0} (${sellPriceWithoutOffset / 100.0})`);
 
-                            listingUI.addClass('price_' + sellPriceWithOffset);
+                            listingUI.addClass(`price_${sellPriceWithOffset}`);
 
                             $('.market_listing_my_price', listingUI).last().prop(
                                 'title',
-                                'The best price is ' + formatPrice(sellPriceWithoutOffsetWithFees) + '.'
+                                `The best price is ${formatPrice(sellPriceWithoutOffsetWithFees)}.`
                             );
 
                             if (sellPriceWithoutOffsetWithFees < price) {
@@ -2810,7 +2765,7 @@
                             const decodedMarketHashName = decodeURIComponent(itemName.substring(marketHashNameIndex));
                             let newAssetId = -1;
 
-                            unsafeWindow.RequestFullInventory(market.inventoryUrl + item.appid + '/' + item.contextid + '/', {}, null, null, (transport) => {
+                            unsafeWindow.RequestFullInventory(`${market.inventoryUrl + item.appid}/${item.contextid}/`, {}, null, null, (transport) => {
                                 if (transport.responseJSON && transport.responseJSON.success) {
                                     const inventory = transport.responseJSON.rgInventory;
 
@@ -2960,7 +2915,7 @@
         const marketListingsItemsQueue = async.queue(
             (listing, next) => {
                 $.get(
-                    window.location.origin + '/market/mylistings?count=100&start=' + listing,
+                    `${window.location.origin}/market/mylistings?count=100&start=${listing}`,
                     (data) => {
                         if (!data || !data.success) {
                             increaseMarketProgress();
@@ -3039,10 +2994,10 @@
 
                 // Buy orders and listings confirmations are not grouped like the sell listings, add this so pagination works there as well.
                 if (!$(this).attr('id')) {
-                    $(this).attr('id', 'market-listing-' + e);
+                    $(this).attr('id', `market-listing-${e}`);
 
-                    $(this).append('<div class="market_listing_see" id="market-listing-container-' + e + '"></div>');
-                    $('.market_listing_row', $(this)).appendTo($('#market-listing-container-' + e));
+                    $(this).append(`<div class="market_listing_see" id="market-listing-container-${e}"></div>`);
+                    $('.market_listing_row', $(this)).appendTo($(`#market-listing-container-${e}`));
                 } else {
                     $(this).children().last().addClass('market_listing_see');
                 }
@@ -3076,7 +3031,7 @@
                 }
             }
 
-            $('#my_market_selllistings_number').append('<span id="my_market_sellistings_total_price">, ' + formatPrice(totalPriceBuyer) + ' ➤ ' + formatPrice(totalPriceSeller) + '</span>');
+            $('#my_market_selllistings_number').append(`<span id="my_market_sellistings_total_price">, ${formatPrice(totalPriceBuyer)} ➤ ${formatPrice(totalPriceSeller)}</span>`);
         }
 
 
@@ -3209,9 +3164,9 @@
                 $('.market_pagesize_options').hide();
 
                 // Show the spinner so the user knows that something is going on.
-                $('.my_market_header').eq(0).append('<div id="market_listings_spinner">' +
-                spinnerBlock +
-                '<div style="text-align:center">Loading market listings</div>' +
+                $('.my_market_header').eq(0).append(`<div id="market_listings_spinner">${
+                spinnerBlock
+                }<div style="text-align:center">Loading market listings</div>` +
                 '</div>');
 
                 while (currentCount < totalCount) {
@@ -3297,7 +3252,7 @@
                     asc = false;
                 }
 
-                $(this).text($(this).text().replace(' ' + arrow_down, '').replace(' ' + arrow_up, ''));
+                $(this).text($(this).text().replace(` ${arrow_down}`, '').replace(` ${arrow_up}`, ''));
             });
 
             let market_listing_selector;
@@ -3308,7 +3263,7 @@
             } else if (isName) {
                 market_listing_selector = $('.market_listing_table_header', elem).children().eq(3);
             }
-            market_listing_selector.text(market_listing_selector.text() + ' ' + (asc ? arrow_up : arrow_down));
+            market_listing_selector.text(`${market_listing_selector.text()} ${asc ? arrow_up : arrow_down}`);
 
             if (list.sort == null) {
                 return;
@@ -3387,12 +3342,12 @@
         function getListingFromLists(listingid) {
             // Sometimes listing ids are contained in multiple lists (?), use the last one available as this is the one we're most likely interested in.
             for (let i = marketLists.length - 1; i >= 0; i--) {
-                let values = marketLists[i].get('market_listing_item_name', 'mylisting_' + listingid + '_name');
+                let values = marketLists[i].get('market_listing_item_name', `mylisting_${listingid}_name`);
                 if (values != null && values.length > 0) {
                     return values[0];
                 }
 
-                values = marketLists[i].get('market_listing_item_name', 'mbuyorder_' + listingid + '_name');
+                values = marketLists[i].get('market_listing_item_name', `mbuyorder_${listingid}_name`);
                 if (values != null && values.length > 0) {
                     return values[0];
                 }
@@ -3403,8 +3358,8 @@
 
         function removeListingFromLists(listingid) {
             for (let i = 0; i < marketLists.length; i++) {
-                marketLists[i].remove('market_listing_item_name', 'mylisting_' + listingid + '_name');
-                marketLists[i].remove('market_listing_item_name', 'mbuyorder_' + listingid + '_name');
+                marketLists[i].remove('market_listing_item_name', `mylisting_${listingid}_name`);
+                marketLists[i].remove('market_listing_item_name', `mbuyorder_${listingid}_name`);
             }
         }
 
@@ -3645,13 +3600,13 @@
                         const originalAmount = parseInt(rgItem.original_amount);
                         const currentAmount = parseInt(rgItem.amount);
                         const usedAmount = originalAmount - currentAmount;
-                        text += usedAmount.toString() + 'x ';
+                        text += `${usedAmount.toString()}x `;
                     }
 
                     text += rgItem.name;
 
                     if (rgItem.type != null && rgItem.type.length > 0) {
-                        text += ' (' + rgItem.type + ')';
+                        text += ` (${rgItem.type})`;
                     }
                 } else {
                     text = 'Unknown Item';
@@ -3676,13 +3631,13 @@
                 return a[1] - b[1];
             }).reverse();
 
-            let totalText = '<strong>Number of unique items: ' + sortable.length + ', worth ' + formatPrice(totalPrice) + '<br/><br/></strong>';
+            let totalText = `<strong>Number of unique items: ${sortable.length}, worth ${formatPrice(totalPrice)}<br/><br/></strong>`;
             let totalNumOfItems = 0;
             for (let i = 0; i < sortable.length; i++) {
-                totalText += sortable[i][1] + 'x ' + sortable[i][0] + '<br/>';
+                totalText += `${sortable[i][1]}x ${sortable[i][0]}<br/>`;
                 totalNumOfItems += sortable[i][1];
             }
-            totalText += '<br/><strong>Total items: ' + totalNumOfItems + '</strong><br/>';
+            totalText += `<br/><strong>Total items: ${totalNumOfItems}</strong><br/>`;
 
             return totalText;
         }
@@ -3746,8 +3701,8 @@
             const your_sum = sumTradeOfferAssets(unsafeWindow.g_rgCurrentTradeStatus.me.assets, unsafeWindow.UserYou);
             const their_sum = sumTradeOfferAssets(unsafeWindow.g_rgCurrentTradeStatus.them.assets, unsafeWindow.UserThem);
 
-            $('div.offerheader:nth-child(1) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_your_sum">' + your_sum + '</div>');
-            $('div.offerheader:nth-child(3) > div:nth-child(3)').append('<div class="trade_offer_sum" id="trade_offer_their_sum">' + their_sum + '</div>');
+            $('div.offerheader:nth-child(1) > div:nth-child(3)').append(`<div class="trade_offer_sum" id="trade_offer_your_sum">${your_sum}</div>`);
+            $('div.offerheader:nth-child(3) > div:nth-child(3)').append(`<div class="trade_offer_sum" id="trade_offer_their_sum">${their_sum}</div>`);
         });
 
 
@@ -3862,22 +3817,22 @@
         </div>`);
 
         unsafeWindow.ShowConfirmDialog('Steam Economy Enhancer', price_options).done(() => {
-            setSetting(SETTING_MIN_NORMAL_PRICE, $('#' + SETTING_MIN_NORMAL_PRICE, price_options).val());
-            setSetting(SETTING_MAX_NORMAL_PRICE, $('#' + SETTING_MAX_NORMAL_PRICE, price_options).val());
-            setSetting(SETTING_MIN_FOIL_PRICE, $('#' + SETTING_MIN_FOIL_PRICE, price_options).val());
-            setSetting(SETTING_MAX_FOIL_PRICE, $('#' + SETTING_MAX_FOIL_PRICE, price_options).val());
-            setSetting(SETTING_MIN_MISC_PRICE, $('#' + SETTING_MIN_MISC_PRICE, price_options).val());
-            setSetting(SETTING_MAX_MISC_PRICE, $('#' + SETTING_MAX_MISC_PRICE, price_options).val());
-            setSetting(SETTING_PRICE_OFFSET, $('#' + SETTING_PRICE_OFFSET, price_options).val());
-            setSetting(SETTING_PRICE_MIN_CHECK_PRICE, $('#' + SETTING_PRICE_MIN_CHECK_PRICE, price_options).val());
-            setSetting(SETTING_PRICE_ALGORITHM, $('#' + SETTING_PRICE_ALGORITHM, price_options).val());
-            setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $('#' + SETTING_PRICE_IGNORE_LOWEST_Q, price_options).prop('checked') ? 1 : 0);
-            setSetting(SETTING_PRICE_HISTORY_HOURS, $('#' + SETTING_PRICE_HISTORY_HOURS, price_options).val());
-            setSetting(SETTING_MARKET_PAGE_COUNT, $('#' + SETTING_MARKET_PAGE_COUNT, price_options).val());
-            setSetting(SETTING_RELIST_AUTOMATICALLY, $('#' + SETTING_RELIST_AUTOMATICALLY, price_options).prop('checked') ? 1 : 0);
-            setSetting(SETTING_INVENTORY_PRICE_LABELS, $('#' + SETTING_INVENTORY_PRICE_LABELS, price_options).prop('checked') ? 1 : 0);
-            setSetting(SETTING_TRADEOFFER_PRICE_LABELS, $('#' + SETTING_TRADEOFFER_PRICE_LABELS, price_options).prop('checked') ? 1 : 0);
-            setSetting(SETTING_QUICK_SELL_BUTTONS, $('#' + SETTING_QUICK_SELL_BUTTONS, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_MIN_NORMAL_PRICE, $(`#${SETTING_MIN_NORMAL_PRICE}`, price_options).val());
+            setSetting(SETTING_MAX_NORMAL_PRICE, $(`#${SETTING_MAX_NORMAL_PRICE}`, price_options).val());
+            setSetting(SETTING_MIN_FOIL_PRICE, $(`#${SETTING_MIN_FOIL_PRICE}`, price_options).val());
+            setSetting(SETTING_MAX_FOIL_PRICE, $(`#${SETTING_MAX_FOIL_PRICE}`, price_options).val());
+            setSetting(SETTING_MIN_MISC_PRICE, $(`#${SETTING_MIN_MISC_PRICE}`, price_options).val());
+            setSetting(SETTING_MAX_MISC_PRICE, $(`#${SETTING_MAX_MISC_PRICE}`, price_options).val());
+            setSetting(SETTING_PRICE_OFFSET, $(`#${SETTING_PRICE_OFFSET}`, price_options).val());
+            setSetting(SETTING_PRICE_MIN_CHECK_PRICE, $(`#${SETTING_PRICE_MIN_CHECK_PRICE}`, price_options).val());
+            setSetting(SETTING_PRICE_ALGORITHM, $(`#${SETTING_PRICE_ALGORITHM}`, price_options).val());
+            setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $(`#${SETTING_PRICE_IGNORE_LOWEST_Q}`, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_PRICE_HISTORY_HOURS, $(`#${SETTING_PRICE_HISTORY_HOURS}`, price_options).val());
+            setSetting(SETTING_MARKET_PAGE_COUNT, $(`#${SETTING_MARKET_PAGE_COUNT}`, price_options).val());
+            setSetting(SETTING_RELIST_AUTOMATICALLY, $(`#${SETTING_RELIST_AUTOMATICALLY}`, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_INVENTORY_PRICE_LABELS, $(`#${SETTING_INVENTORY_PRICE_LABELS}`, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_TRADEOFFER_PRICE_LABELS, $(`#${SETTING_TRADEOFFER_PRICE_LABELS}`, price_options).prop('checked') ? 1 : 0);
+            setSetting(SETTING_QUICK_SELL_BUTTONS, $(`#${SETTING_QUICK_SELL_BUTTONS}`, price_options).prop('checked') ? 1 : 0);
 
             window.location.reload();
         });
