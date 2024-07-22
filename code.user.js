@@ -1851,7 +1851,7 @@
         }
 
         // Initialize the inventory UI.
-        function initializeInventoryUI() {  
+        function initializeInventoryUI() {
             const isOwnInventory = unsafeWindow.g_ActiveUser.strSteamId == unsafeWindow.g_steamID;
             let previousSelection = -1; // To store the index of the previous selection.
             updateInventoryUI(isOwnInventory);
@@ -2152,14 +2152,16 @@
                         return;
                     }
 
-                    const groupMain = $('<div id="listings_group">' +
-                      '<div><div id="listings_sell">Sell</div>' +
-                      histogram.sell_order_table +
-                      '</div>' +
-                      '<div><div id="listings_buy">Buy</div>' +
-                      histogram.buy_order_table +
-                      '</div>' +
-                      '</div>');
+                    const groupMain = $(`<div id="listings_group">
+                        <div>
+                            <div id="listings_sell">Sell</div>
+                            ${histogram.sell_order_table}
+                        </div>
+                        <div>
+                            <div id="listings_buy">Buy</div>
+                            ${histogram.buy_order_table}
+                        </div>
+                    </div>`);
 
                     $('#' + item_info_id + '_item_market_actions > div').after(groupMain);
 
@@ -2182,30 +2184,25 @@
 
                     let buttons = ' ';
                     prices.forEach((e) => {
-                        buttons +=
-                            '<a class="item_market_action_button item_market_action_button_green quick_sell" id="quick_sell' +
-                            e +
-                            '">' +
-                            '<span class="item_market_action_button_edge item_market_action_button_left"></span>' +
-                            '<span class="item_market_action_button_contents">' +
-                            formatPrice(e) +
-                            '</span>' +
-                            '<span class="item_market_action_button_edge item_market_action_button_right"></span>' +
-                            '<span class="item_market_action_button_preload"></span>' +
-                            '</a>';
+                        buttons += `<a class="item_market_action_button item_market_action_button_green quick_sell" id="quick_sell${e}">
+                            <span class="item_market_action_button_edge item_market_action_button_left"></span>
+                            <span class="item_market_action_button_contents">${formatPrice(e)}</span>
+                            <span class="item_market_action_button_edge item_market_action_button_right"></span>
+                            <span class="item_market_action_button_preload"></span>
+                        </a>`;
                     });
 
                     $('#' + item_info_id + '_item_market_actions', item_info).append(buttons);
 
-                    $('#' + item_info_id + '_item_market_actions', item_info).append('<div style="display:flex">' +
-                    '<input id="quick_sell_input" style="background-color: black;color: white;border: transparent;max-width:65px;text-align:center;" type="number" value="' + histogram.lowest_sell_order / 100 + '" step="0.01" />' +
-                    '&nbsp;<a class="item_market_action_button item_market_action_button_green quick_sell_custom">' +
-                    '<span class="item_market_action_button_edge item_market_action_button_left"></span>' +
-                    '<span class="item_market_action_button_contents">➜ Sell</span>' +
-                    '<span class="item_market_action_button_edge item_market_action_button_right"></span>' +
-                    '<span class="item_market_action_button_preload"></span>' +
-                    '</a>' +
-                    '</div>');
+                    $('#' + item_info_id + '_item_market_actions', item_info).append(`<div style="display:flex">
+                        <input id="quick_sell_input" style="background-color: black;color: white;border: transparent;max-width:65px;text-align:center;" type="number" value="${histogram.lowest_sell_order / 100}" step="0.01" />&nbsp;
+                        <a class="item_market_action_button item_market_action_button_green quick_sell_custom">
+                            <span class="item_market_action_button_edge item_market_action_button_left"></span>
+                            <span class="item_market_action_button_contents">➜ Sell</span>
+                            <span class="item_market_action_button_edge item_market_action_button_right"></span>
+                            <span class="item_market_action_button_preload"></span>
+                        </a>
+                    </div>`);
 
                     $('.quick_sell').on(
                         'click',
@@ -2244,7 +2241,7 @@
         function updateInventoryUI(isOwnInventory) {
             // Remove previous containers (e.g., when a user changes inventory).
             $('#inventory_sell_buttons').remove();
-            $('#price_options').remove();
+            $('#see_settings_modal').remove();
             $('#inventory_reload_button').remove();
 
             $('#see_settings').remove();
@@ -2256,21 +2253,27 @@
             const showMiscOptions = appId == 753;
             const TF2 = appId == 440;
 
-            const sellButtons = $('<div id="inventory_sell_buttons" class="see_inventory_buttons">' +
-              '<a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>Sell All Items</span></a>' +
-              '<a class="btn_green_white_innerfade btn_medium_wide sell_all_duplicates"><span>Sell All Duplicate Items</span></a>' +
-              '<a class="btn_green_white_innerfade btn_medium_wide sell_selected" style="display:none"><span>Sell Selected Items</span></a>' +
-              '<a class="btn_green_white_innerfade btn_medium_wide sell_manual" style="display:none"><span>Sell Manually</span></a>' +
-              (showMiscOptions
-                  ? '<a class="btn_green_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>' +
-                  '<div class="see_inventory_buttons">' +
-                  '<a class="btn_darkblue_white_innerfade btn_medium_wide turn_into_gems" style="display:none"><span>Turn Selected Items Into Gems</span></a>' +
-                  '<a class="btn_darkblue_white_innerfade btn_medium_wide gem_all_duplicates"><span>Turn All Duplicate Items Into Gems</span></a>' +
-                  '<a class="btn_darkblue_white_innerfade btn_medium_wide unpack_booster_packs" style="display:none"><span>Unpack Selected Booster Packs</span></a>' +
-                  '</div>'
-                  : '') +
-                  (TF2 ? '<a class="btn_green_white_innerfade btn_medium_wide sell_all_crates"><span>Sell All Crates</span></a>' : '') +
-                  '</div>');
+            let buttonsHtml = `
+                <a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>Sell All Items</span></a>
+                <a class="btn_green_white_innerfade btn_medium_wide sell_all_duplicates"><span>Sell All Duplicate Items</span></a>
+                <a class="btn_green_white_innerfade btn_medium_wide sell_selected" style="display:none"><span>Sell Selected Items</span></a>
+                <a class="btn_green_white_innerfade btn_medium_wide sell_manual" style="display:none"><span>Sell Manually</span></a>
+            `;
+
+            if (showMiscOptions) {
+                buttonsHtml += `
+                    <a class="btn_green_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>
+                    <div class="see_inventory_buttons">
+                        <a class="btn_darkblue_white_innerfade btn_medium_wide turn_into_gems" style="display:none"><span>Turn Selected Items Into Gems</span></a>
+                        <a class="btn_darkblue_white_innerfade btn_medium_wide gem_all_duplicates"><span>Turn All Duplicate Items Into Gems</span></a>
+                        <a class="btn_darkblue_white_innerfade btn_medium_wide unpack_booster_packs" style="display:none"><span>Unpack Selected Booster Packs</span></a>
+                    </div>
+                `;
+            } else if (TF2) {
+                buttonsHtml += '<a class="btn_green_white_innerfade btn_medium_wide sell_all_crates"><span>Sell All Crates</span></a>';
+            }
+
+            const sellButtons = $(`<div id="inventory_sell_buttons" class="see_inventory_buttons">${buttonsHtml}</div>`);
 
             const reloadButton =
                 $('<a id="inventory_reload_button" class="btn_darkblue_white_innerfade btn_medium_wide reload_inventory" style="margin-right:12px"><span>Reload Inventory</span></a>');
@@ -2416,12 +2419,12 @@
     if (currentPage == PAGE_INVENTORY || currentPage == PAGE_TRADEOFFER) {
 
         // Gets the active inventory.
-        function getActiveInventory() {  
+        function getActiveInventory() {
             return unsafeWindow.g_ActiveInventory;
         }
 
         // Sets the prices for the items.
-        function setInventoryPrices(items) {  
+        function setInventoryPrices(items) {
             inventoryPriceQueue.kill();
 
             items.forEach((item) => {
@@ -3406,57 +3409,44 @@
         }
 
         // Initialize the market UI.
-        function initializeMarketUI() {  
+        function initializeMarketUI() {
             $('.market_header_text').append('<progress id="see_market_progress" value="1" max="1" hidden>');
             marketProgressBar = document.getElementById('see_market_progress');
 
             // Sell orders.
-            $('.my_market_header').first().append('<div class="market_listing_buttons">' +
-
-            '<a class="item_market_action_button item_market_action_button_green select_all market_listing_button">' +
-            '<span class="item_market_action_button_contents" style="text-transform:none">Select all</span>' +
-            '</a>' +
-            '<span class="separator-small"></span>' +
-
-            '<a class="item_market_action_button item_market_action_button_green select_five_from_page market_listing_button">' +
-            '<span class="item_market_action_button_contents" style="text-transform:none">Select 5</span>' +
-            '</a>' +
-            '<span class="separator-small"></span>' +
-
-            '<a class="item_market_action_button item_market_action_button_green select_twentyfive_from_page market_listing_button">' +
-            '<span class="item_market_action_button_contents" style="text-transform:none">Select 25</span>' +
-            '</a>' +
-            '<span class="separator-small"></span>' +
-
-            '<a class="item_market_action_button item_market_action_button_green remove_selected market_listing_button">' +
-            '<span class="item_market_action_button_contents" style="text-transform:none">Remove selected</span>' +
-            '</a>' +
-            '<a class="item_market_action_button item_market_action_button_green relist_selected market_listing_button market_listing_button_right">' +
-            '<span class="item_market_action_button_contents" style="text-transform:none">Relist selected</span>' +
-            '</a>' +
-            '<span class="separator-small"></span>' +
-
-            '<a class="item_market_action_button item_market_action_button_green relist_overpriced market_listing_button market_listing_button_right">' +
-            '<span class="item_market_action_button_contents" style="text-transform:none">Relist overpriced</span>' +
-            '</a>' +
-            '<span class="separator-small"></span>' +
-
-            '<a class="item_market_action_button item_market_action_button_green select_overpriced market_listing_button market_listing_button_right">' +
-            '<span class="item_market_action_button_contents" style="text-transform:none">Select overpriced</span>' +
-            '</a>' +
-
-            '</div>');
+            $('.my_market_header').first().append(`<div class="market_listing_buttons">
+                <a class="item_market_action_button item_market_action_button_green select_all market_listing_button">
+                    <span class="item_market_action_button_contents">Select all</span>
+                </a>
+                <a class="item_market_action_button item_market_action_button_green select_five_from_page market_listing_button">
+                    <span class="item_market_action_button_contents">Select 5</span>
+                </a>
+                <a class="item_market_action_button item_market_action_button_green select_twentyfive_from_page market_listing_button">
+                    <span class="item_market_action_button_contents">Select 25</span>
+                </a>
+                <a class="item_market_action_button item_market_action_button_green remove_selected market_listing_button">
+                    <span class="item_market_action_button_contents">Remove selected</span>
+                </a>
+                <a class="item_market_action_button item_market_action_button_green relist_selected market_listing_button" style="margin-left:auto">
+                    <span class="item_market_action_button_contents">Relist selected</span>
+                </a>
+                <a class="item_market_action_button item_market_action_button_green relist_overpriced market_listing_button">
+                    <span class="item_market_action_button_contents">Relist overpriced</span>
+                </a>
+                <a class="item_market_action_button item_market_action_button_green select_overpriced market_listing_button">
+                    <span class="item_market_action_button_contents">Select overpriced</span>
+                </a>
+            </div>`);
 
             // Listings confirmations and buy orders.
-            $('.my_market_header').slice(1).append('<div class="market_listing_buttons">' +
-            '<a class="item_market_action_button item_market_action_button_green select_all market_listing_button">' +
-            '<span class="item_market_action_button_contents" style="text-transform:none">Select all</span>' +
-            '</a>' +
-            '<span class="separator-large"></span>' +
-            '<a class="item_market_action_button item_market_action_button_green remove_selected market_listing_button">' +
-            '<span class="item_market_action_button_contents" style="text-transform:none">Remove selected</span>' +
-            '</a>' +
-            '</div>');
+            $('.my_market_header').slice(1).append(`<div class="market_listing_buttons">
+                <a class="item_market_action_button item_market_action_button_green select_all market_listing_button">
+                    <span class="item_market_action_button_contents">Select all</span>
+                </a>
+                <a class="item_market_action_button item_market_action_button_green remove_selected market_listing_button">
+                    <span class="item_market_action_button_contents">Remove selected</span>
+                </a>
+            </div>`);
 
             $('.market_listing_table_header').on('click', 'span', function() {
                 if ($(this).hasClass('market_listing_edit_buttons') || $(this).hasClass('item_market_action_button_contents')) {
@@ -3597,7 +3587,7 @@
     //#region Tradeoffers
     if (currentPage == PAGE_TRADEOFFER) {
         // Gets the trade offer's inventory items from the active inventory.
-        function getTradeOfferInventoryItems() {  
+        function getTradeOfferInventoryItems() {
             const arr = [];
 
             for (const child in getActiveInventory().rgChildInventories) {
@@ -3628,7 +3618,7 @@
             return arr;
         }
 
-        function sumTradeOfferAssets(assets, user) {  
+        function sumTradeOfferAssets(assets, user) {
             const total = {};
             let totalPrice = 0;
             for (let i = 0; i < assets.length; i++) {
@@ -3774,18 +3764,15 @@
 
 
         // This only works with a new trade offer.
-        if (!window.location.href.includes('tradeoffer/new')) {
+        if (location.pathname !== '/tradeoffer/new/') {
             return;
         }
 
-        $('#inventory_displaycontrols').append(
-            '<br/>' +
-            '<div class="trade_offer_buttons">' +
-            '<a class="item_market_action_button item_market_action_button_green select_all" style="margin-top:1px">' +
-            '<span class="item_market_action_button_contents" style="text-transform:none">Select all from page</span>' +
-            '</a>' +
-            '</div>'
-        );
+        $('#inventory_displaycontrols').append(`<div class="trade_offer_buttons">
+            <a class="item_market_action_button item_market_action_button_green select_all">
+                <span class="item_market_action_button_contents" style="text-transform:none">Select all from page</span>
+            </a>
+        </div>`);
 
         $('.select_all').on('click', '*', () => {
             $('.inventory_ctn:visible > .inventory_page:visible > .itemHolder:visible').delayedEach(250, (i, it) => {
@@ -3806,65 +3793,73 @@
 
     //#region Settings
     function openSettings() {
-        const price_options = $(
-            '<div id="price_options">' +
-            '<div style="margin-bottom:6px;">' +
-            'Calculate prices as the:&nbsp;<select class="price_option_input" style="background-color: black;color: white;border: transparent;" id="' + SETTING_PRICE_ALGORITHM + '">' +
-            '<option value="1"' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : '') + '>Maximum of the average history and lowest sell listing</option>' +
-            '<option value="2" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : '') + '>Lowest sell listing</option>' +
-            '<option value="3" ' + (getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 3 ? 'selected="selected"' : '') + '>Highest current buy order or lowest sell listing</option>' +
-            '</select>' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-bottom:6px;">' +
-            'Hours to use for the average history calculated price:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="number" min="0" step="2" id="' + SETTING_PRICE_HISTORY_HOURS + '" value=' + getSettingWithDefault(SETTING_PRICE_HISTORY_HOURS) + '>' +
-            '</div>' +
-            '<div style="margin-bottom:6px;">' +
-            'The value to add to the calculated price (minimum and maximum are respected):&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_OFFSET + '" value=' + getSettingWithDefault(SETTING_PRICE_OFFSET) + '>' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-top:6px">' +
-            'Use the second lowest sell listing when the lowest sell listing has a low quantity:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_PRICE_IGNORE_LOWEST_Q + '" ' + (getSettingWithDefault(SETTING_PRICE_IGNORE_LOWEST_Q) == 1 ? 'checked=""' : '') + '>' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-top:6px;">' +
-            'Don\'t check market listings with prices of and below:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_PRICE_MIN_CHECK_PRICE + '" value=' + getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE) + '>' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-top:24px">' +
-            'Show price labels in inventory:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_INVENTORY_PRICE_LABELS + '" ' + (getSettingWithDefault(SETTING_INVENTORY_PRICE_LABELS) == 1 ? 'checked=""' : '') + '>' +
-            '</div>' +
-            '<div style="margin-top:6px">' +
-            'Show price labels in trade offers:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_TRADEOFFER_PRICE_LABELS + '" ' + (getSettingWithDefault(SETTING_TRADEOFFER_PRICE_LABELS) == 1 ? 'checked=""' : '') + '>' +
-            '</div>' +
-            '<div style="margin-top:6px">' +
-            'Show quick sell info and buttons:&nbsp;<input class="price_option_input" style="background-color: black;color: white;border: transparent;" type="checkbox" id="' + SETTING_QUICK_SELL_BUTTONS + '" ' + (getSettingWithDefault(SETTING_QUICK_SELL_BUTTONS) == 1 ? 'checked=""' : '') + '>' +
-            '</div>' +
-            '<div style="margin-top:24px">' +
-            '<div style="margin-bottom:6px;">' +
-            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_NORMAL_PRICE) + '>&nbsp;' +
-            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_NORMAL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_NORMAL_PRICE) + '>&nbsp;price for normal cards' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-bottom:6px;">' +
-            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_FOIL_PRICE) + '>&nbsp;' +
-            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_FOIL_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_FOIL_PRICE) + '>&nbsp;price for foil cards' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-bottom:6px;">' +
-            'Minimum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MIN_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MIN_MISC_PRICE) + '>&nbsp;' +
-            'and maximum:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" step="0.01" id="' + SETTING_MAX_MISC_PRICE + '" value=' + getSettingWithDefault(SETTING_MAX_MISC_PRICE) + '>&nbsp;price for other items' +
-            '<br/>' +
-            '</div>' +
-            '<div style="margin-top:24px;margin-bottom:6px;">' +
-            'Market items per page:&nbsp;<input class="price_option_input price_option_price" style="background-color: black;color: white;border: transparent;" type="number" min="1" step="5" id="' + SETTING_MARKET_PAGE_COUNT + '" value=' + getSettingWithDefault(SETTING_MARKET_PAGE_COUNT) + '>' +
-            '<br/>' +
-            '<div style="margin-top:6px;">' +
-            'Automatically relist overpriced market listings (slow on large inventories):&nbsp;<input id="' + SETTING_RELIST_AUTOMATICALLY + '" class="market_relist_auto" type="checkbox" ' + (getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked=""' : '') + '>' +
-            '</label>' +
-            '</div>' +
-            '</div>' +
-            '</div>');
+        const price_options = $(`<div id="see_settings_modal">
+            <div>
+                Calculate prices as the:&nbsp;
+                <select id="${SETTING_PRICE_ALGORITHM}">
+                    <option value="1"${getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : ''}>Maximum of the average history and lowest sell listing</option>
+                    <option value="2" ${getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : ''}>Lowest sell listing</option>
+                    <option value="3" ${getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 3 ? 'selected="selected"' : ''}>Highest current buy order or lowest sell listing</option>
+                </select>
+            </div>
+            <div style="margin-top:6px;">
+                Hours to use for the average history calculated price:&nbsp;
+                <input type="number" min="0" step="2" id="${SETTING_PRICE_HISTORY_HOURS}" value=${getSettingWithDefault(SETTING_PRICE_HISTORY_HOURS)}>
+            </div>
+            <div style="margin-top:6px;">
+                The value to add to the calculated price (minimum and maximum are respected):&nbsp;
+                <input type="number" step="0.01" id="${SETTING_PRICE_OFFSET}" value=${getSettingWithDefault(SETTING_PRICE_OFFSET)}>
+            </div>
+            <div style="margin-top:6px">
+                Use the second lowest sell listing when the lowest sell listing has a low quantity:&nbsp;
+                <input type="checkbox" id="${SETTING_PRICE_IGNORE_LOWEST_Q}" ${getSettingWithDefault(SETTING_PRICE_IGNORE_LOWEST_Q) == 1 ? 'checked' : ''}>
+            </div>
+            <div style="margin-top:6px;">
+                Don't check market listings with prices of and below:&nbsp;
+                <input type="number" step="0.01" id="${SETTING_PRICE_MIN_CHECK_PRICE}" value=${getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE)}>
+            </div>
+            <div style="margin-top:24px">
+                Show price labels in inventory:&nbsp;
+                <input type="checkbox" id="${SETTING_INVENTORY_PRICE_LABELS}" ${getSettingWithDefault(SETTING_INVENTORY_PRICE_LABELS) == 1 ? 'checked' : ''}>
+            </div>
+            <div style="margin-top:6px">
+                Show price labels in trade offers:&nbsp;
+                <input type="checkbox" id="${SETTING_TRADEOFFER_PRICE_LABELS}" ${getSettingWithDefault(SETTING_TRADEOFFER_PRICE_LABELS) == 1 ? 'checked' : ''}>
+            </div>
+            <div style="margin-top:6px">
+                Show quick sell info and buttons:&nbsp;
+                <input type="checkbox" id="${SETTING_QUICK_SELL_BUTTONS}" ${getSettingWithDefault(SETTING_QUICK_SELL_BUTTONS) == 1 ? 'checked' : ''}>
+            </div>
+            <div style="margin-top:24px;">
+                Minimum:&nbsp;
+                <input type="number" step="0.01" id="${SETTING_MIN_NORMAL_PRICE}" value=${getSettingWithDefault(SETTING_MIN_NORMAL_PRICE)}>
+                &nbsp;and maximum:&nbsp;
+                <input type="number" step="0.01" id="${SETTING_MAX_NORMAL_PRICE}" value=${getSettingWithDefault(SETTING_MAX_NORMAL_PRICE)}>
+                &nbsp;price for normal cards
+            </div>
+            <div style="margin-top:6px;">
+                Minimum:&nbsp;
+                <input type="number" step="0.01" id="${SETTING_MIN_FOIL_PRICE}" value=${getSettingWithDefault(SETTING_MIN_FOIL_PRICE)}>
+                &nbsp;and maximum:&nbsp;
+                <input type="number" step="0.01" id="${SETTING_MAX_FOIL_PRICE}" value=${getSettingWithDefault(SETTING_MAX_FOIL_PRICE)}>
+                &nbsp;price for foil cards
+            </div>
+            <div style="margin-top:6px;">
+                Minimum:&nbsp;
+                <input type="number" step="0.01" id="${SETTING_MIN_MISC_PRICE}" value=${getSettingWithDefault(SETTING_MIN_MISC_PRICE)}>
+                &nbsp;and maximum:&nbsp;
+                <input type="number" step="0.01" id="${SETTING_MAX_MISC_PRICE}" value=${getSettingWithDefault(SETTING_MAX_MISC_PRICE)}>
+                &nbsp;price for other items
+            </div>
+            <div style="margin-top:24px;">
+                Market items per page:&nbsp;
+                <input type="number" min="1" step="5" id="${SETTING_MARKET_PAGE_COUNT}" value=${getSettingWithDefault(SETTING_MARKET_PAGE_COUNT)}>
+            </div>
+            <div style="margin-top:6px;">
+                Automatically relist overpriced market listings (slow on large inventories):&nbsp;
+                <input id="${SETTING_RELIST_AUTOMATICALLY}" class="market_relist_auto" type="checkbox" ${getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked' : ''}>
+            </div>
+        </div>`);
 
         unsafeWindow.ShowConfirmDialog('Steam Economy Enhancer', price_options).done(() => {
             setSetting(SETTING_MIN_NORMAL_PRICE, $('#' + SETTING_MIN_NORMAL_PRICE, price_options).val());
@@ -3890,44 +3885,56 @@
     //#endregion
 
     //#region UI
-    injectCss(
-        '.ui-selected { outline: 2px dashed #FFFFFF; } ' +
-        '#logger { color: #767676; font-size: 12px;margin-top:16px; max-height: 200px; overflow-y: auto; }' +
-        '.trade_offer_sum { color: #767676; font-size: 12px;margin-top:8px; }' +
-        '.trade_offer_buttons { margin-top: 12px; }' +
-        '.market_commodity_orders_table { font-size:12px; font-family: "Motiva Sans", Sans-serif; font-weight: 300; }' +
-        '.market_commodity_orders_table th { padding-left: 10px; }' +
-        '#listings_group { display: flex; justify-content: space-between; margin-bottom: 8px; }' +
-        '#listings_sell { text-align: right; color: #589328; font-weight:600; }' +
-        '#listings_buy { text-align: right; color: #589328; font-weight:600; }' +
-        '.market_listing_my_price { height: 50px; padding-right:6px; }' +
-        '.market_listing_edit_buttons.actual_content { width:276px; transition-property: background-color, border-color; transition-timing-function: linear; transition-duration: 0.5s;}' +
-        '.market_listing_buttons { margin-top: 6px; background: rgba(0, 0, 0, 0.4); padding: 5px 0px 1px 0px; }' +
-        '.market_listing_button { margin-right: 4px; }' +
-        '.market_listing_button_right { float:right; }' +
-        '.market_listing_button:first-child { margin-left: 4px; }' +
-        '.market_listing_label_right { float:right; font-size:12px; margin-top:1px; }' +
-        '.market_listing_select { position: absolute; top: 16px;right: 10px; display: flex; }' +
-        '#market_listing_relist { vertical-align: middle; position: relative; bottom: -1px; right: 2px; }' +
-        '.pick_and_sell_button > a { vertical-align: middle; }' +
-        '.market_relist_auto { margin-bottom: 8px;  }' +
-        '.market_relist_auto_label { margin-right: 6px;  }' +
-        '.quick_sell { margin-right: 4px; }' +
-        '.spinner{margin:10px auto;width:50px;height:40px;text-align:center;font-size:10px;}.spinner > div{background-color:#ccc;height:100%;width:6px;display:inline-block;-webkit-animation:sk-stretchdelay 1.2s infinite ease-in-out;animation:sk-stretchdelay 1.2s infinite ease-in-out}.spinner .rect2{-webkit-animation-delay:-1.1s;animation-delay:-1.1s}.spinner .rect3{-webkit-animation-delay:-1s;animation-delay:-1s}.spinner .rect4{-webkit-animation-delay:-.9s;animation-delay:-.9s}.spinner .rect5{-webkit-animation-delay:-.8s;animation-delay:-.8s}@-webkit-keyframes sk-stretchdelay{0%,40%,100%{-webkit-transform:scaleY(0.4)}20%{-webkit-transform:scaleY(1.0)}}@keyframes sk-stretchdelay{0%,40%,100%{transform:scaleY(0.4);-webkit-transform:scaleY(0.4)}20%{transform:scaleY(1.0);-webkit-transform:scaleY(1.0)}}' +
-        '#market_name_search { float: right; background: rgba(0, 0, 0, 0.25); color: white; border: none;height: 25px; padding-left: 6px;}' +
-        '.price_option_price { width: 100px }' +
-        '#see_settings { background: #26566c; margin-right: 10px; height: 24px; line-height:24px; display:inline-block; padding: 0px 6px; }' +
-        '.inventory_item_price { top: 0px;position: absolute;right: 0;background: #3571a5;padding: 2px;color: white; font-size:11px; border: 1px solid #666666;}' +
-        '.separator-large {display:inline-block;width:6px;}' +
-        '.separator-small {display:inline-block;width:1px;}' +
-        '.see_inventory_buttons {display:flex;flex-wrap:wrap;gap:10px;}' +
-        '.see_inventory_buttons > .see_inventory_buttons {flex-basis: 100%;}' +
-        '#see_market_progress { display: block; width: 50%; height: 20px; }' +
-        '#see_market_progress[hidden] { visibility: hidden; }' +
-        '.pagination { padding-left: 0px; }' +
-        '.pagination li { display:inline-block; padding: 5px 10px;background: rgba(255, 255, 255, 0.10); margin-right: 6px; border: 1px solid #666666; }' +
-        '.pagination li.active { background: rgba(255, 255, 255, 0.25); }'
-    );
+    injectCss(`
+        .ui-selected { outline: 2px dashed #FFFFFF; }
+        #logger { color: #767676; font-size: 12px;margin-top:16px; max-height: 200px; overflow-y: auto; }
+        .trade_offer_sum { color: #767676; font-size: 12px; margin-top:8px; user-select: text; }
+        .trade_offer_buttons { margin-top: 12px; }
+        .market_commodity_orders_table { font-size:12px; font-family: "Motiva Sans", Sans-serif; font-weight: 300; }
+        .market_commodity_orders_table th { padding-left: 10px; }
+        #listings_group { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        #listings_sell { text-align: right; color: #589328; font-weight:600; }
+        #listings_buy { text-align: right; color: #589328; font-weight:600; }
+        .market_listing_my_price { height: 50px; padding-right:6px; }
+        .market_listing_edit_buttons.actual_content { width:276px; transition-property: background-color, border-color; transition-timing-function: linear; transition-duration: 0.5s;}
+        .market_listing_buttons { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; padding: 5px; background: rgba(0, 0, 0, 0.4); }
+        .market_listing_label_right { float:right; font-size:12px; margin-top:1px; }
+        .market_listing_select { position: absolute; top: 16px;right: 10px; display: flex; }
+        #market_listing_relist { vertical-align: middle; position: relative; bottom: -1px; right: 2px; }
+        .pick_and_sell_button > a { vertical-align: middle; }
+        .market_relist_auto { margin-bottom: 8px;  }
+        .market_relist_auto_label { margin-right: 6px; }
+        .quick_sell { margin-right: 4px; }
+
+        .spinner {margin:10px auto;width:50px;height:40px;text-align:center;font-size:10px;}
+        .spinner > div {background-color:#ccc;height:100%;width:6px;display:inline-block;animation:sk-stretchdelay 1.2s infinite ease-in-out}
+        .spinner .rect2 {animation-delay:-1.1s}
+        .spinner .rect3 {animation-delay:-1s}
+        .spinner .rect4 {animation-delay:-.9s}
+        .spinner .rect5 {animation-delay:-.8s}
+        @keyframes sk-stretchdelay {
+            0%,40%,100% {transform:scaleY(0.4);}
+            20% {transform:scaleY(1.0);}
+        }
+
+        #market_name_search { float: right; background: rgba(0, 0, 0, 0.25); color: white; border: none;height: 25px; padding-left: 6px;}
+        .price_option_price { width: 100px }
+        .inventory_item_price { top: 0px;position: absolute;right: 0;background: #3571a5;padding: 2px;color: white; font-size:11px; border: 1px solid #666666;}
+
+        .see_inventory_buttons {display:flex;flex-wrap:wrap;gap:10px;}
+        .see_inventory_buttons > .see_inventory_buttons {flex-basis: 100%;}
+        #see_market_progress { display: block; width: 50%; height: 20px; }
+        #see_market_progress[hidden] { visibility: hidden; }
+
+        .pagination { padding-left: 0px; }
+        .pagination li { display:inline-block; padding: 5px 10px;background: rgba(255, 255, 255, 0.10); margin-right: 6px; border: 1px solid #666666; }
+        .pagination li.active { background: rgba(255, 255, 255, 0.25); }
+
+        #see_settings { background: #26566c; margin-right: 10px; height: 24px; line-height:24px; display:inline-block; padding: 0px 6px; }
+        #see_settings_modal select, #see_settings_modal input[type="number"] { background-color: black; color: white; border: transparent; padding: 4px 8px; }
+        #see_settings_modal input[type="number"] { width: 100px; }
+        #see_settings_modal input[type="checkbox"] { width: 16px; height: 16px; vertical-align: middle; accent-color: #000; }
+    `);
 
     $(document).ready(() => {
         // Make sure the user is logged in, there's not much we can do otherwise.
