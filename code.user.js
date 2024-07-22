@@ -3893,7 +3893,7 @@
     injectCss(
         '.ui-selected { outline: 2px dashed #FFFFFF; } ' +
         '#logger { color: #767676; font-size: 12px;margin-top:16px; max-height: 200px; overflow-y: auto; }' +
-        '.trade_offer_sum { color: #767676; font-size: 12px;margin-top:8px; }' +
+        '.trade_offer_sum { color: #767676; font-size: 12px; margin-top:8px; user-select: text; }' +
         '.trade_offer_buttons { margin-top: 12px; }' +
         '.market_commodity_orders_table { font-size:12px; font-family: "Motiva Sans", Sans-serif; font-weight: 300; }' +
         '.market_commodity_orders_table th { padding-left: 10px; }' +
