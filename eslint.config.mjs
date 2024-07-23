@@ -14,7 +14,9 @@ export default [
     ...pluginJs.configs.recommended,
     ...stylistic.configs['all-flat'],
     rules: {
+      '@stylistic/brace-style': ['error', '1tbs'],
       '@stylistic/function-call-argument-newline': 'off',
+      '@stylistic/keyword-spacing': ['error', { before: true }],
       '@stylistic/multiline-comment-style': 'off',
       '@stylistic/multiline-ternary': 'off',
       '@stylistic/newline-per-chained-call': 'off',
@@ -23,11 +25,12 @@ export default [
       '@stylistic/quotes': ['error', 'single'],
       '@stylistic/space-before-function-paren': ['error', 'never'],
       '@stylistic/spaced-comment': 'off',
-      '@stylistic/brace-style': ['error', '1tbs'],
+      '@stylistic/template-curly-spacing': ['error', 'never'],
       curly: ['error', 'all'],
       'no-var': 'error',
-      'prefer-const': 'error',
       'prefer-arrow-callback': 'error',
+      'prefer-const': 'error',
+      'prefer-template': 'error',
     }
   },
   {
