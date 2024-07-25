@@ -1253,7 +1253,7 @@
                         }
 
                         const delay = sellQueue.length() > 0 
-                            ? Math.max(parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000, 0)
+                            ? parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000
                             : 0;
 
                         setTimeout(() => next(), delay);
