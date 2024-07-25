@@ -1252,7 +1252,11 @@
                                 css('background', COLOR_ERROR);
                         }
 
-                        next();
+                        const delay = sellQueue.length() > 0 
+                            ? Math.max(parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000, 0)
+                            : 0;
+
+                        setTimeout(() => next(), delay);
                     }
                 );
             },
@@ -1724,33 +1728,22 @@
                 item,
                 item.ignoreErrors,
                 (success, cached) => {
+                    let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000;
+
                     if (success) {
-                        setTimeout(
-                            () => {
-                                next();
-                            },
-                            cached ? 0 : getRandomInt(1000, 1500)
-                        );
+                        delay = Math.max(delay, getRandomInt(1000, 1500));
+                        setTimeout(() => next(),  cached ? 0 : delay);
                     } else {
                         if (!item.ignoreErrors) {
                             item.ignoreErrors = true;
                             itemQueue.push(item);
                         }
 
-                        const delay = numberOfFailedRequests > 1
-                            ? getRandomInt(30000, 45000)
-                            : getRandomInt(1000, 1500);
+                        delay = Math.max(delay, numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : getRandomInt(1000, 1500));
 
-                        if (numberOfFailedRequests > 3) {
-                            numberOfFailedRequests = 0;
-                        }
+                        numberOfFailedRequests = numberOfFailedRequests > 3 ? 0 : numberOfFailedRequests;
 
-                        setTimeout(
-                            () => {
-                                next();
-                            },
-                            cached ? 0 : delay
-                        );
+                        setTimeout(() => next(),  cached ? 0 : delay);
                     }
                 }
             );
@@ -2412,13 +2405,11 @@
                     item,
                     false,
                     (success, cached) => {
+                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000;
+
                         if (success) {
-                            setTimeout(
-                                () => {
-                                    next();
-                                },
-                                cached ? 0 : getRandomInt(1000, 1500)
-                            );
+                            delay = Math.max(delay, getRandomInt(1000, 1500));
+                            setTimeout(() => next(), cached ? 0 : delay);
                         } else {
                             if (!item.ignoreErrors) {
                                 item.ignoreErrors = true;
@@ -2427,17 +2418,11 @@
 
                             numberOfFailedRequests++;
 
-                            const delay = numberOfFailedRequests > 1
-                                ? getRandomInt(30000, 45000)
-                                : getRandomInt(1000, 1500);
+                            delay = Math.max(delay, numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : getRandomInt(1000, 1500));
 
-                            if (numberOfFailedRequests > 3) {
-                                numberOfFailedRequests = 0;
-                            }
+                            numberOfFailedRequests = numberOfFailedRequests > 3 ? 0 : numberOfFailedRequests;
 
-                            setTimeout(() => {
-                                next();
-                            }, cached ? 0 : delay);
+                            setTimeout(() => next(), cached ? 0 : delay);
                         }
                     }
                 );
@@ -2516,28 +2501,19 @@
                 listing,
                 false,
                 (success, cached) => {
+                    let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000;
+
+                    const callback = () => {
+                        increaseMarketProgress();
+                        next();
+                    }
+
                     if (success) {
-                        setTimeout(
-                            () => {
-                                increaseMarketProgress();
-                                next();
-                            },
-                            cached ? 0 : getRandomInt(1000, 1500)
-                        );
+                        delay = marketListingsQueue.length() > 0 ? Math.max(delay, getRandomInt(1000, 1500)) : 0;
+                        setTimeout(callback, cached ? 0 : delay);
                     } else {
-                        setTimeout(
-                            () => {
-                                marketListingsQueueWorker(
-                                    listing,
-                                    true,
-                                    () => {
-                                        increaseMarketProgress();
-                                        next(); // Go to the next queue item, regardless of success.
-                                    }
-                                );
-                            },
-                            cached ? 0 : getRandomInt(30000, 45000)
-                        );
+                        delay = marketListingsQueue.length() > 0 ? Math.max(delay, getRandomInt(30000, 45000)) : 0;
+                        setTimeout(() => marketListingsQueueWorker(listing, true, callback), cached ? 0 : delay);
                     }
                 }
             );
@@ -2722,28 +2698,19 @@
                     item,
                     false,
                     (success) => {
+                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000;
+
+                        const callback = () => {
+                            increaseMarketProgress();
+                            next();
+                        };
+
                         if (success) {
-                            setTimeout(
-                                () => {
-                                    increaseMarketProgress();
-                                    next();
-                                },
-                                getRandomInt(1000, 1500)
-                            );
+                            delay = marketOverpricedQueue.length() > 0 ? Math.max(delay, getRandomInt(1000, 1500)) : 0;
+                            setTimeout(callback, delay);
                         } else {
-                            setTimeout(
-                                () => {
-                                    marketOverpricedQueueWorker(
-                                        item,
-                                        true,
-                                        () => {
-                                            increaseMarketProgress();
-                                            next(); // Go to the next queue item, regardless of success.
-                                        }
-                                    );
-                                },
-                                getRandomInt(30000, 45000)
-                            );
+                            delay = Math.max(delay, getRandomInt(30000, 45000));
+                            setTimeout(marketOverpricedQueueWorker(item, true, callback), delay);
                         }
                     }
                 );
@@ -2850,33 +2817,24 @@
                     listingid,
                     false,
                     (success) => {
+                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000;
+
+                        const callback = () => {
+                            increaseMarketProgress();
+                            next();
+                        };
+                        
                         if (success) {
-                            setTimeout(
-                                () => {
-                                    increaseMarketProgress();
-                                    next();
-                                },
-                                getRandomInt(50, 100)
-                            );
+                            delay = marketRemoveQueue.length() > 0 ? Math.max(delay, getRandomInt(50, 100)) : 0;
+                            setTimeout(callback, delay);
                         } else {
-                            setTimeout(
-                                () => {
-                                    marketRemoveQueueWorker(
-                                        listingid,
-                                        true,
-                                        () => {
-                                            increaseMarketProgress();
-                                            next(); // Go to the next queue item, regardless of success.
-                                        }
-                                    );
-                                },
-                                getRandomInt(30000, 45000)
-                            );
+                            delay = Math.max(delay, getRandomInt(30000, 45000));
+                            setTimeout(() => marketRemoveQueueWorker(listingid, true, callback), delay);
                         }
                     }
                 );
             },
-            10
+            1
         );
 
         function marketRemoveQueueWorker(listingid, ignoreErrors, callback) {
@@ -2916,12 +2874,20 @@
 
         const marketListingsItemsQueue = async.queue(
             (listing, next) => {
+                const callback = () => {
+                    const delay = marketListingsItemsQueue.length() > 0 
+                        ? parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000
+                        : 0;
+
+                    increaseMarketProgress();
+                    setTimeout(() => next(), delay);
+                };
+
                 $.get(
                     `${window.location.origin}/market/mylistings?count=100&start=${listing}`,
                     (data) => {
                         if (!data || !data.success) {
-                            increaseMarketProgress();
-                            next();
+                            callback();
                             return;
                         }
 
@@ -2934,16 +2900,13 @@
                         // g_rgAssets
                         unsafeWindow.MergeWithAssetArray(data.assets); // This is a method from Steam.
 
-                        increaseMarketProgress();
-                        next();
+                        callback()
                     },
                     'json'
-                ).
-                    fail(() => {
-                        increaseMarketProgress();
-                        next();
+                ).fail(() => {
+                        callback();
                         return;
-                    });
+                });
             },
             1
         );
