@@ -1728,7 +1728,7 @@
                 item,
                 item.ignoreErrors,
                 (success, cached) => {
-                    let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000;
+                    let delay = 0;
 
                     if (success) {
                         delay = Math.max(delay, getRandomInt(1000, 1500));
@@ -2405,7 +2405,7 @@
                     item,
                     false,
                     (success, cached) => {
-                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000;
+                        let delay = 0;
 
                         if (success) {
                             delay = Math.max(delay, getRandomInt(1000, 1500));
@@ -2501,7 +2501,7 @@
                 listing,
                 false,
                 (success, cached) => {
-                    let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000;
+                    let delay = 0;
 
                     const callback = () => {
                         increaseMarketProgress();
@@ -2875,9 +2875,7 @@
         const marketListingsItemsQueue = async.queue(
             (listing, next) => {
                 const callback = () => {
-                    const delay = marketListingsItemsQueue.length() > 0 
-                        ? parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000
-                        : 0;
+                    let delay = 0;
 
                     increaseMarketProgress();
                     setTimeout(() => next(), delay);
