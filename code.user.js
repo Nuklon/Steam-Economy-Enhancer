@@ -148,6 +148,7 @@
     const SETTING_LAST_CACHE = 'SETTING_LAST_CACHE';
     const SETTING_RELIST_AUTOMATICALLY = 'SETTING_RELIST_AUTOMATICALLY';
     const SETTING_MARKET_PAGE_COUNT = 'SETTING_MARKET_PAGE_COUNT';
+    const SETTING_DELAY_BETWEEN_MARKET_ACTIONS = 'SETTING_DELAY_BETWEEN_MARKET_ACTIONS';
 
     const settingDefaults = {
         SETTING_MIN_NORMAL_PRICE: 0.05,
@@ -166,7 +167,8 @@
         SETTING_QUICK_SELL_BUTTONS: 1,
         SETTING_LAST_CACHE: 0,
         SETTING_RELIST_AUTOMATICALLY: 0,
-        SETTING_MARKET_PAGE_COUNT: 100
+        SETTING_MARKET_PAGE_COUNT: 100,
+        SETTING_DELAY_BETWEEN_MARKET_ACTIONS: 0
     };
 
     function getSettingWithDefault(name) {
@@ -3811,6 +3813,10 @@
                 <input type="number" min="1" step="5" id="${SETTING_MARKET_PAGE_COUNT}" value=${getSettingWithDefault(SETTING_MARKET_PAGE_COUNT)}>
             </div>
             <div style="margin-top:6px;">
+                Delay in seconds between market actions:&nbsp;
+                <input type="number" min="0" step="1" id="${SETTING_DELAY_BETWEEN_MARKET_ACTIONS}" value=${getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS)}>
+            </div>
+            <div style="margin-top:6px;">
                 Automatically relist overpriced market listings (slow on large inventories):&nbsp;
                 <input id="${SETTING_RELIST_AUTOMATICALLY}" class="market_relist_auto" type="checkbox" ${getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked' : ''}>
             </div>
@@ -3829,6 +3835,7 @@
             setSetting(SETTING_PRICE_IGNORE_LOWEST_Q, $(`#${SETTING_PRICE_IGNORE_LOWEST_Q}`, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_PRICE_HISTORY_HOURS, $(`#${SETTING_PRICE_HISTORY_HOURS}`, price_options).val());
             setSetting(SETTING_MARKET_PAGE_COUNT, $(`#${SETTING_MARKET_PAGE_COUNT}`, price_options).val());
+            setSetting(SETTING_DELAY_BETWEEN_MARKET_ACTIONS, $(`#${SETTING_DELAY_BETWEEN_MARKET_ACTIONS}`, price_options).val());
             setSetting(SETTING_RELIST_AUTOMATICALLY, $(`#${SETTING_RELIST_AUTOMATICALLY}`, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_INVENTORY_PRICE_LABELS, $(`#${SETTING_INVENTORY_PRICE_LABELS}`, price_options).prop('checked') ? 1 : 0);
             setSetting(SETTING_TRADEOFFER_PRICE_LABELS, $(`#${SETTING_TRADEOFFER_PRICE_LABELS}`, price_options).prop('checked') ? 1 : 0);
