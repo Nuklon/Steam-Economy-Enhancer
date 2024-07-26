@@ -458,22 +458,18 @@
                 amount: 1,
                 price: price
             },
-            success: function(data) {
-                if (data.success === false && isRetryMessage(data.message)) {
+            success: function(data, status, xhr) {
+                marketRateLimitReached = xhr.status === 429;
+
+                if (data && data.success === false && isRetryMessage(data.message)) {
                     callback(ERROR_FAILED, data);
                 } else {
                     callback(ERROR_SUCCESS, data);
                 }
             },
-            error: function(data) {
-                return callback(ERROR_FAILED, data);
-            },
-            statusCode: {
-                200: () => (marketRateLimitReached = false),
-                429: () => (marketRateLimitReached = true),
-                500: () => (marketRateLimitReached = false),
-                501: () => (marketRateLimitReached = false),
-                502: () => (marketRateLimitReached = false)
+            error: function(xhr) {
+                marketRateLimitReached = xhr.status === 429;
+                return callback(ERROR_FAILED, xhr);
             },
             dataType: 'json'
         });
@@ -482,52 +478,27 @@
     // Removes an item.
     // Item is the unique item id.
     SteamMarket.prototype.removeListing = function(item, isBuyOrder, callback /*err, data*/) {
-        const sessionId = readCookie('sessionid');
+        const url = isBuyOrder 
+            ? `${window.location.origin}/market/cancelbuyorder/` 
+            : `${window.location.origin}/market/removelisting/${item}`;
 
-        if (isBuyOrder) {
-            $.ajax({
-                type: 'POST',
-                url: `${window.location.origin}/market/cancelbuyorder/`,
-                data: {
-                    sessionid: sessionId,
-                    buy_orderid: item
-                },
-                success: function(data) {
-                    callback(ERROR_SUCCESS, data);
-                },
-                error: function() {
-                    return callback(ERROR_FAILED);
-                },
-                statusCode: {
-                    200: () => (marketRateLimitReached = false),
-                    429: () => (marketRateLimitReached = true),
-                    500: () => (marketRateLimitReached = false),
-                    501: () => (marketRateLimitReached = false),
-                    502: () => (marketRateLimitReached = false)
-                },
-                dataType: 'json'
-            });
-            return;
+        const data = { sessionid: readCookie('sessionid') };
+
+        if (isBuyOrder) { 
+            data.buy_orderid = item; 
         }
 
         $.ajax({
             type: 'POST',
-            url: `${window.location.origin}/market/removelisting/${item}`,
-            data: {
-                sessionid: sessionId
-            },
-            success: function(data) {
+            url: url,
+            data: data,
+            success: function(data, status, xhr) {
+                marketRateLimitReached = xhr.status === 429;
                 callback(ERROR_SUCCESS, data);
             },
-            error: function() {
+            error: function(xhr) {
+                marketRateLimitReached = xhr.status === 429;
                 return callback(ERROR_FAILED);
-            },
-            statusCode: {
-                200: () => (marketRateLimitReached = false),
-                429: () => (marketRateLimitReached = true),
-                500: () => (marketRateLimitReached = false),
-                501: () => (marketRateLimitReached = false),
-                502: () => (marketRateLimitReached = false)
             },
             dataType: 'json'
         });
@@ -688,11 +659,12 @@
 
     // Get the current price history for an item.
     SteamMarket.prototype.getCurrentPriceHistory = function(appid, market_name, callback) {
-        const url = `${window.location.origin}/market/pricehistory/?appid=${appid}&market_hash_name=${market_name}`;
-
-        $.get(
-            url,
-            (data) => {
+        $.ajax({
+            type: 'GET',
+            url: `${window.location.origin}/market/pricehistory/?appid=${appid}&market_hash_name=${market_name}`,
+            success: function(data, status, xhr) {
+                marketRateLimitReached = xhr.status === 429;
+                
                 if (!data || !data.success || !data.prices) {
                     callback(ERROR_DATA);
                     return;
@@ -710,18 +682,20 @@
 
                 callback(ERROR_SUCCESS, data.prices, false);
             },
-            'json'
-        ).
-            fail((data) => {
-                if (!data || !data.responseJSON) {
+            error: function(xhr) {
+                marketRateLimitReached = xhr.status === 429;
+                
+                if (!xhr || !xhr.responseJSON) {
                     return callback(ERROR_FAILED);
                 }
-                if (!data.responseJSON.success) {
+                if (!xhr.responseJSON.success) {
                     callback(ERROR_DATA);
                     return;
                 }
                 return callback(ERROR_FAILED);
-            });
+            },
+            dataType: 'json'
+        });
     };
 
     // Get the item name id from a market item.
@@ -756,11 +730,13 @@
 
     // Get the item name id from a market item.
     SteamMarket.prototype.getCurrentMarketItemNameId = function(appid, market_name, callback) {
-        const url = `${window.location.origin}/market/listings/${appid}/${market_name}`;
-        $.get(
-            url,
-            (page) => {
-                const matches = (/Market_LoadOrderSpread\( (\d+) \);/).exec(page);
+        $.ajax({
+            type: 'GET',
+            url: `${window.location.origin}/market/listings/${appid}/${market_name}`,
+            success: function(page, status, xhr) {
+                marketRateLimitReached = xhr.status === 429;
+                
+                const matches = (/Market_LoadOrderSpread\( (\d+) \);/).exec(page || '');
                 if (matches == null) {
                     callback(ERROR_DATA);
                     return;
@@ -773,11 +749,12 @@
                 storagePersistent.setItem(storage_hash, item_nameid);
 
                 callback(ERROR_SUCCESS, item_nameid);
+            },
+            error: function(xhr) {
+                marketRateLimitReached = xhr.status === 429;
+                return callback(ERROR_FAILED, xhr.status);
             }
-        ).
-            fail((e) => {
-                return callback(ERROR_FAILED, e.status);
-            });
+        });
     };
 
     // Get the sales listings for this item in the market, with more information.
@@ -845,19 +822,23 @@
                 }
                 const url = `${window.location.origin}/market/itemordershistogram?country=${country}&language=english&currency=${currencyId}&item_nameid=${item_nameid}&two_factor=0`;
 
-                $.get(
-                    url,
-                    (histogram) => {
+                $.ajax({
+                    type: 'GET',
+                    url: url,
+                    success: function(histogram, status, xhr) {
+                        marketRateLimitReached = xhr.status === 429;
+                        
                         // Store the histogram in the session storage.
                         const storage_hash = `itemordershistogram_${item.appid}+${market_name}`;
                         storageSession.setItem(storage_hash, histogram);
 
                         callback(ERROR_SUCCESS, histogram, false);
-                    }
-                ).
-                    fail(() => {
+                    },
+                    error: function(xhr) {
+                        marketRateLimitReached = xhr.status === 429;
                         return callback(ERROR_FAILED, null);
-                    });
+                    }
+                });
             }
         );
     };
@@ -2907,9 +2888,12 @@
                     setTimeout(() => next(), delay);
                 };
 
-                $.get(
-                    `${window.location.origin}/market/mylistings?count=100&start=${listing}`,
-                    (data) => {
+                $.ajax({
+                    type: 'GET',
+                    url: `${window.location.origin}/market/mylistings?count=100&start=${listing}`,
+                    success: function(data, status, xhr) {
+                        marketRateLimitReached = xhr.status === 429;
+                        
                         if (!data || !data.success) {
                             callback();
                             return;
@@ -2926,10 +2910,11 @@
 
                         callback()
                     },
-                    'json'
-                ).fail(() => {
-                        callback();
-                        return;
+                    error: function(xhr) {
+                        marketRateLimitReached = xhr.status === 429;
+                        return callback();
+                    },
+                    dataType: 'json'
                 });
             },
             1
