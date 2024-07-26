@@ -2901,7 +2901,7 @@
         const marketListingsItemsQueue = async.queue(
             (listing, next) => {
                 const callback = () => {
-                    let delay = 0;
+                    const delay = 0;
 
                     increaseMarketProgress();
                     setTimeout(() => next(), delay);
