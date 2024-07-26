@@ -61,6 +61,7 @@
     const spinnerBlock =
         '<div class="spinner"><div class="rect1"></div>&nbsp;<div class="rect2"></div>&nbsp;<div class="rect3"></div>&nbsp;<div class="rect4"></div>&nbsp;<div class="rect5"></div>&nbsp;</div>';
     let numberOfFailedRequests = 0;
+    let marketRateLimitReached = false;
 
     const enableConsoleLog = false;
 
@@ -467,6 +468,13 @@
             error: function(data) {
                 return callback(ERROR_FAILED, data);
             },
+            statusCode: {
+                200: () => (marketRateLimitReached = false),
+                429: () => (marketRateLimitReached = true),
+                500: () => (marketRateLimitReached = false),
+                501: () => (marketRateLimitReached = false),
+                502: () => (marketRateLimitReached = false)
+            },
             dataType: 'json'
         });
     };
@@ -490,6 +498,13 @@
                 error: function() {
                     return callback(ERROR_FAILED);
                 },
+                statusCode: {
+                    200: () => (marketRateLimitReached = false),
+                    429: () => (marketRateLimitReached = true),
+                    500: () => (marketRateLimitReached = false),
+                    501: () => (marketRateLimitReached = false),
+                    502: () => (marketRateLimitReached = false)
+                },
                 dataType: 'json'
             });
             return;
@@ -506,6 +521,13 @@
             },
             error: function() {
                 return callback(ERROR_FAILED);
+            },
+            statusCode: {
+                200: () => (marketRateLimitReached = false),
+                429: () => (marketRateLimitReached = true),
+                500: () => (marketRateLimitReached = false),
+                501: () => (marketRateLimitReached = false),
+                502: () => (marketRateLimitReached = false)
             },
             dataType: 'json'
         });
@@ -1252,9 +1274,9 @@
                                 css('background', COLOR_ERROR);
                         }
 
-                        const delay = sellQueue.length() > 0 
-                            ? (parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0)
-                            : 0;
+                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
+                        delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
+                        delay = sellQueue.length() > 0 ? delay : 0;
 
                         setTimeout(() => next(), delay);
                     }
@@ -2698,7 +2720,10 @@
                     item,
                     false,
                     (success) => {
-                        let delay = (parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0);
+                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
+                        delay = delay || getRandomInt(1000, 1500);
+                        delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
+                        delay = marketOverpricedQueue.length() > 0 ? delay : 0
 
                         const callback = () => {
                             increaseMarketProgress();
@@ -2706,7 +2731,6 @@
                         };
 
                         if (success) {
-                            delay = marketOverpricedQueue.length() > 0 ? Math.max(delay, getRandomInt(1000, 1500)) : 0;
                             setTimeout(callback, delay);
                         } else {
                             delay = Math.max(delay, getRandomInt(30000, 45000));
@@ -2817,7 +2841,10 @@
                     listingid,
                     false,
                     (success) => {
-                        let delay = (parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0);
+                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
+                        delay = delay || getRandomInt(50, 100);
+                        delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
+                        delay = marketRemoveQueue.length() > 0 ? delay : 0
 
                         const callback = () => {
                             increaseMarketProgress();
@@ -2825,7 +2852,6 @@
                         };
                         
                         if (success) {
-                            delay = marketRemoveQueue.length() > 0 ? Math.max(delay, getRandomInt(50, 100)) : 0;
                             setTimeout(callback, delay);
                         } else {
                             delay = Math.max(delay, getRandomInt(30000, 45000));
