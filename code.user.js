@@ -1731,10 +1731,11 @@
                 item,
                 item.ignoreErrors,
                 (success, cached) => {
-                    let delay = 0;
+                    let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
+                    delay = delay || getRandomInt(1000, 1500);
+                    delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
 
                     if (success) {
-                        delay = Math.max(delay, getRandomInt(1000, 1500));
                         setTimeout(() => next(),  cached ? 0 : delay);
                     } else {
                         if (!item.ignoreErrors) {
@@ -1742,7 +1743,7 @@
                             itemQueue.push(item);
                         }
 
-                        delay = Math.max(delay, numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : getRandomInt(1000, 1500));
+                        delay = Math.max(delay, numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : delay);
 
                         numberOfFailedRequests = numberOfFailedRequests > 3 ? 0 : numberOfFailedRequests;
 
@@ -2408,10 +2409,11 @@
                     item,
                     false,
                     (success, cached) => {
-                        let delay = 0;
+                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
+                        delay = delay || getRandomInt(1000, 1500);
+                        delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
 
                         if (success) {
-                            delay = Math.max(delay, getRandomInt(1000, 1500));
                             setTimeout(() => next(), cached ? 0 : delay);
                         } else {
                             if (!item.ignoreErrors) {
@@ -2421,7 +2423,7 @@
 
                             numberOfFailedRequests++;
 
-                            delay = Math.max(delay, numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : getRandomInt(1000, 1500));
+                            delay = Math.max(delay, numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : delay);
 
                             numberOfFailedRequests = numberOfFailedRequests > 3 ? 0 : numberOfFailedRequests;
 
@@ -2504,7 +2506,10 @@
                 listing,
                 false,
                 (success, cached) => {
-                    let delay = 0;
+                    let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
+                    delay = delay || getRandomInt(1000, 1500);
+                    delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
+                    delay = marketListingsQueue.length() > 0 ? delay : 0
 
                     const callback = () => {
                         increaseMarketProgress();
@@ -2512,10 +2517,9 @@
                     }
 
                     if (success) {
-                        delay = marketListingsQueue.length() > 0 ? Math.max(delay, getRandomInt(1000, 1500)) : 0;
                         setTimeout(callback, cached ? 0 : delay);
                     } else {
-                        delay = marketListingsQueue.length() > 0 ? Math.max(delay, getRandomInt(30000, 45000)) : 0;
+                        delay = Math.max(delay, getRandomInt(30000, 45000));
                         setTimeout(() => marketListingsQueueWorker(listing, true, callback), cached ? 0 : delay);
                     }
                 }
@@ -2882,7 +2886,9 @@
         const marketListingsItemsQueue = async.queue(
             (listing, next) => {
                 const callback = () => {
-                    const delay = 0;
+                    let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
+                    delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
+                    delay = marketListingsItemsQueue.length() > 0 ? delay : 0
 
                     increaseMarketProgress();
                     setTimeout(() => next(), delay);
