@@ -1253,7 +1253,7 @@
                         }
 
                         const delay = sellQueue.length() > 0 
-                            ? parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000
+                            ? (parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0)
                             : 0;
 
                         setTimeout(() => next(), delay);
@@ -2698,7 +2698,7 @@
                     item,
                     false,
                     (success) => {
-                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000;
+                        let delay = (parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0);
 
                         const callback = () => {
                             increaseMarketProgress();
@@ -2817,7 +2817,7 @@
                     listingid,
                     false,
                     (success) => {
-                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000;
+                        let delay = (parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0);
 
                         const callback = () => {
                             increaseMarketProgress();
