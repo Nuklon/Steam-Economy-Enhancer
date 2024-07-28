@@ -61,7 +61,6 @@
     const spinnerBlock =
         '<div class="spinner"><div class="rect1"></div>&nbsp;<div class="rect2"></div>&nbsp;<div class="rect3"></div>&nbsp;<div class="rect4"></div>&nbsp;<div class="rect5"></div>&nbsp;</div>';
     let numberOfFailedRequests = 0;
-    let marketRateLimitReached = false;
 
     const enableConsoleLog = false;
 
@@ -110,6 +109,63 @@
         }
     }
 
+    function request(url, options, callback) {
+        let delayBetweenRequests = 300;
+        let requestStorageHash = 'request:last';
+
+        if (url.startsWith('https://steamcommunity.com/market/')) {
+            requestStorageHash = 'request:last:steamcommunity.com/market';
+            delayBetweenRequests = Math.max(delayBetweenRequests, parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0);
+        };
+        
+        const lastRequest = JSON.parse(getLocalStorageItem(requestStorageHash) || JSON.stringify({ time: new Date(0), limited: false }));
+        const timeSinceLastRequest = Date.now() - lastRequest.time.getTime();
+
+        delayBetweenRequests = lastRequest.request.limited ? 2.5 * 60 * 1000 : delayBetweenRequests;
+
+        if (timeSinceLastRequest < delayBetweenRequests) {
+            setTimeout(() => request(...arguments), delayBetweenRequests - timeSinceLastRequest);
+            return;
+        };
+
+        lastRequest.time = new Date();
+        lastRequest.limited = false;
+
+        setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+
+        $.ajax({
+            url: url,
+            type: options.method,
+            data: options.data,
+            success: function(data, statusMessage, xhr) {
+                if (xhr.status === 429) {
+                    lastRequest.limited = true;
+                    setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+                };
+
+                if (xhr.status <= 400) {
+                    const error = new Error('Http error');
+                    error.statusCode = xhr.status;
+
+                    callback(error, data);
+                } else {
+                    callback(null, data)
+                } 
+            },
+            error: (xhr) => {
+                if (xhr.status === 429) {
+                    lastRequest.limited = true;
+                    setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+                };
+
+                const error = new Error('Request failed');
+                error.statusCode = xhr.status;
+
+                callback(error);
+            },
+            dataType: options.responseType
+        });
+    };
 
     function getInventoryUrl() {
         if (unsafeWindow.g_strInventoryLoadURL) {
@@ -445,34 +501,22 @@
     // Sell an item with a price in cents.
     // Price is before fees.
     SteamMarket.prototype.sellItem = function(item, price, callback /*err, data*/) {
-        const sessionId = readCookie('sessionid');
-        const itemId = item.assetid || item.id;
-        $.ajax({
-            type: 'POST',
-            url: `${window.location.origin}/market/sellitem/`,
+        const url = `${window.location.origin}/market/sellitem/`;
+        
+        const options = {
+            method: 'POST',
             data: {
-                sessionid: sessionId,
+                sessionid: readCookie('sessionid'),
                 appid: item.appid,
                 contextid: item.contextid,
-                assetid: itemId,
+                assetid: item.assetid || item.id,
                 amount: 1,
                 price: price
             },
-            success: function(data, status, xhr) {
-                marketRateLimitReached = xhr.status === 429;
+            responseType: 'json'
+        };
 
-                if (data && data.success === false && isRetryMessage(data.message)) {
-                    callback(ERROR_FAILED, data);
-                } else {
-                    callback(ERROR_SUCCESS, data);
-                }
-            },
-            error: function(xhr) {
-                marketRateLimitReached = xhr.status === 429;
-                return callback(ERROR_FAILED, xhr);
-            },
-            dataType: 'json'
-        });
+        request(url, options, callback);
     };
 
     // Removes an item.
@@ -482,26 +526,27 @@
             ? `${window.location.origin}/market/cancelbuyorder/` 
             : `${window.location.origin}/market/removelisting/${item}`;
 
-        const data = { sessionid: readCookie('sessionid') };
+        const options = {
+            method: 'POST',
+            data: { 
+                sessionid: readCookie('sessionid'), 
+                ...(isBuyOrder ? { buy_orderid: item } : {}) 
+            },
+            responseType: 'json'
+        };
 
-        if (isBuyOrder) { 
-            data.buy_orderid = item; 
-        }
+        request(
+            url,
+            options,
+            (error, data) => {
+                if (error) {
+                    callback(ERROR_FAILED);
+                    return;
+                };
 
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: data,
-            success: function(data, status, xhr) {
-                marketRateLimitReached = xhr.status === 429;
                 callback(ERROR_SUCCESS, data);
-            },
-            error: function(xhr) {
-                marketRateLimitReached = xhr.status === 429;
-                return callback(ERROR_FAILED);
-            },
-            dataType: 'json'
-        });
+            }
+        );
     };
 
     // Get the price history for an item.
@@ -561,24 +606,31 @@
                 break;
             }
 
-            const sessionId = readCookie('sessionid');
-            $.ajax({
-                type: 'GET',
-                url: `${this.inventoryUrlBase}ajaxgetgoovalue/`,
+            const url = `${this.inventoryUrlBase}ajaxgetgoovalue/`;
+
+            const options = {
+                method: 'GET',
                 data: {
-                    sessionid: sessionId,
+                    sessionid: readCookie('sessionid'),
                     appid: appid,
                     assetid: item.assetid,
                     contextid: item.contextid
                 },
-                success: function(data) {
+                responseType: 'json'
+            };
+
+            request(
+                url,
+                options,
+                (error, data) => {
+                    if (error) {
+                        callback(ERROR_FAILED, data);
+                        return;
+                    };
+
                     callback(ERROR_SUCCESS, data);
-                },
-                error: function(data) {
-                    return callback(ERROR_FAILED, data);
-                },
-                dataType: 'json'
-            });
+                }
+            );
         } catch {
             return callback(ERROR_FAILED);
         }
@@ -595,25 +647,32 @@
     // Grinds the item into gems.
     SteamMarket.prototype.grindIntoGoo = function(item, callback) {
         try {
-            const sessionId = readCookie('sessionid');
-            $.ajax({
-                type: 'POST',
-                url: `${this.inventoryUrlBase}ajaxgrindintogoo/`,
+            const url = `${this.inventoryUrlBase}ajaxgrindintogoo/`;
+
+            const options = {
+                method: 'POST',
                 data: {
-                    sessionid: sessionId,
+                    sessionid: readCookie('sessionid'),
                     appid: item.market_fee_app,
                     assetid: item.assetid,
                     contextid: item.contextid,
                     goo_value_expected: item.goo_value_expected
                 },
-                success: function(data) {
+                responseType: 'json'
+            };
+
+            request(
+                url,
+                options,
+                (error, data) => {
+                    if (error) {
+                        callback(ERROR_FAILED, data);
+                        return;
+                    };
+
                     callback(ERROR_SUCCESS, data);
-                },
-                error: function(data) {
-                    return callback(ERROR_FAILED, data);
-                },
-                dataType: 'json'
-            });
+                }
+            );
         } catch {
             return callback(ERROR_FAILED);
         }
@@ -630,23 +689,30 @@
     // Unpacks the booster pack.
     SteamMarket.prototype.unpackBoosterPack = function(item, callback) {
         try {
-            const sessionId = readCookie('sessionid');
-            $.ajax({
-                type: 'POST',
-                url: `${this.inventoryUrlBase}ajaxunpackbooster/`,
+            const url = `${this.inventoryUrlBase}ajaxunpackbooster/`;
+
+            const options = {
+                method: 'POST',
                 data: {
-                    sessionid: sessionId,
+                    sessionid: readCookie('sessionid'),
                     appid: item.market_fee_app,
                     communityitemid: item.assetid
                 },
-                success: function(data) {
+                responseType: 'json'
+            };
+
+            request(
+                url,
+                options,
+                (error, data) => {
+                    if (error) {
+                        callback(ERROR_FAILED, data);
+                        return;
+                    };
+
                     callback(ERROR_SUCCESS, data);
-                },
-                error: function(data) {
-                    return callback(ERROR_FAILED, data);
-                },
-                dataType: 'json'
-            });
+                }
+            );
         } catch {
             return callback(ERROR_FAILED);
         }
@@ -659,16 +725,30 @@
 
     // Get the current price history for an item.
     SteamMarket.prototype.getCurrentPriceHistory = function(appid, market_name, callback) {
-        $.ajax({
-            type: 'GET',
-            url: `${window.location.origin}/market/pricehistory/?appid=${appid}&market_hash_name=${market_name}`,
-            success: function(data, status, xhr) {
-                marketRateLimitReached = xhr.status === 429;
-                
-                if (!data || !data.success || !data.prices) {
+        const url = `${window.location.origin}/market/pricehistory/`;
+
+        const options = {
+            method: 'GET',
+            data: {
+                appid: appid,
+                market_hash_name: market_name
+            },
+            responseType: 'json'
+        };
+
+        request(
+            url, 
+            options,
+            (error, data) => {
+                if (data && (!data.success || !data.prices)) {
                     callback(ERROR_DATA);
                     return;
-                }
+                };
+
+                if (error) {
+                    callback(ERROR_FAILED);
+                    return;
+                };
 
                 // Multiply prices so they're in pennies.
                 for (let i = 0; i < data.prices.length; i++) {
@@ -681,21 +761,8 @@
                 storageSession.setItem(storage_hash, data.prices);
 
                 callback(ERROR_SUCCESS, data.prices, false);
-            },
-            error: function(xhr) {
-                marketRateLimitReached = xhr.status === 429;
-                
-                if (!xhr || !xhr.responseJSON) {
-                    return callback(ERROR_FAILED);
-                }
-                if (!xhr.responseJSON.success) {
-                    callback(ERROR_DATA);
-                    return;
-                }
-                return callback(ERROR_FAILED);
-            },
-            dataType: 'json'
-        });
+            }
+        );
     };
 
     // Get the item name id from a market item.
@@ -730,13 +797,20 @@
 
     // Get the item name id from a market item.
     SteamMarket.prototype.getCurrentMarketItemNameId = function(appid, market_name, callback) {
-        $.ajax({
-            type: 'GET',
-            url: `${window.location.origin}/market/listings/${appid}/${market_name}`,
-            success: function(page, status, xhr) {
-                marketRateLimitReached = xhr.status === 429;
-                
-                const matches = (/Market_LoadOrderSpread\( (\d+) \);/).exec(page || '');
+        const url = `${window.location.origin}/market/listings/${appid}/${market_name}`;
+
+        const options = { method: 'GET' };
+
+        request(
+            url, 
+            options,
+            (error, data) => {
+                if (error) {
+                    callback(ERROR_FAILED);
+                    return;
+                };
+
+                const matches = (/Market_LoadOrderSpread\( (\d+) \);/).exec(data || '');
                 if (matches == null) {
                     callback(ERROR_DATA);
                     return;
@@ -749,12 +823,8 @@
                 storagePersistent.setItem(storage_hash, item_nameid);
 
                 callback(ERROR_SUCCESS, item_nameid);
-            },
-            error: function(xhr) {
-                marketRateLimitReached = xhr.status === 429;
-                return callback(ERROR_FAILED, xhr.status);
             }
-        });
+        );
     };
 
     // Get the sales listings for this item in the market, with more information.
@@ -813,32 +883,39 @@
             item,
             (error, item_nameid) => {
                 if (error) {
-                    if (item_nameid != 429) { // 429 = Too many requests made.
-                        callback(ERROR_DATA);
-                    } else {
-                        callback(ERROR_FAILED);
-                    }
+                    callback(ERROR_FAILED);
                     return;
-                }
-                const url = `${window.location.origin}/market/itemordershistogram?country=${country}&language=english&currency=${currencyId}&item_nameid=${item_nameid}&two_factor=0`;
+                };
 
-                $.ajax({
-                    type: 'GET',
-                    url: url,
-                    success: function(histogram, status, xhr) {
-                        marketRateLimitReached = xhr.status === 429;
-                        
+                const url = `${window.location.origin}/market/itemordershistogram`;
+
+                const options = {
+                    method: 'GET',
+                    data: {
+                        country: country,
+                        language: 'english',
+                        currency: currencyId,
+                        item_nameid: item_nameid,
+                        two_factor: 0
+                    }
+                };
+
+                request(
+                    url,
+                    options,
+                    (error, data) => {
+                        if (error) {
+                            callback(ERROR_FAILED, null);
+                            return;
+                        };
+
                         // Store the histogram in the session storage.
                         const storage_hash = `itemordershistogram_${item.appid}+${market_name}`;
                         storageSession.setItem(storage_hash, histogram);
 
-                        callback(ERROR_SUCCESS, histogram, false);
-                    },
-                    error: function(xhr) {
-                        marketRateLimitReached = xhr.status === 429;
-                        return callback(ERROR_FAILED, null);
+                        callback(ERROR_SUCCESS, histogram, false);                    
                     }
-                });
+                )
             }
         );
     };
@@ -1217,7 +1294,7 @@
                 market.sellItem(
                     task.item,
                     task.sellPrice,
-                    (err, data) => {
+                    (error, data) => {
                         totalNumberOfProcessedQueueItems++;
 
                         const digits = getNumberOfDigits(totalNumberOfQueuedItems);
@@ -1225,41 +1302,41 @@
                         const itemName = task.item.name || task.item.description.name;
                         const padLeft = `${padLeftZero(`${totalNumberOfProcessedQueueItems}`, digits)} / ${totalNumberOfQueuedItems}`;
 
-                        if (!err) {
-                            logDOM(`${padLeft} - ${itemName} listed for ${formatPrice(market.getPriceIncludingFees(task.sellPrice))}, you will receive ${formatPrice(task.sellPrice)}.`);
+                        const success = Boolean(data?.success);
+                        const message = data?.message || '';
 
-                            $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).
-                                css('background', COLOR_SUCCESS);
+                        const callback = () => setTimeout(() => next(), getRandomInt(1000, 1500));
+
+                        if (success) {
+                            logDOM(`${padLeft} - ${itemName} listed for ${formatPrice(market.getPriceIncludingFees(task.sellPrice))}, you will receive ${formatPrice(task.sellPrice)}.`);
+                            $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_SUCCESS);
 
                             totalPriceWithoutFeesOnMarket += task.sellPrice;
                             totalPriceWithFeesOnMarket += market.getPriceIncludingFees(task.sellPrice);
+
                             updateTotals();
-                        } else if (data != null && isRetryMessage(data.message)) {
-                            logDOM(`${padLeft} - ${itemName} retrying listing because ${data.message[0].toLowerCase()}${data.message.slice(1)}`);
+                            callback()
+
+                            return;
+                        };
+
+                        if (message && isRetryMessage(message)) {
+                            logDOM(`${padLeft} - ${itemName} retrying listing because ${message.charAt(0).toLowerCase()}${message.slice(1)}`);
 
                             totalNumberOfProcessedQueueItems--;
                             sellQueue.unshift(task);
                             sellQueue.pause();
 
-                            setTimeout(() => {
-                                sellQueue.resume();
-                            }, getRandomInt(30000, 45000));
-                        } else {
-                            if (data != null && data.responseJSON != null && data.responseJSON.message != null) {
-                                logDOM(`${padLeft} - ${itemName} not added to market because ${data.responseJSON.message[0].toLowerCase()}${data.responseJSON.message.slice(1)}`);
-                            } else {
-                                logDOM(`${padLeft} - ${itemName} not added to market.`);
-                            }
+                            setTimeout(() => sellQueue.resume(), getRandomInt(30000, 45000));
+                            callback();
 
-                            $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).
-                                css('background', COLOR_ERROR);
-                        }
+                            return;
+                        };
 
-                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
-                        delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
-                        delay = sellQueue.length() > 0 ? delay : 0;
-
-                        setTimeout(() => next(), delay);
+                        logDOM(`${padLeft} - ${itemName} not added to market${message ? `because ${message.charAt(0).toLowerCase()}${message.slice(1)}` : ''}`);
+                        $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_ERROR);
+                        
+                        callback();
                     }
                 );
             },
@@ -1731,20 +1808,15 @@
                 item,
                 item.ignoreErrors,
                 (success, cached) => {
-                    let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
-                    delay = delay || getRandomInt(1000, 1500);
-                    delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
-
                     if (success) {
-                        setTimeout(() => next(),  cached ? 0 : delay);
+                        setTimeout(() => next(),  cached ? 0 : getRandomInt(1000, 1500));
                     } else {
                         if (!item.ignoreErrors) {
                             item.ignoreErrors = true;
                             itemQueue.push(item);
-                        }
+                        };
 
-                        delay = Math.max(delay, numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : delay);
-
+                        const delay = numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : getRandomInt(1000, 1500);
                         numberOfFailedRequests = numberOfFailedRequests > 3 ? 0 : numberOfFailedRequests;
 
                         setTimeout(() => next(),  cached ? 0 : delay);
@@ -2409,22 +2481,17 @@
                     item,
                     false,
                     (success, cached) => {
-                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
-                        delay = delay || getRandomInt(1000, 1500);
-                        delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
-
                         if (success) {
-                            setTimeout(() => next(), cached ? 0 : delay);
+                            setTimeout(() => next(), cached ? 0 : getRandomInt(1000, 1500));
                         } else {
                             if (!item.ignoreErrors) {
                                 item.ignoreErrors = true;
                                 inventoryPriceQueue.push(item);
-                            }
+                            };
 
                             numberOfFailedRequests++;
 
-                            delay = Math.max(delay, numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : delay);
-
+                            const delay = numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : getRandomInt(1000, 1500);
                             numberOfFailedRequests = numberOfFailedRequests > 3 ? 0 : numberOfFailedRequests;
 
                             setTimeout(() => next(), cached ? 0 : delay);
@@ -2506,21 +2573,15 @@
                 listing,
                 false,
                 (success, cached) => {
-                    let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
-                    delay = delay || getRandomInt(1000, 1500);
-                    delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
-                    delay = marketListingsQueue.length() > 0 ? delay : 0
-
                     const callback = () => {
                         increaseMarketProgress();
                         next();
-                    }
+                    };
 
                     if (success) {
-                        setTimeout(callback, cached ? 0 : delay);
+                        setTimeout(callback, cached ? 0 : getRandomInt(1000, 1500));
                     } else {
-                        delay = Math.max(delay, getRandomInt(30000, 45000));
-                        setTimeout(() => marketListingsQueueWorker(listing, true, callback), cached ? 0 : delay);
+                        setTimeout(() => marketListingsQueueWorker(listing, true, callback), cached ? 0 : getRandomInt(30000, 45000));
                     }
                 }
             );
@@ -2705,21 +2766,15 @@
                     item,
                     false,
                     (success) => {
-                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
-                        delay = delay || getRandomInt(1000, 1500);
-                        delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
-                        delay = marketOverpricedQueue.length() > 0 ? delay : 0
-
                         const callback = () => {
                             increaseMarketProgress();
                             next();
                         };
 
                         if (success) {
-                            setTimeout(callback, delay);
+                            setTimeout(callback, getRandomInt(1000, 1500));
                         } else {
-                            delay = Math.max(delay, getRandomInt(30000, 45000));
-                            setTimeout(marketOverpricedQueueWorker(item, true, callback), delay);
+                            setTimeout(() => marketOverpricedQueueWorker(item, true, callback), getRandomInt(30000, 45000));
                         }
                     }
                 );
@@ -2826,21 +2881,15 @@
                     listingid,
                     false,
                     (success) => {
-                        let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
-                        delay = delay || getRandomInt(50, 100);
-                        delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
-                        delay = marketRemoveQueue.length() > 0 ? delay : 0
-
                         const callback = () => {
                             increaseMarketProgress();
                             next();
                         };
                         
                         if (success) {
-                            setTimeout(callback, delay);
+                            setTimeout(callback, getRandomInt(50, 100));
                         } else {
-                            delay = Math.max(delay, getRandomInt(30000, 45000));
-                            setTimeout(() => marketRemoveQueueWorker(listingid, true, callback), delay);
+                            setTimeout(() => marketRemoveQueueWorker(listingid, true, callback), getRandomInt(30000, 45000));
                         }
                     }
                 );
@@ -2886,24 +2935,29 @@
         const marketListingsItemsQueue = async.queue(
             (listing, next) => {
                 const callback = () => {
-                    let delay = parseInt(getSettingWithDefault(SETTING_DELAY_BETWEEN_MARKET_ACTIONS), 10) * 1000 || 0;
-                    delay = marketRateLimitReached ? Math.max(delay, getRandomInt(90000, 150000)) : delay;
-                    delay = marketListingsItemsQueue.length() > 0 ? delay : 0
-
                     increaseMarketProgress();
-                    setTimeout(() => next(), delay);
+                    setTimeout(() => next(), getRandomInt(1000, 1500));
                 };
 
-                $.ajax({
-                    type: 'GET',
-                    url: `${window.location.origin}/market/mylistings?count=100&start=${listing}`,
-                    success: function(data, status, xhr) {
-                        marketRateLimitReached = xhr.status === 429;
-                        
-                        if (!data || !data.success) {
+                const url = `${window.location.origin}/market/mylistings`
+
+                const options = {
+                    method: 'GET',
+                    data: {
+                        count: 100,
+                        start: listing
+                    },
+                    responseType: 'json'
+                };
+
+                request(
+                    url,
+                    options,
+                    (error, data) => {
+                        if (error || !data?.success) {
                             callback();
                             return;
-                        }
+                        };
 
                         const myMarketListings = $('#tabContentsMyActiveMarketListingsRows');
 
@@ -2915,13 +2969,8 @@
                         unsafeWindow.MergeWithAssetArray(data.assets); // This is a method from Steam.
 
                         callback()
-                    },
-                    error: function(xhr) {
-                        marketRateLimitReached = xhr.status === 429;
-                        return callback();
-                    },
-                    dataType: 'json'
-                });
+                    }
+                )
             },
             1
         );
