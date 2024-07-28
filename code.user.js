@@ -119,9 +119,9 @@
         };
         
         const lastRequest = JSON.parse(getLocalStorageItem(requestStorageHash) || JSON.stringify({ time: new Date(0), limited: false }));
-        const timeSinceLastRequest = Date.now() - lastRequest.time.getTime();
+        const timeSinceLastRequest = Date.now() - new Date(lastRequest.time).getTime();
 
-        delayBetweenRequests = lastRequest.request.limited ? 2.5 * 60 * 1000 : delayBetweenRequests;
+        delayBetweenRequests = lastRequest.limited ? 2.5 * 60 * 1000 : delayBetweenRequests;
 
         if (timeSinceLastRequest < delayBetweenRequests) {
             setTimeout(() => request(...arguments), delayBetweenRequests - timeSinceLastRequest);
