@@ -1333,7 +1333,7 @@
                             return;
                         };
 
-                        logDOM(`${padLeft} - ${itemName} not added to market ${message ? `because:  ${message.charAt(0).toLowerCase()}${message.slice(1)}` : ''}`);
+                        logDOM(`${padLeft} - ${itemName} not added to market${message ? ` because:  ${message.charAt(0).toLowerCase()}${message.slice(1)}` : '.'}`);
                         $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_ERROR);
                         
                         callback();
