@@ -143,7 +143,7 @@
                     setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
                 };
 
-                if (xhr.status <= 400) {
+                if (xhr.status >= 400) {
                     const error = new Error('Http error');
                     error.statusCode = xhr.status;
 
@@ -911,9 +911,9 @@
 
                         // Store the histogram in the session storage.
                         const storage_hash = `itemordershistogram_${item.appid}+${market_name}`;
-                        storageSession.setItem(storage_hash, histogram);
+                        storageSession.setItem(storage_hash, data);
 
-                        callback(ERROR_SUCCESS, histogram, false);                    
+                        callback(ERROR_SUCCESS, data, false);                    
                     }
                 )
             }
@@ -1321,7 +1321,7 @@
                         };
 
                         if (message && isRetryMessage(message)) {
-                            logDOM(`${padLeft} - ${itemName} retrying listing because ${message.charAt(0).toLowerCase()}${message.slice(1)}`);
+                            logDOM(`${padLeft} - ${itemName} retrying listing because: ${message.charAt(0).toLowerCase()}${message.slice(1)}`);
 
                             totalNumberOfProcessedQueueItems--;
                             sellQueue.unshift(task);
@@ -1333,7 +1333,7 @@
                             return;
                         };
 
-                        logDOM(`${padLeft} - ${itemName} not added to market${message ? `because ${message.charAt(0).toLowerCase()}${message.slice(1)}` : ''}`);
+                        logDOM(`${padLeft} - ${itemName} not added to market ${message ? `because:  ${message.charAt(0).toLowerCase()}${message.slice(1)}` : ''}`);
                         $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_ERROR);
                         
                         callback();
