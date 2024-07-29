@@ -740,13 +740,13 @@
             url, 
             options,
             (error, data) => {
-                if (data && (!data.success || !data.prices)) {
-                    callback(ERROR_DATA);
+                if (error) {
+                    callback(ERROR_FAILED);
                     return;
                 };
 
-                if (error) {
-                    callback(ERROR_FAILED);
+                if (data && (!data.success || !data.prices)) {
+                    callback(ERROR_DATA);
                     return;
                 };
 
