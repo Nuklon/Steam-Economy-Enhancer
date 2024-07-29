@@ -913,7 +913,7 @@
                         const storage_hash = `itemordershistogram_${item.appid}+${market_name}`;
                         storageSession.setItem(storage_hash, data);
 
-                        callback(ERROR_SUCCESS, data, false);                    
+                        callback(ERROR_SUCCESS, data, false);
                     }
                 )
             }
