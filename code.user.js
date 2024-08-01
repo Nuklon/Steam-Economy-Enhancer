@@ -111,10 +111,10 @@
 
     function request(url, options, callback) {
         let delayBetweenRequests = 300;
-        let requestStorageHash = 'request:last';
+        let requestStorageHash = 'see:request:last';
 
         if (url.startsWith('https://steamcommunity.com/market/')) {
-            requestStorageHash = 'request:last:steamcommunity.com/market';
+            requestStorageHash = `${requestStorageHash}:steamcommunity.com/market`;
             delayBetweenRequests = 1000;
         };
         
@@ -131,7 +131,7 @@
         lastRequest.time = new Date();
         lastRequest.limited = false;
 
-        setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+        setSessionStorageItem(requestStorageHash, JSON.stringify(lastRequest));
 
         $.ajax({
             url: url,
@@ -140,7 +140,7 @@
             success: function(data, statusMessage, xhr) {
                 if (xhr.status === 429) {
                     lastRequest.limited = true;
-                    setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+                    setSessionStorageItem(requestStorageHash, JSON.stringify(lastRequest));
                 };
 
                 if (xhr.status >= 400) {
