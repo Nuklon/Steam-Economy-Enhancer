@@ -131,7 +131,7 @@
         lastRequest.time = new Date();
         lastRequest.limited = false;
 
-        setSessionStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+        setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
 
         $.ajax({
             url: url,
@@ -140,7 +140,7 @@
             success: function(data, statusMessage, xhr) {
                 if (xhr.status === 429) {
                     lastRequest.limited = true;
-                    setSessionStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+                    setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
                 };
 
                 if (xhr.status >= 400) {
