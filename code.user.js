@@ -109,6 +109,63 @@
         }
     }
 
+    function request(url, options, callback) {
+        let delayBetweenRequests = 300;
+        let requestStorageHash = 'see:request:last';
+
+        if (url.startsWith('https://steamcommunity.com/market/')) {
+            requestStorageHash = `${requestStorageHash}:steamcommunity.com/market`;
+            delayBetweenRequests = 1000;
+        }
+        
+        const lastRequest = JSON.parse(getLocalStorageItem(requestStorageHash) || JSON.stringify({ time: new Date(0), limited: false }));
+        const timeSinceLastRequest = Date.now() - new Date(lastRequest.time).getTime();
+
+        delayBetweenRequests = lastRequest.limited ? 2.5 * 60 * 1000 : delayBetweenRequests;
+
+        if (timeSinceLastRequest < delayBetweenRequests) {
+            setTimeout(() => request(...arguments), delayBetweenRequests - timeSinceLastRequest);
+            return;
+        }
+
+        lastRequest.time = new Date();
+        lastRequest.limited = false;
+
+        setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+
+        $.ajax({
+            url: url,
+            type: options.method,
+            data: options.data,
+            success: function(data, statusMessage, xhr) {
+                if (xhr.status === 429) {
+                    lastRequest.limited = true;
+                    setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+                }
+
+                if (xhr.status >= 400) {
+                    const error = new Error('Http error');
+                    error.statusCode = xhr.status;
+
+                    callback(error, data);
+                } else {
+                    callback(null, data)
+                } 
+            },
+            error: (xhr) => {
+                if (xhr.status === 429) {
+                    lastRequest.limited = true;
+                    setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+                }
+
+                const error = new Error('Request failed');
+                error.statusCode = xhr.status;
+
+                callback(error);
+            },
+            dataType: options.responseType
+        });
+    };
 
     function getInventoryUrl() {
         if (unsafeWindow.g_strInventoryLoadURL) {
@@ -442,71 +499,52 @@
     // Sell an item with a price in cents.
     // Price is before fees.
     SteamMarket.prototype.sellItem = function(item, price, callback /*err, data*/) {
-        const sessionId = readCookie('sessionid');
-        const itemId = item.assetid || item.id;
-        $.ajax({
-            type: 'POST',
-            url: `${window.location.origin}/market/sellitem/`,
+        const url = `${window.location.origin}/market/sellitem/`;
+        
+        const options = {
+            method: 'POST',
             data: {
-                sessionid: sessionId,
+                sessionid: readCookie('sessionid'),
                 appid: item.appid,
                 contextid: item.contextid,
-                assetid: itemId,
+                assetid: item.assetid || item.id,
                 amount: 1,
                 price: price
             },
-            success: function(data) {
-                if (data.success === false && isRetryMessage(data.message)) {
-                    callback(ERROR_FAILED, data);
-                } else {
-                    callback(ERROR_SUCCESS, data);
-                }
-            },
-            error: function(data) {
-                return callback(ERROR_FAILED, data);
-            },
-            dataType: 'json'
-        });
+            responseType: 'json'
+        };
+
+        request(url, options, callback);
     };
 
     // Removes an item.
     // Item is the unique item id.
     SteamMarket.prototype.removeListing = function(item, isBuyOrder, callback /*err, data*/) {
-        const sessionId = readCookie('sessionid');
+        const url = isBuyOrder 
+            ? `${window.location.origin}/market/cancelbuyorder/` 
+            : `${window.location.origin}/market/removelisting/${item}`;
 
-        if (isBuyOrder) {
-            $.ajax({
-                type: 'POST',
-                url: `${window.location.origin}/market/cancelbuyorder/`,
-                data: {
-                    sessionid: sessionId,
-                    buy_orderid: item
-                },
-                success: function(data) {
-                    callback(ERROR_SUCCESS, data);
-                },
-                error: function() {
-                    return callback(ERROR_FAILED);
-                },
-                dataType: 'json'
-            });
-            return;
-        }
-
-        $.ajax({
-            type: 'POST',
-            url: `${window.location.origin}/market/removelisting/${item}`,
-            data: {
-                sessionid: sessionId
+        const options = {
+            method: 'POST',
+            data: { 
+                sessionid: readCookie('sessionid'), 
+                ...(isBuyOrder ? { buy_orderid: item } : {}) 
             },
-            success: function(data) {
+            responseType: 'json'
+        };
+
+        request(
+            url,
+            options,
+            (error, data) => {
+                if (error) {
+                    callback(ERROR_FAILED);
+                    return;
+                }
+
                 callback(ERROR_SUCCESS, data);
-            },
-            error: function() {
-                return callback(ERROR_FAILED);
-            },
-            dataType: 'json'
-        });
+            }
+        );
     };
 
     // Get the price history for an item.
@@ -566,24 +604,31 @@
                 break;
             }
 
-            const sessionId = readCookie('sessionid');
-            $.ajax({
-                type: 'GET',
-                url: `${this.inventoryUrlBase}ajaxgetgoovalue/`,
+            const url = `${this.inventoryUrlBase}ajaxgetgoovalue/`;
+
+            const options = {
+                method: 'GET',
                 data: {
-                    sessionid: sessionId,
+                    sessionid: readCookie('sessionid'),
                     appid: appid,
                     assetid: item.assetid,
                     contextid: item.contextid
                 },
-                success: function(data) {
+                responseType: 'json'
+            };
+
+            request(
+                url,
+                options,
+                (error, data) => {
+                    if (error) {
+                        callback(ERROR_FAILED, data);
+                        return;
+                    }
+
                     callback(ERROR_SUCCESS, data);
-                },
-                error: function(data) {
-                    return callback(ERROR_FAILED, data);
-                },
-                dataType: 'json'
-            });
+                }
+            );
         } catch {
             return callback(ERROR_FAILED);
         }
@@ -600,25 +645,32 @@
     // Grinds the item into gems.
     SteamMarket.prototype.grindIntoGoo = function(item, callback) {
         try {
-            const sessionId = readCookie('sessionid');
-            $.ajax({
-                type: 'POST',
-                url: `${this.inventoryUrlBase}ajaxgrindintogoo/`,
+            const url = `${this.inventoryUrlBase}ajaxgrindintogoo/`;
+
+            const options = {
+                method: 'POST',
                 data: {
-                    sessionid: sessionId,
+                    sessionid: readCookie('sessionid'),
                     appid: item.market_fee_app,
                     assetid: item.assetid,
                     contextid: item.contextid,
                     goo_value_expected: item.goo_value_expected
                 },
-                success: function(data) {
+                responseType: 'json'
+            };
+
+            request(
+                url,
+                options,
+                (error, data) => {
+                    if (error) {
+                        callback(ERROR_FAILED, data);
+                        return;
+                    }
+
                     callback(ERROR_SUCCESS, data);
-                },
-                error: function(data) {
-                    return callback(ERROR_FAILED, data);
-                },
-                dataType: 'json'
-            });
+                }
+            );
         } catch {
             return callback(ERROR_FAILED);
         }
@@ -635,23 +687,30 @@
     // Unpacks the booster pack.
     SteamMarket.prototype.unpackBoosterPack = function(item, callback) {
         try {
-            const sessionId = readCookie('sessionid');
-            $.ajax({
-                type: 'POST',
-                url: `${this.inventoryUrlBase}ajaxunpackbooster/`,
+            const url = `${this.inventoryUrlBase}ajaxunpackbooster/`;
+
+            const options = {
+                method: 'POST',
                 data: {
-                    sessionid: sessionId,
+                    sessionid: readCookie('sessionid'),
                     appid: item.market_fee_app,
                     communityitemid: item.assetid
                 },
-                success: function(data) {
+                responseType: 'json'
+            };
+
+            request(
+                url,
+                options,
+                (error, data) => {
+                    if (error) {
+                        callback(ERROR_FAILED, data);
+                        return;
+                    }
+
                     callback(ERROR_SUCCESS, data);
-                },
-                error: function(data) {
-                    return callback(ERROR_FAILED, data);
-                },
-                dataType: 'json'
-            });
+                }
+            );
         } catch {
             return callback(ERROR_FAILED);
         }
@@ -664,12 +723,27 @@
 
     // Get the current price history for an item.
     SteamMarket.prototype.getCurrentPriceHistory = function(appid, market_name, callback) {
-        const url = `${window.location.origin}/market/pricehistory/?appid=${appid}&market_hash_name=${market_name}`;
+        const url = `${window.location.origin}/market/pricehistory/`;
 
-        $.get(
-            url,
-            (data) => {
-                if (!data || !data.success || !data.prices) {
+        const options = {
+            method: 'GET',
+            data: {
+                appid: appid,
+                market_hash_name: market_name
+            },
+            responseType: 'json'
+        };
+
+        request(
+            url, 
+            options,
+            (error, data) => {
+                if (error) {
+                    callback(ERROR_FAILED);
+                    return;
+                }
+
+                if (data && (!data.success || !data.prices)) {
                     callback(ERROR_DATA);
                     return;
                 }
@@ -685,19 +759,8 @@
                 storageSession.setItem(storage_hash, data.prices);
 
                 callback(ERROR_SUCCESS, data.prices, false);
-            },
-            'json'
-        ).
-            fail((data) => {
-                if (!data || !data.responseJSON) {
-                    return callback(ERROR_FAILED);
-                }
-                if (!data.responseJSON.success) {
-                    callback(ERROR_DATA);
-                    return;
-                }
-                return callback(ERROR_FAILED);
-            });
+            }
+        );
     };
 
     // Get the item name id from a market item.
@@ -733,10 +796,19 @@
     // Get the item name id from a market item.
     SteamMarket.prototype.getCurrentMarketItemNameId = function(appid, market_name, callback) {
         const url = `${window.location.origin}/market/listings/${appid}/${market_name}`;
-        $.get(
-            url,
-            (page) => {
-                const matches = (/Market_LoadOrderSpread\( (\d+) \);/).exec(page);
+
+        const options = { method: 'GET' };
+
+        request(
+            url, 
+            options,
+            (error, data) => {
+                if (error) {
+                    callback(ERROR_FAILED);
+                    return;
+                }
+
+                const matches = (/Market_LoadOrderSpread\( (\d+) \);/).exec(data || '');
                 if (matches == null) {
                     callback(ERROR_DATA);
                     return;
@@ -750,10 +822,7 @@
 
                 callback(ERROR_SUCCESS, item_nameid);
             }
-        ).
-            fail((e) => {
-                return callback(ERROR_FAILED, e.status);
-            });
+        );
     };
 
     // Get the sales listings for this item in the market, with more information.
@@ -812,28 +881,39 @@
             item,
             (error, item_nameid) => {
                 if (error) {
-                    if (item_nameid != 429) { // 429 = Too many requests made.
-                        callback(ERROR_DATA);
-                    } else {
-                        callback(ERROR_FAILED);
-                    }
+                    callback(ERROR_FAILED);
                     return;
                 }
-                const url = `${window.location.origin}/market/itemordershistogram?country=${country}&language=english&currency=${currencyId}&item_nameid=${item_nameid}&two_factor=0`;
 
-                $.get(
+                const url = `${window.location.origin}/market/itemordershistogram`;
+
+                const options = {
+                    method: 'GET',
+                    data: {
+                        country: country,
+                        language: 'english',
+                        currency: currencyId,
+                        item_nameid: item_nameid,
+                        two_factor: 0
+                    }
+                };
+
+                request(
                     url,
-                    (histogram) => {
+                    options,
+                    (error, data) => {
+                        if (error) {
+                            callback(ERROR_FAILED, null);
+                            return;
+                        }
+
                         // Store the histogram in the session storage.
                         const storage_hash = `itemordershistogram_${item.appid}+${market_name}`;
-                        storageSession.setItem(storage_hash, histogram);
+                        storageSession.setItem(storage_hash, data);
 
-                        callback(ERROR_SUCCESS, histogram, false);
+                        callback(ERROR_SUCCESS, data, false);
                     }
-                ).
-                    fail(() => {
-                        return callback(ERROR_FAILED, null);
-                    });
+                )
             }
         );
     };
@@ -1212,7 +1292,7 @@
                 market.sellItem(
                     task.item,
                     task.sellPrice,
-                    (err, data) => {
+                    (error, data) => {
                         totalNumberOfProcessedQueueItems++;
 
                         const digits = getNumberOfDigits(totalNumberOfQueuedItems);
@@ -1220,37 +1300,41 @@
                         const itemName = task.item.name || task.item.description.name;
                         const padLeft = `${padLeftZero(`${totalNumberOfProcessedQueueItems}`, digits)} / ${totalNumberOfQueuedItems}`;
 
-                        if (!err) {
-                            logDOM(`${padLeft} - ${itemName} listed for ${formatPrice(market.getPriceIncludingFees(task.sellPrice))}, you will receive ${formatPrice(task.sellPrice)}.`);
+                        const success = Boolean(data?.success);
+                        const message = data?.message || '';
 
-                            $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).
-                                css('background', COLOR_SUCCESS);
+                        const callback = () => setTimeout(() => next(), getRandomInt(1000, 1500));
+
+                        if (success) {
+                            logDOM(`${padLeft} - ${itemName} listed for ${formatPrice(market.getPriceIncludingFees(task.sellPrice))}, you will receive ${formatPrice(task.sellPrice)}.`);
+                            $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_SUCCESS);
 
                             totalPriceWithoutFeesOnMarket += task.sellPrice;
                             totalPriceWithFeesOnMarket += market.getPriceIncludingFees(task.sellPrice);
+
                             updateTotals();
-                        } else if (data != null && isRetryMessage(data.message)) {
-                            logDOM(`${padLeft} - ${itemName} retrying listing because ${data.message[0].toLowerCase()}${data.message.slice(1)}`);
+                            callback()
+
+                            return;
+                        }
+
+                        if (message && isRetryMessage(message)) {
+                            logDOM(`${padLeft} - ${itemName} retrying listing because: ${message.charAt(0).toLowerCase()}${message.slice(1)}`);
 
                             totalNumberOfProcessedQueueItems--;
                             sellQueue.unshift(task);
                             sellQueue.pause();
 
-                            setTimeout(() => {
-                                sellQueue.resume();
-                            }, getRandomInt(30000, 45000));
-                        } else {
-                            if (data != null && data.responseJSON != null && data.responseJSON.message != null) {
-                                logDOM(`${padLeft} - ${itemName} not added to market because ${data.responseJSON.message[0].toLowerCase()}${data.responseJSON.message.slice(1)}`);
-                            } else {
-                                logDOM(`${padLeft} - ${itemName} not added to market.`);
-                            }
+                            setTimeout(() => sellQueue.resume(), getRandomInt(30000, 45000));
+                            callback();
 
-                            $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).
-                                css('background', COLOR_ERROR);
+                            return;
                         }
 
-                        next();
+                        logDOM(`${padLeft} - ${itemName} not added to market${message ? ` because:  ${message.charAt(0).toLowerCase()}${message.slice(1)}` : '.'}`);
+                        $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_ERROR);
+                        
+                        callback();
                     }
                 );
             },
@@ -1723,32 +1807,17 @@
                 item.ignoreErrors,
                 (success, cached) => {
                     if (success) {
-                        setTimeout(
-                            () => {
-                                next();
-                            },
-                            cached ? 0 : getRandomInt(1000, 1500)
-                        );
+                        setTimeout(() => next(),  cached ? 0 : getRandomInt(1000, 1500));
                     } else {
                         if (!item.ignoreErrors) {
                             item.ignoreErrors = true;
                             itemQueue.push(item);
                         }
 
-                        const delay = numberOfFailedRequests > 1
-                            ? getRandomInt(30000, 45000)
-                            : getRandomInt(1000, 1500);
+                        const delay = numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : getRandomInt(1000, 1500);
+                        numberOfFailedRequests = numberOfFailedRequests > 3 ? 0 : numberOfFailedRequests;
 
-                        if (numberOfFailedRequests > 3) {
-                            numberOfFailedRequests = 0;
-                        }
-
-                        setTimeout(
-                            () => {
-                                next();
-                            },
-                            cached ? 0 : delay
-                        );
+                        setTimeout(() => next(),  cached ? 0 : delay);
                     }
                 }
             );
@@ -2411,12 +2480,7 @@
                     false,
                     (success, cached) => {
                         if (success) {
-                            setTimeout(
-                                () => {
-                                    next();
-                                },
-                                cached ? 0 : getRandomInt(1000, 1500)
-                            );
+                            setTimeout(() => next(), cached ? 0 : getRandomInt(1000, 1500));
                         } else {
                             if (!item.ignoreErrors) {
                                 item.ignoreErrors = true;
@@ -2425,17 +2489,10 @@
 
                             numberOfFailedRequests++;
 
-                            const delay = numberOfFailedRequests > 1
-                                ? getRandomInt(30000, 45000)
-                                : getRandomInt(1000, 1500);
+                            const delay = numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : getRandomInt(1000, 1500);
+                            numberOfFailedRequests = numberOfFailedRequests > 3 ? 0 : numberOfFailedRequests;
 
-                            if (numberOfFailedRequests > 3) {
-                                numberOfFailedRequests = 0;
-                            }
-
-                            setTimeout(() => {
-                                next();
-                            }, cached ? 0 : delay);
+                            setTimeout(() => next(), cached ? 0 : delay);
                         }
                     }
                 );
@@ -2514,28 +2571,15 @@
                 listing,
                 false,
                 (success, cached) => {
+                    const callback = () => {
+                        increaseMarketProgress();
+                        next();
+                    };
+
                     if (success) {
-                        setTimeout(
-                            () => {
-                                increaseMarketProgress();
-                                next();
-                            },
-                            cached ? 0 : getRandomInt(1000, 1500)
-                        );
+                        setTimeout(callback, cached ? 0 : getRandomInt(1000, 1500));
                     } else {
-                        setTimeout(
-                            () => {
-                                marketListingsQueueWorker(
-                                    listing,
-                                    true,
-                                    () => {
-                                        increaseMarketProgress();
-                                        next(); // Go to the next queue item, regardless of success.
-                                    }
-                                );
-                            },
-                            cached ? 0 : getRandomInt(30000, 45000)
-                        );
+                        setTimeout(() => marketListingsQueueWorker(listing, true, callback), cached ? 0 : getRandomInt(30000, 45000));
                     }
                 }
             );
@@ -2720,28 +2764,15 @@
                     item,
                     false,
                     (success) => {
+                        const callback = () => {
+                            increaseMarketProgress();
+                            next();
+                        };
+
                         if (success) {
-                            setTimeout(
-                                () => {
-                                    increaseMarketProgress();
-                                    next();
-                                },
-                                getRandomInt(1000, 1500)
-                            );
+                            setTimeout(callback, getRandomInt(1000, 1500));
                         } else {
-                            setTimeout(
-                                () => {
-                                    marketOverpricedQueueWorker(
-                                        item,
-                                        true,
-                                        () => {
-                                            increaseMarketProgress();
-                                            next(); // Go to the next queue item, regardless of success.
-                                        }
-                                    );
-                                },
-                                getRandomInt(30000, 45000)
-                            );
+                            setTimeout(() => marketOverpricedQueueWorker(item, true, callback), getRandomInt(30000, 45000));
                         }
                     }
                 );
@@ -2848,33 +2879,20 @@
                     listingid,
                     false,
                     (success) => {
+                        const callback = () => {
+                            increaseMarketProgress();
+                            next();
+                        };
+                        
                         if (success) {
-                            setTimeout(
-                                () => {
-                                    increaseMarketProgress();
-                                    next();
-                                },
-                                getRandomInt(50, 100)
-                            );
+                            setTimeout(callback, getRandomInt(50, 100));
                         } else {
-                            setTimeout(
-                                () => {
-                                    marketRemoveQueueWorker(
-                                        listingid,
-                                        true,
-                                        () => {
-                                            increaseMarketProgress();
-                                            next(); // Go to the next queue item, regardless of success.
-                                        }
-                                    );
-                                },
-                                getRandomInt(30000, 45000)
-                            );
+                            setTimeout(() => marketRemoveQueueWorker(listingid, true, callback), getRandomInt(30000, 45000));
                         }
                     }
                 );
             },
-            10
+            1
         );
 
         function marketRemoveQueueWorker(listingid, ignoreErrors, callback) {
@@ -2914,12 +2932,28 @@
 
         const marketListingsItemsQueue = async.queue(
             (listing, next) => {
-                $.get(
-                    `${window.location.origin}/market/mylistings?count=100&start=${listing}`,
-                    (data) => {
-                        if (!data || !data.success) {
-                            increaseMarketProgress();
-                            next();
+                const callback = () => {
+                    increaseMarketProgress();
+                    setTimeout(() => next(), getRandomInt(1000, 1500));
+                };
+
+                const url = `${window.location.origin}/market/mylistings`
+
+                const options = {
+                    method: 'GET',
+                    data: {
+                        count: 100,
+                        start: listing
+                    },
+                    responseType: 'json'
+                };
+
+                request(
+                    url,
+                    options,
+                    (error, data) => {
+                        if (error || !data?.success) {
+                            callback();
                             return;
                         }
 
@@ -2932,16 +2966,9 @@
                         // g_rgAssets
                         unsafeWindow.MergeWithAssetArray(data.assets); // This is a method from Steam.
 
-                        increaseMarketProgress();
-                        next();
-                    },
-                    'json'
-                ).
-                    fail(() => {
-                        increaseMarketProgress();
-                        next();
-                        return;
-                    });
+                        callback();
+                    }
+                )
             },
             1
         );
