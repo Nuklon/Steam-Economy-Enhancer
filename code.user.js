@@ -116,7 +116,7 @@
         if (url.startsWith('https://steamcommunity.com/market/')) {
             requestStorageHash = `${requestStorageHash}:steamcommunity.com/market`;
             delayBetweenRequests = 1000;
-        };
+        }
         
         const lastRequest = JSON.parse(getLocalStorageItem(requestStorageHash) || JSON.stringify({ time: new Date(0), limited: false }));
         const timeSinceLastRequest = Date.now() - new Date(lastRequest.time).getTime();
@@ -126,7 +126,7 @@
         if (timeSinceLastRequest < delayBetweenRequests) {
             setTimeout(() => request(...arguments), delayBetweenRequests - timeSinceLastRequest);
             return;
-        };
+        }
 
         lastRequest.time = new Date();
         lastRequest.limited = false;
@@ -141,7 +141,7 @@
                 if (xhr.status === 429) {
                     lastRequest.limited = true;
                     setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
-                };
+                }
 
                 if (xhr.status >= 400) {
                     const error = new Error('Http error');
@@ -156,7 +156,7 @@
                 if (xhr.status === 429) {
                     lastRequest.limited = true;
                     setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
-                };
+                }
 
                 const error = new Error('Request failed');
                 error.statusCode = xhr.status;
@@ -540,7 +540,7 @@
                 if (error) {
                     callback(ERROR_FAILED);
                     return;
-                };
+                }
 
                 callback(ERROR_SUCCESS, data);
             }
@@ -624,7 +624,7 @@
                     if (error) {
                         callback(ERROR_FAILED, data);
                         return;
-                    };
+                    }
 
                     callback(ERROR_SUCCESS, data);
                 }
@@ -666,7 +666,7 @@
                     if (error) {
                         callback(ERROR_FAILED, data);
                         return;
-                    };
+                    }
 
                     callback(ERROR_SUCCESS, data);
                 }
@@ -706,7 +706,7 @@
                     if (error) {
                         callback(ERROR_FAILED, data);
                         return;
-                    };
+                    }
 
                     callback(ERROR_SUCCESS, data);
                 }
@@ -741,12 +741,12 @@
                 if (error) {
                     callback(ERROR_FAILED);
                     return;
-                };
+                }
 
                 if (data && (!data.success || !data.prices)) {
                     callback(ERROR_DATA);
                     return;
-                };
+                }
 
                 // Multiply prices so they're in pennies.
                 for (let i = 0; i < data.prices.length; i++) {
@@ -806,7 +806,7 @@
                 if (error) {
                     callback(ERROR_FAILED);
                     return;
-                };
+                }
 
                 const matches = (/Market_LoadOrderSpread\( (\d+) \);/).exec(data || '');
                 if (matches == null) {
@@ -883,7 +883,7 @@
                 if (error) {
                     callback(ERROR_FAILED);
                     return;
-                };
+                }
 
                 const url = `${window.location.origin}/market/itemordershistogram`;
 
@@ -905,7 +905,7 @@
                         if (error) {
                             callback(ERROR_FAILED, null);
                             return;
-                        };
+                        }
 
                         // Store the histogram in the session storage.
                         const storage_hash = `itemordershistogram_${item.appid}+${market_name}`;
@@ -1316,7 +1316,7 @@
                             callback()
 
                             return;
-                        };
+                        }
 
                         if (message && isRetryMessage(message)) {
                             logDOM(`${padLeft} - ${itemName} retrying listing because: ${message.charAt(0).toLowerCase()}${message.slice(1)}`);
@@ -1329,7 +1329,7 @@
                             callback();
 
                             return;
-                        };
+                        }
 
                         logDOM(`${padLeft} - ${itemName} not added to market${message ? ` because:  ${message.charAt(0).toLowerCase()}${message.slice(1)}` : '.'}`);
                         $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_ERROR);
@@ -1812,7 +1812,7 @@
                         if (!item.ignoreErrors) {
                             item.ignoreErrors = true;
                             itemQueue.push(item);
-                        };
+                        }
 
                         const delay = numberOfFailedRequests > 1 ? getRandomInt(30000, 45000) : getRandomInt(1000, 1500);
                         numberOfFailedRequests = numberOfFailedRequests > 3 ? 0 : numberOfFailedRequests;
@@ -2485,7 +2485,7 @@
                             if (!item.ignoreErrors) {
                                 item.ignoreErrors = true;
                                 inventoryPriceQueue.push(item);
-                            };
+                            }
 
                             numberOfFailedRequests++;
 
@@ -2955,7 +2955,7 @@
                         if (error || !data?.success) {
                             callback();
                             return;
-                        };
+                        }
 
                         const myMarketListings = $('#tabContentsMyActiveMarketListingsRows');
 
