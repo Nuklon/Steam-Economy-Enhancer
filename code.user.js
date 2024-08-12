@@ -2966,7 +2966,7 @@
                         // g_rgAssets
                         unsafeWindow.MergeWithAssetArray(data.assets); // This is a method from Steam.
 
-                        callback()
+                        callback();
                     }
                 )
             },
