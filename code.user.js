@@ -4071,7 +4071,7 @@
                 <span id=sdaFileResult style="opacity:${getSettingWithDefault(SETTING_CONFIRMATOR) ? '1' : '0'};transition:opacity 0.2s linear;margin-left:10px">${(getSettingWithDefault(SETTING_CONFIRMATOR) ? 'Loaded as '+ JSON.parse(getSettingWithDefault(SETTING_CONFIRMATOR)).account_name : '')}</span>
             </div>
         </div>`).on('change', `#${SETTING_CONFIRMATOR}`, function() {
-            const [file] = this.file;
+            const [file] = this.files;
             const reader = new FileReader();
 
             reader.addEventListener('load', () => {
