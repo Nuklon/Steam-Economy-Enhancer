@@ -41,6 +41,7 @@
 
     const COLOR_ERROR = '#8A4243';
     const COLOR_SUCCESS = '#407736';
+    const COLOR_SECONDFACTOR_REQUIRED = '#738012';
     const COLOR_PENDING = '#908F44';
     const COLOR_PRICE_FAIR = '#496424';
     const COLOR_PRICE_CHEAP = '#837433';
@@ -117,7 +118,7 @@
             requestStorageHash = `${requestStorageHash}:steamcommunity.com/market`;
             delayBetweenRequests = 1000;
         }
-        
+
         const lastRequest = JSON.parse(getLocalStorageItem(requestStorageHash) || JSON.stringify({ time: new Date(0), limited: false }));
         const timeSinceLastRequest = Date.now() - new Date(lastRequest.time).getTime();
 
@@ -150,7 +151,7 @@
                     callback(error, data);
                 } else {
                     callback(null, data)
-                } 
+                }
             },
             error: (xhr) => {
                 if (xhr.status === 429) {
@@ -205,6 +206,7 @@
     const SETTING_LAST_CACHE = 'SETTING_LAST_CACHE';
     const SETTING_RELIST_AUTOMATICALLY = 'SETTING_RELIST_AUTOMATICALLY';
     const SETTING_MARKET_PAGE_COUNT = 'SETTING_MARKET_PAGE_COUNT';
+    const SETTING_CONFIRMATOR = 'SETTING_CONFIRMATOR'
 
     const settingDefaults = {
         SETTING_MIN_NORMAL_PRICE: 0.05,
@@ -232,6 +234,184 @@
 
     function setSetting(name, value) {
         setLocalStorageItem(name, value);
+    }
+    //#endregion
+
+    //#region Confirmator
+    class Confirmator {
+        #identitySecret;
+        #deviceId;
+        #timestamp = 0;
+
+        constructor(savedData) {
+            this.#identitySecret = savedData.identity_secret;
+            this.#deviceId = savedData.device_id;
+        }
+
+        async #updateTimestamp() {
+            let timestamp = ~~(new Date().getTime() / 1000);
+
+            if (timestamp === this.#timestamp) {
+                await Confirmator.#sleep(1000);
+                timestamp = ~~(new Date().getTime() / 1000);
+            }
+
+            this.#timestamp = timestamp;
+        }
+
+        async #generateConfirmationKey(tag) {
+            const encoder = new TextEncoder();
+            const tagBuffer = encoder.encode(tag);
+
+            const buffer = new Uint8Array(8 + tagBuffer.length);
+            buffer.set(Confirmator.#int64ToBytes(this.#timestamp));
+            buffer.set(tagBuffer, 8);
+
+            const algorithm = {
+                name: 'HMAC',
+                hash: 'SHA-1'
+            }
+            const key = await crypto.subtle.importKey(
+                'raw', Confirmator.#base64Decode(this.#identitySecret),
+                algorithm, false, ['sign', 'verify']
+            );
+            const hashBuffer = await crypto.subtle.sign(algorithm.name, key, buffer);
+            return Confirmator.#base64Encode(new Uint8Array(hashBuffer));
+        }
+
+        async #generateParams(tag) {
+            await this.#updateTimestamp();
+            const confirmationKey = await this.#generateConfirmationKey(tag);
+
+            return {
+                p: this.#deviceId,
+                a: unsafeWindow.g_steamID,
+                k: confirmationKey,
+                t: this.#timestamp,
+                m: 'react',
+                l: 'english',
+                tag: tag
+            }
+        }
+
+        async #getConfirmations() {
+            const params = await this.#generateParams('conf');
+
+            const headers = {
+                'X-Requested-With': 'com.valvesoftware.android.steam.community'
+            }
+            const resp = await $.ajax({
+                url: 'https://steamcommunity.com/mobileconf/getlist',
+                type: 'get',
+                data: params,
+                headers: headers
+            });
+
+            const confs = [];
+            if (!resp.success) {
+                return confs;
+            }
+
+            resp.conf.forEach(confirmation => {
+                confs.push({
+                    id: confirmation.id,
+                    nonce: confirmation.nonce
+                })
+            });
+            return confs;
+        }
+
+        async #getConfirmationDetailsPage(confirmation) {
+            const params = await this.#generateParams(`details${confirmation.id}`);
+            const resp = await $.ajax({
+                url: `https://steamcommunity.com/mobileconf/details/${confirmation.id}`,
+                type: 'get',
+                data: params
+            });
+            return resp.html;
+        }
+
+        async #getConfirmationDetails(confirmation) {
+            const confirmationDetailPage = await this.#getConfirmationDetailsPage(confirmation);
+            const confirmationDetailsPageObject = $(confirmationDetailPage);
+
+            const scriptElementString = confirmationDetailsPageObject.find('script').text();
+            const regex = new RegExp('confiteminfo.{3}({.*}).{2}UserYou');
+            const match = scriptElementString.match(regex);
+
+            return JSON.parse(match[1]);
+        }
+
+        async #getTradeConfirmationDetails(confirmation) {
+            const confirmationDetailsPage = await this.#getConfirmationDetailsPage(confirmation);
+            const confirmationDetailsPageObject = $(confirmationDetailsPage);
+
+            const id = confirmationDetailsPageObject.find('.tradeoffer').attr('id');
+            return id.substring('tradeofferid_'.length);
+        }
+
+        async getConfirmationByAssetId(assetId) {
+            const confirmations = await this.#getConfirmations();
+
+            for (let i = 0; i <= confirmations.length - 1; ++i) {
+                const confirmationDetails = await this.#getConfirmationDetails(confirmations[i]);
+                if (confirmationDetails.id === assetId) {
+                    return confirmations[i];
+                }
+            }
+
+            return null;
+        }
+
+        async sendConfirmation(confirmation) {
+            const params = await this.#generateParams('allow');
+            params.op = 'allow';
+            params.cid = confirmation.id;
+            params.ck = confirmation.nonce;
+            const headers = {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+
+            return await $.ajax({
+                url: 'https://steamcommunity.com/mobileconf/ajaxop',
+                type: 'get',
+                data: params,
+                headers: headers
+            });
+        }
+
+        static async #sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        static #int64ToBytes(x, bigEndian=true) {
+            let bytes = new Uint8Array(8);
+
+            for (let i = 0; i < bytes.length; ++i) {
+                bytes[i] = x & 0xff;
+                x >>= 8;
+            }
+
+            if (bigEndian) {
+                bytes = bytes.reverse();
+            }
+            return bytes;
+        }
+
+        static #base64Decode(str) {
+            const decodedString = atob(str);
+            const bytes = new Uint8Array(decodedString.length);
+
+            for (let i = 0; i < decodedString.length; ++i) {
+                bytes[i] = decodedString.charCodeAt(i);
+            }
+
+            return bytes;
+        }
+
+        static #base64Encode(bytes) {
+            return btoa(String.fromCharCode(...bytes));
+        }
     }
     //#endregion
 
@@ -500,7 +680,7 @@
     // Price is before fees.
     SteamMarket.prototype.sellItem = function(item, price, callback /*err, data*/) {
         const url = `${window.location.origin}/market/sellitem/`;
-        
+
         const options = {
             method: 'POST',
             data: {
@@ -520,15 +700,15 @@
     // Removes an item.
     // Item is the unique item id.
     SteamMarket.prototype.removeListing = function(item, isBuyOrder, callback /*err, data*/) {
-        const url = isBuyOrder 
-            ? `${window.location.origin}/market/cancelbuyorder/` 
+        const url = isBuyOrder
+            ? `${window.location.origin}/market/cancelbuyorder/`
             : `${window.location.origin}/market/removelisting/${item}`;
 
         const options = {
             method: 'POST',
-            data: { 
-                sessionid: readCookie('sessionid'), 
-                ...(isBuyOrder ? { buy_orderid: item } : {}) 
+            data: {
+                sessionid: readCookie('sessionid'),
+                ...(isBuyOrder ? { buy_orderid: item } : {})
             },
             responseType: 'json'
         };
@@ -735,7 +915,7 @@
         };
 
         request(
-            url, 
+            url,
             options,
             (error, data) => {
                 if (error) {
@@ -800,7 +980,7 @@
         const options = { method: 'GET' };
 
         request(
-            url, 
+            url,
             options,
             (error, data) => {
                 if (error) {
@@ -1287,6 +1467,23 @@
             }
         }
 
+        async function acceptListing(task) {
+            const confirmation = await confirmator.getConfirmationByAssetId(task.item.assetid || task.item.id);
+            if (!confirmation) {
+                throw 'Unable to find confirmation';
+            }
+            const sendStatus = await confirmator.sendConfirmation(confirmation);
+            if (!sendStatus || !sendStatus.success) {
+                throw '2FA error occurs';
+            }
+
+            return;
+        }
+
+        const confirmator = getSettingWithDefault(SETTING_CONFIRMATOR) ?
+            (new Confirmator(JSON.parse(getSettingWithDefault(SETTING_CONFIRMATOR))))
+            : null;
+
         const sellQueue = async.queue(
             (task, next) => {
                 market.sellItem(
@@ -1306,15 +1503,42 @@
                         const callback = () => setTimeout(() => next(), getRandomInt(1000, 1500));
 
                         if (success) {
-                            logDOM(`${padLeft} - ${itemName} listed for ${formatPrice(market.getPriceIncludingFees(task.sellPrice))}, you will receive ${formatPrice(task.sellPrice)}.`);
+                            let domText =`${padLeft} - ${itemName} listed for ${formatPrice(market.getPriceIncludingFees(task.sellPrice))}, you will receive ${formatPrice(task.sellPrice)}.`;
                             $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_SUCCESS);
 
                             totalPriceWithoutFeesOnMarket += task.sellPrice;
                             totalPriceWithFeesOnMarket += market.getPriceIncludingFees(task.sellPrice);
 
                             updateTotals();
-                            callback()
 
+                            if (!data.needs_mobile_confirmation) {
+                                $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_SUCCESS);
+                                domText = `${domText}. Accepted without 2FA`;
+                                logDOM(domText);
+                                callback();
+
+                                return;
+                            }
+
+                            if (!confirmator) {
+                                $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_SECONDFACTOR_REQUIRED);
+                                domText = `${domText}. 2FA accept required`;
+                                logDOM(domText);
+                                callback();
+                                return;
+                            }
+
+                            acceptListing(task)
+                                .then(() => {
+                                    $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_SUCCESS);
+                                    logDOM(domText);
+                                    callback();
+                                })
+                                .catch(reason => {
+                                    domText = `${domText}. ${reason}`;
+                                    logDOM(domText);
+                                    callback();
+                                })
                             return;
                         }
 
@@ -1333,7 +1557,7 @@
 
                         logDOM(`${padLeft} - ${itemName} not added to market${message ? ` because:  ${message.charAt(0).toLowerCase()}${message.slice(1)}` : '.'}`);
                         $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_ERROR);
-                        
+
                         callback();
                     }
                 );
@@ -2883,7 +3107,7 @@
                             increaseMarketProgress();
                             next();
                         };
-                        
+
                         if (success) {
                             setTimeout(callback, getRandomInt(50, 100));
                         } else {
@@ -3841,7 +4065,54 @@
                 Automatically relist overpriced market listings (slow on large inventories):&nbsp;
                 <input id="${SETTING_RELIST_AUTOMATICALLY}" class="market_relist_auto" type="checkbox" ${getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked' : ''}>
             </div>
-        </div>`);
+            <div style="margin-top:24px;margin-bottom:6px;">
+                <label for="${SETTING_CONFIRMATOR}" class="btn_grey_black btn_small" style="cursor:pointer;background:linear-gradient(to right, #32363f 5%, #32363f 95%);box-shadow: 2px 2px 5px rgb(0 0 0 / 20%);transition: all 0.2s ease-out;padding: 0 15px;font-size:15px;line-height:30px;">Load SDA File</label>
+                <input id="${SETTING_CONFIRMATOR}" type="file" accept=".maFile, .mafile" style="width:0.1px;height:0.1px;opacity:0;overflow:hidden;position:absolute;z-index:-1;"/>
+                <span id=sdaFileResult style="opacity:${getSettingWithDefault(SETTING_CONFIRMATOR) ? '1' : '0'};transition:opacity 0.2s linear;margin-left:10px">${(getSettingWithDefault(SETTING_CONFIRMATOR) ? 'Loaded as '+ JSON.parse(getSettingWithDefault(SETTING_CONFIRMATOR)).account_name : '')}</span>
+            </div>
+        </div>`).on('change', `#${SETTING_CONFIRMATOR}`, function() {
+            const [file] = this.file;
+            const reader = new FileReader();
+
+            reader.addEventListener('load', () => {
+                try {
+                    const sdaContent = JSON.parse(reader.result);
+                    if (!sdaContent.account_name || !sdaContent.device_id || !sdaContent.identity_secret) {
+                        $('#sdaFileResult')
+                        .text('Not a valid SDA File')
+                        .css('color', 'red')
+                        .css('opacity', 1);
+                        return;
+                    }
+
+                    $('#sdaFileResult')
+                    .text(`Loaded as ${sdaContent.account_name}`)
+                    .css('opacity', '1');
+
+                    const confirmatorKeys = {
+                        account_name: sdaContent.account_name,
+                        device_id: sdaContent.device_id,
+                        identity_secret: sdaContent.identity_secret
+                    }
+
+                    // Storing in the plaintext
+                    // Identity Secret is used only for confirmation purposes
+                    setSetting(SETTING_CONFIRMATOR, JSON.stringify(confirmatorKeys));
+
+                } catch (SyntaxError) {
+                    $('#sdaFileResult')
+                    .text('Not a JSON compatible')
+                    .css('color', 'red')
+                    .css('opacity', '1');
+                    return;
+                }
+
+            });
+
+            if (file) {
+                reader.readAsText(file);
+            }
+        });
 
         unsafeWindow.ShowConfirmDialog('Steam Economy Enhancer', price_options).done(() => {
             setSetting(SETTING_MIN_NORMAL_PRICE, $(`#${SETTING_MIN_NORMAL_PRICE}`, price_options).val());
