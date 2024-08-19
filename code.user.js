@@ -117,7 +117,7 @@
             requestStorageHash = `${requestStorageHash}:steamcommunity.com/market`;
             delayBetweenRequests = 1000;
         }
-        
+
         const lastRequest = JSON.parse(getLocalStorageItem(requestStorageHash) || JSON.stringify({ time: new Date(0), limited: false }));
         const timeSinceLastRequest = Date.now() - new Date(lastRequest.time).getTime();
 
@@ -150,7 +150,7 @@
                     callback(error, data);
                 } else {
                     callback(null, data)
-                } 
+                }
             },
             error: (xhr) => {
                 if (xhr.status === 429) {
@@ -500,7 +500,7 @@
     // Price is before fees.
     SteamMarket.prototype.sellItem = function(item, price, callback /*err, data*/) {
         const url = `${window.location.origin}/market/sellitem/`;
-        
+
         const options = {
             method: 'POST',
             data: {
@@ -520,15 +520,15 @@
     // Removes an item.
     // Item is the unique item id.
     SteamMarket.prototype.removeListing = function(item, isBuyOrder, callback /*err, data*/) {
-        const url = isBuyOrder 
-            ? `${window.location.origin}/market/cancelbuyorder/` 
+        const url = isBuyOrder
+            ? `${window.location.origin}/market/cancelbuyorder/`
             : `${window.location.origin}/market/removelisting/${item}`;
 
         const options = {
             method: 'POST',
-            data: { 
-                sessionid: readCookie('sessionid'), 
-                ...(isBuyOrder ? { buy_orderid: item } : {}) 
+            data: {
+                sessionid: readCookie('sessionid'),
+                ...(isBuyOrder ? { buy_orderid: item } : {})
             },
             responseType: 'json'
         };
@@ -735,7 +735,7 @@
         };
 
         request(
-            url, 
+            url,
             options,
             (error, data) => {
                 if (error) {
@@ -800,7 +800,7 @@
         const options = { method: 'GET' };
 
         request(
-            url, 
+            url,
             options,
             (error, data) => {
                 if (error) {
@@ -1333,7 +1333,7 @@
 
                         logDOM(`${padLeft} - ${itemName} not added to market${message ? ` because:  ${message.charAt(0).toLowerCase()}${message.slice(1)}` : '.'}`);
                         $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_ERROR);
-                        
+
                         callback();
                     }
                 );
@@ -2566,6 +2566,17 @@
             }
         }
 
+        function getPriceValueAsInt(listing) {
+            const regex = /\d+[.,]\d{0,2}/gm;
+            const results = listing.match(regex);
+
+            if (results == null) {
+                return 0;
+            }
+
+            return unsafeWindow.GetPriceValueAsInt(results[0]);
+        }
+
         const marketListingsQueue = async.queue((listing, next) => {
             marketListingsQueueWorker(
                 listing,
@@ -2634,7 +2645,7 @@
             const listingUI = $(getListingFromLists(listing.listingid).elm);
 
             const game_name = asset.type;
-            const price = unsafeWindow.GetPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text());
+            const price = getPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text());
 
             if (price <= getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE) * 100) {
                 $('.market_listing_my_price', listingUI).last().css('background', COLOR_PRICE_NOT_CHECKED);
@@ -2883,7 +2894,7 @@
                             increaseMarketProgress();
                             next();
                         };
-                        
+
                         if (success) {
                             setTimeout(callback, getRandomInt(50, 100));
                         } else {
@@ -3075,8 +3086,8 @@
                 return {};
             }
 
-            const priceBuyer = unsafeWindow.GetPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listing.elm).text());
-            const priceSeller = unsafeWindow.GetPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(3)', listing.elm).text());
+            const priceBuyer = getPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listing.elm).text());
+            const priceSeller = getPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(3)', listing.elm).text());
             const itemIds = actionButton.split(',');
             const appid = replaceNonNumbers(itemIds[2]);
             const contextid = replaceNonNumbers(itemIds[3]);
@@ -3349,8 +3360,8 @@
                         let listingPriceB = $(b.values().market_listing_price).text();
                         listingPriceB = listingPriceB.substr(0, listingPriceB.indexOf('('));
 
-                        const firstPrice = unsafeWindow.GetPriceValueAsInt(listingPriceA);
-                        const secondPrice = unsafeWindow.GetPriceValueAsInt(listingPriceB);
+                        const firstPrice = getPriceValueAsInt(listingPriceA);
+                        const secondPrice = getPriceValueAsInt(listingPriceB);
 
                         return firstPrice - secondPrice;
                     }
