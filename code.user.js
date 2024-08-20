@@ -2566,16 +2566,11 @@
             }
         }
 
-        function getPriceValueAsInt(listing) {
-            // Match number part from any currency format
-            const results = listing.match(/\d[0-9 .,]*(\.|,\d{0,2})?/gm);
-
-            if (results == null) {
-                return 0;
-            }
-
-            return unsafeWindow.GetPriceValueAsInt(results[0]);
-        }
+        // Match number part from any currency format
+        const getPriceValueAsInt = listing =>
+            unsafeWindow.GetPriceValueAsInt(
+                listing.match(/(?<price>[0-9][0-9 .,]*)/)?.groups?.price ?? 0
+            );
 
         const marketListingsQueue = async.queue((listing, next) => {
             marketListingsQueueWorker(
