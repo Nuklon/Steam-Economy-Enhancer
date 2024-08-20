@@ -2567,8 +2567,8 @@
         }
 
         function getPriceValueAsInt(listing) {
-            const regex = /\d+[.,]\d{0,2}/gm;
-            const results = listing.match(regex);
+            // Match number part from any currency format
+            const results = listing.match(/\d[0-9 .,]*(\.|,\d{0,2})?/gm);
 
             if (results == null) {
                 return 0;
