@@ -117,7 +117,7 @@
             requestStorageHash = `${requestStorageHash}:steamcommunity.com/market`;
             delayBetweenRequests = 1000;
         }
-        
+
         const lastRequest = JSON.parse(getLocalStorageItem(requestStorageHash) || JSON.stringify({ time: new Date(0), limited: false }));
         const timeSinceLastRequest = Date.now() - new Date(lastRequest.time).getTime();
 
@@ -150,7 +150,7 @@
                     callback(error, data);
                 } else {
                     callback(null, data)
-                } 
+                }
             },
             error: (xhr) => {
                 if (xhr.status === 429) {
@@ -500,7 +500,7 @@
     // Price is before fees.
     SteamMarket.prototype.sellItem = function(item, price, callback /*err, data*/) {
         const url = `${window.location.origin}/market/sellitem/`;
-        
+
         const options = {
             method: 'POST',
             data: {
@@ -520,15 +520,15 @@
     // Removes an item.
     // Item is the unique item id.
     SteamMarket.prototype.removeListing = function(item, isBuyOrder, callback /*err, data*/) {
-        const url = isBuyOrder 
-            ? `${window.location.origin}/market/cancelbuyorder/` 
+        const url = isBuyOrder
+            ? `${window.location.origin}/market/cancelbuyorder/`
             : `${window.location.origin}/market/removelisting/${item}`;
 
         const options = {
             method: 'POST',
-            data: { 
-                sessionid: readCookie('sessionid'), 
-                ...(isBuyOrder ? { buy_orderid: item } : {}) 
+            data: {
+                sessionid: readCookie('sessionid'),
+                ...(isBuyOrder ? { buy_orderid: item } : {})
             },
             responseType: 'json'
         };
@@ -735,7 +735,7 @@
         };
 
         request(
-            url, 
+            url,
             options,
             (error, data) => {
                 if (error) {
@@ -800,7 +800,7 @@
         const options = { method: 'GET' };
 
         request(
-            url, 
+            url,
             options,
             (error, data) => {
                 if (error) {
@@ -1333,7 +1333,7 @@
 
                         logDOM(`${padLeft} - ${itemName} not added to market${message ? ` because:  ${message.charAt(0).toLowerCase()}${message.slice(1)}` : '.'}`);
                         $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_ERROR);
-                        
+
                         callback();
                     }
                 );
@@ -2883,7 +2883,7 @@
                             increaseMarketProgress();
                             next();
                         };
-                        
+
                         if (success) {
                             setTimeout(callback, getRandomInt(50, 100));
                         } else {
@@ -3903,8 +3903,8 @@
         .price_option_price { width: 100px }
         .inventory_item_price { top: 0px;position: absolute;right: 0;background: #3571a5;padding: 2px;color: white; font-size:11px; border: 1px solid #666666;}
 
-        .see_inventory_buttons {display:flex;flex-wrap:wrap;gap:10px;}
-        .see_inventory_buttons > .see_inventory_buttons {flex-basis: 100%;}
+        .see_inventory_buttons {display:flex;flex-wrap:wrap;gap:10px;align-items:start;}
+        .see_inventory_buttons > .see_inventory_buttons, .see_inventory_buttons > #inventory_items_spinner {flex-basis: 100%;}
         #see_market_progress { display: block; width: 50%; height: 20px; }
         #see_market_progress[hidden] { visibility: hidden; }
 
