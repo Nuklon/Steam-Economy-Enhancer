@@ -554,6 +554,13 @@
     // Prices are ordered by oldest to most recent.
     // Price is inclusive of fees.
     SteamMarket.prototype.getPriceHistory = function(item, cache, callback) {
+        const shouldUseAverage = getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1;
+
+        if (!shouldUseAverage) {
+            // The price history is only used by the "average price" calculation
+            return callback(ERROR_SUCCESS, null, true);
+        }
+
         try {
             const market_name = getMarketHashName(item);
             if (market_name == null) {
