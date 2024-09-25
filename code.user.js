@@ -3491,12 +3491,6 @@
                 updateMarketSelectAllButton();
             });
 
-            $('#market_removelisting_dialog_accept').on('click', '*', () => {
-                // This is when a user removed an item through the Remove/Cancel button.
-                // Ideally, it should remove this item from the list (instead of just the UI element which Steam does), but I'm not sure how to get the current item yet.
-                window.location.reload();
-            });
-
             $('.select_overpriced').on('click', '*', function() {
                 const selectionGroup = $(this).parent().parent().parent().parent();
                 const marketList = getListFromContainer(selectionGroup);
