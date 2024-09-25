@@ -802,7 +802,7 @@
 
     // Get the item name id from a market item.
     SteamMarket.prototype.getCurrentMarketItemNameId = function(appid, market_name, callback) {
-        const url = `${window.location.origin}/market/listings/${appid}/${market_name}`;
+        const url = `${window.location.origin}/market/listings/${appid}/${escapeURI(market_name)}`;
 
         const options = { method: 'GET' };
 
@@ -993,19 +993,19 @@
         }
 
         if (item.description != null && item.description.market_hash_name != null) {
-            return escapeURI(item.description.market_hash_name);
+            return item.description.market_hash_name;
         }
 
         if (item.description != null && item.description.name != null) {
-            return escapeURI(item.description.name);
+            return item.description.name;
         }
 
         if (item.market_hash_name != null) {
-            return escapeURI(item.market_hash_name);
+            return item.market_hash_name;
         }
 
         if (item.name != null) {
-            return escapeURI(item.name);
+            return item.name;
         }
 
         return null;
