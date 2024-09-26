@@ -2573,6 +2573,12 @@
             }
         }
 
+        // Match number part from any currency format
+        const getPriceValueAsInt = listing =>
+            unsafeWindow.GetPriceValueAsInt(
+                listing.match(/(?<price>[0-9][0-9 .,]*)/)?.groups?.price ?? 0
+            );
+
         const marketListingsQueue = async.queue((listing, next) => {
             marketListingsQueueWorker(
                 listing,
@@ -2641,7 +2647,7 @@
             const listingUI = $(getListingFromLists(listing.listingid).elm);
 
             const game_name = asset.type;
-            const price = unsafeWindow.GetPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text());
+            const price = getPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text());
 
             if (price <= getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE) * 100) {
                 $('.market_listing_my_price', listingUI).last().css('background', COLOR_PRICE_NOT_CHECKED);
@@ -3082,8 +3088,8 @@
                 return {};
             }
 
-            const priceBuyer = unsafeWindow.GetPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listing.elm).text());
-            const priceSeller = unsafeWindow.GetPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(3)', listing.elm).text());
+            const priceBuyer = getPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listing.elm).text());
+            const priceSeller = getPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(3)', listing.elm).text());
             const itemIds = actionButton.split(',');
             const appid = replaceNonNumbers(itemIds[2]);
             const contextid = replaceNonNumbers(itemIds[3]);
@@ -3356,8 +3362,8 @@
                         let listingPriceB = $(b.values().market_listing_price).text();
                         listingPriceB = listingPriceB.substr(0, listingPriceB.indexOf('('));
 
-                        const firstPrice = unsafeWindow.GetPriceValueAsInt(listingPriceA);
-                        const secondPrice = unsafeWindow.GetPriceValueAsInt(listingPriceB);
+                        const firstPrice = getPriceValueAsInt(listingPriceA);
+                        const secondPrice = getPriceValueAsInt(listingPriceB);
 
                         return firstPrice - secondPrice;
                     }
