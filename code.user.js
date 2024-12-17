@@ -3753,7 +3753,7 @@
 
 
         // This only works with a new trade offer.
-        if (location.pathname !== '/tradeoffer/new/') {
+        if (location.pathname !== '/tradeoffer/new/' && location.pathname !== '/tradeoffer/new') {
             return;
         }
 
