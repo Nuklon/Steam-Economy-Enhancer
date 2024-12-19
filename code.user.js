@@ -1294,14 +1294,6 @@
             }
         }
 
-        function getAmountString(amount) {
-            if (amount == 1) {
-                return '';
-            }
-        
-            return ` [x${amount}]`;
-        }
-
         const sellQueue = async.queue(
             (task, next) => {
                 market.sellItem(
@@ -1321,7 +1313,8 @@
                         const callback = () => setTimeout(() => next(), getRandomInt(1000, 1500));
 
                         if (success) {
-                            logDOM(`${padLeft} - ${itemName}${getAmountString(task.item.amount)} listed for ${formatPrice(market.getPriceIncludingFees(task.sellPrice) * task.item.amount)}, you will receive ${formatPrice(task.sellPrice * task.item.amount)}.`);
+                            const amount = task.item.amount == 1 ? '' : `${task.item.amount}x `;
+                            logDOM(`${padLeft} - ${amount}${itemName} listed for ${formatPrice(market.getPriceIncludingFees(task.sellPrice) * task.item.amount)}, you will receive ${formatPrice(task.sellPrice * task.item.amount)}.`);
                             $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_SUCCESS);
 
                             totalPriceWithoutFeesOnMarket += task.sellPrice * task.item.amount;
