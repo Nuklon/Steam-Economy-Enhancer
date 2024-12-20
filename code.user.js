@@ -508,7 +508,7 @@
                 appid: item.appid,
                 contextid: item.contextid,
                 assetid: item.assetid || item.id,
-                amount: 1,
+                amount: item.amount,
                 price: price
             },
             responseType: 'json'
@@ -1313,11 +1313,12 @@
                         const callback = () => setTimeout(() => next(), getRandomInt(1000, 1500));
 
                         if (success) {
-                            logDOM(`${padLeft} - ${itemName} listed for ${formatPrice(market.getPriceIncludingFees(task.sellPrice))}, you will receive ${formatPrice(task.sellPrice)}.`);
+                            const amount = task.item.amount == 1 ? '' : `${task.item.amount}x `;
+                            logDOM(`${padLeft} - ${amount}${itemName} listed for ${formatPrice(market.getPriceIncludingFees(task.sellPrice) * task.item.amount)}, you will receive ${formatPrice(task.sellPrice * task.item.amount)}.`);
                             $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_SUCCESS);
 
-                            totalPriceWithoutFeesOnMarket += task.sellPrice;
-                            totalPriceWithFeesOnMarket += market.getPriceIncludingFees(task.sellPrice);
+                            totalPriceWithoutFeesOnMarket += task.sellPrice * task.item.amount;
+                            totalPriceWithFeesOnMarket += market.getPriceIncludingFees(task.sellPrice) * task.item.amount;
 
                             updateTotals();
                             callback()
@@ -3048,17 +3049,19 @@
 
             let totalPriceBuyer = 0;
             let totalPriceSeller = 0;
+            let totalAmount = 0;
             // Add the listings to the queue to be checked for the price.
             for (let i = 0; i < marketLists.length; i++) {
                 for (let j = 0; j < marketLists[i].items.length; j++) {
                     const listingid = replaceNonNumbers(marketLists[i].items[j].values().market_listing_item_name);
                     const assetInfo = getAssetInfoFromListingId(listingid);
 
+                    totalAmount += assetInfo.amount
                     if (!isNaN(assetInfo.priceBuyer)) {
-                        totalPriceBuyer += assetInfo.priceBuyer;
+                        totalPriceBuyer += assetInfo.priceBuyer * assetInfo.amount;
                     }
                     if (!isNaN(assetInfo.priceSeller)) {
-                        totalPriceSeller += assetInfo.priceSeller;
+                        totalPriceSeller += assetInfo.priceSeller * assetInfo.amount;
                     }
 
                     marketListingsQueue.push({
@@ -3071,7 +3074,8 @@
                 }
             }
 
-            $('#my_market_selllistings_number').append(`<span id="my_market_sellistings_total_price">, ${formatPrice(totalPriceBuyer)} ➤ ${formatPrice(totalPriceSeller)}</span>`);
+            $('#my_market_selllistings_number').append(`<span id="my_market_sellistings_total_amount"> [${totalAmount}]</span>`)
+                                               .append(`<span id="my_market_sellistings_total_price">, ${formatPrice(totalPriceBuyer)} ➤ ${formatPrice(totalPriceSeller)}</span>`);
         }
 
 
@@ -3094,10 +3098,12 @@
             const appid = replaceNonNumbers(itemIds[2]);
             const contextid = replaceNonNumbers(itemIds[3]);
             const assetid = replaceNonNumbers(itemIds[4]);
+            const amount = Number(unsafeWindow.g_rgAssets[appid][contextid][assetid].amount);
             return {
                 appid,
                 contextid,
                 assetid,
+                amount,
                 priceBuyer,
                 priceSeller
             };
