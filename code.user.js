@@ -1299,6 +1299,7 @@
         const sellQueue = async.queue(
             (task, next) => {
                 totalNumberOfProcessedQueueItems++;
+                
                 const digits = getNumberOfDigits(totalNumberOfQueuedItems);
                 const itemId = task.item.assetid || task.item.id;
                 const itemName = task.item.name || task.item.description.name;
@@ -1308,9 +1309,9 @@
                     logDOM(`${padLeft} - ${itemName} is not listed due to ignoring price settings.`);
                     $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_PRICE_NOT_CHECKED);
                     next();
-
                     return;
                 }
+                
                 market.sellItem(
                     task.item,
                     task.sellPrice,
