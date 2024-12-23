@@ -2167,7 +2167,7 @@
             const ownerActions = $(`#${item_info_id}_item_owner_actions`);
 
             // Move market link to a button
-            ownerActions.append(`<a class="btn_small btn_grey_white_innerfade" href="/market/listings/${appid}/${market_hash_name}"><span>View in Community Market</span></a>`);
+            ownerActions.append(`<a class="btn_small btn_grey_white_innerfade" href="/market/listings/${appid}/${encodeURIComponent(market_hash_name)}"><span>View in Community Market</span></a>`);
             $(`#${item_info_id}_item_market_actions > div:nth-child(1) > div:nth-child(1)`).hide();
 
             // ownerActions is hidden on other games' inventories, we need to show it to have a "Market" button visible
