@@ -1299,7 +1299,7 @@
         const sellQueue = async.queue(
             (task, next) => {
                 totalNumberOfProcessedQueueItems++;
-                
+
                 const digits = getNumberOfDigits(totalNumberOfQueuedItems);
                 const itemId = task.item.assetid || task.item.id;
                 const itemName = task.item.name || task.item.description.name;
@@ -1312,7 +1312,7 @@
                     next();
                     return;
                 }
-                
+
                 market.sellItem(
                     task.item,
                     task.sellPrice,
@@ -3713,50 +3713,50 @@
     }
 
     function initializeTradeOfferUI() {
-        const updateInventoryPrices = function() {
-            if (getSettingWithDefault(SETTING_TRADEOFFER_PRICE_LABELS) == 1) {
+        if (getSettingWithDefault(SETTING_TRADEOFFER_PRICE_LABELS) == 1) {
+            const updateInventoryPrices = function() {
                 setInventoryPrices(getTradeOfferInventoryItems());
-            }
-        };
+            };
 
-        const updateInventoryPricesInTrade = function() {
-            const items = [];
-            for (let i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.them.assets.length; i++) {
-                const asset = unsafeWindow.UserThem.findAsset(unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].assetid);
-                items.push(asset);
-            }
-            for (let i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.me.assets.length; i++) {
-                const asset = unsafeWindow.UserYou.findAsset(unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].assetid);
-                items.push(asset);
-            }
-            setInventoryPrices(items);
-        };
+            const updateInventoryPricesInTrade = function() {
+                const items = [];
+                for (let i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.them.assets.length; i++) {
+                    const asset = unsafeWindow.UserThem.findAsset(unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.them.assets[i].assetid);
+                    items.push(asset);
+                }
+                for (let i = 0; i < unsafeWindow.g_rgCurrentTradeStatus.me.assets.length; i++) {
+                    const asset = unsafeWindow.UserYou.findAsset(unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].appid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].contextid, unsafeWindow.g_rgCurrentTradeStatus.me.assets[i].assetid);
+                    items.push(asset);
+                }
+                setInventoryPrices(items);
+            };
 
-        $('.trade_right > div > div > div > .trade_item_box').observe('childlist subtree', () => {
-            if (!hasLoadedAllTradeOfferItems()) {
-                return;
-            }
+            $('.trade_right > div > div > div > .trade_item_box').observe('childlist subtree', () => {
+                if (!hasLoadedAllTradeOfferItems()) {
+                    return;
+                }
 
-            const currentTradeOfferSum = unsafeWindow.g_rgCurrentTradeStatus.me.assets.length + unsafeWindow.g_rgCurrentTradeStatus.them.assets.length;
-            if (lastTradeOfferSum != currentTradeOfferSum) {
-                updateInventoryPricesInTrade();
-            }
+                const currentTradeOfferSum = unsafeWindow.g_rgCurrentTradeStatus.me.assets.length + unsafeWindow.g_rgCurrentTradeStatus.them.assets.length;
+                if (lastTradeOfferSum != currentTradeOfferSum) {
+                    updateInventoryPricesInTrade();
+                }
 
-            lastTradeOfferSum = currentTradeOfferSum;
+                lastTradeOfferSum = currentTradeOfferSum;
 
-            $('#trade_offer_your_sum').remove();
-            $('#trade_offer_their_sum').remove();
+                $('#trade_offer_your_sum').remove();
+                $('#trade_offer_their_sum').remove();
 
-            const your_sum = sumTradeOfferAssets(unsafeWindow.g_rgCurrentTradeStatus.me.assets, unsafeWindow.UserYou);
-            const their_sum = sumTradeOfferAssets(unsafeWindow.g_rgCurrentTradeStatus.them.assets, unsafeWindow.UserThem);
+                const your_sum = sumTradeOfferAssets(unsafeWindow.g_rgCurrentTradeStatus.me.assets, unsafeWindow.UserYou);
+                const their_sum = sumTradeOfferAssets(unsafeWindow.g_rgCurrentTradeStatus.them.assets, unsafeWindow.UserThem);
 
-            $('div.offerheader:nth-child(1) > div:nth-child(3)').append(`<div class="trade_offer_sum" id="trade_offer_your_sum">${your_sum}</div>`);
-            $('div.offerheader:nth-child(3) > div:nth-child(3)').append(`<div class="trade_offer_sum" id="trade_offer_their_sum">${their_sum}</div>`);
-        });
+                $('div.offerheader:nth-child(1) > div:nth-child(3)').append(`<div class="trade_offer_sum" id="trade_offer_your_sum">${your_sum}</div>`);
+                $('div.offerheader:nth-child(3) > div:nth-child(3)').append(`<div class="trade_offer_sum" id="trade_offer_their_sum">${their_sum}</div>`);
+            });
 
 
-        // Load after the inventory is loaded.
-        updateInventoryPrices();
+            // Load after the inventory is loaded.
+            updateInventoryPrices();
+        }
 
         $('#inventory_pagecontrols').observe(
             'childlist',
