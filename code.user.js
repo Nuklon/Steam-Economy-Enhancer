@@ -216,7 +216,7 @@
         SETTING_MAX_MISC_PRICE: 10,
         SETTING_PRICE_OFFSET: 0.00,
         SETTING_PRICE_MIN_CHECK_PRICE: 0.00,
-        SETTING_PRICE_MIN_LIST_PRICE: 0.03,
+        SETTING_PRICE_MIN_LIST_PRICE: 0.00,
         SETTING_PRICE_ALGORITHM: 1,
         SETTING_PRICE_IGNORE_LOWEST_Q: 1,
         SETTING_PRICE_HISTORY_HOURS: 12,
@@ -3107,7 +3107,7 @@
             const appid = replaceNonNumbers(itemIds[2]);
             const contextid = replaceNonNumbers(itemIds[3]);
             const assetid = replaceNonNumbers(itemIds[4]);
-            const amount = Number(unsafeWindow.g_rgAssets[appid][contextid][assetid].amount);
+            const amount = Number(unsafeWindow.g_rgAssets[appid][contextid][assetid]?.amount ?? 1);
             return {
                 appid,
                 contextid,
@@ -3259,7 +3259,7 @@
                     }
 
                     // appid and contextid are identical, only the assetid is different for each asset.
-                    unsafeWindow.g_rgAssets[appid][contextid][assetInfo.assetid] = existingAsset;
+                    unsafeWindow.g_rgAssets[assetInfo.appid][assetInfo.contextid][assetInfo.assetid] = existingAsset;
                     marketListingsQueue.push({
                         listingid,
                         appid: assetInfo.appid,
