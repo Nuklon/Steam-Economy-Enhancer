@@ -3107,7 +3107,7 @@
             const appid = replaceNonNumbers(itemIds[2]);
             const contextid = replaceNonNumbers(itemIds[3]);
             const assetid = replaceNonNumbers(itemIds[4]);
-            const amount = Number(unsafeWindow.g_rgAssets[appid][contextid][assetid].amount);
+            const amount = Number(unsafeWindow.g_rgAssets[appid][contextid][assetid]?.amount ?? 1);
             return {
                 appid,
                 contextid,
@@ -3259,7 +3259,7 @@
                     }
 
                     // appid and contextid are identical, only the assetid is different for each asset.
-                    unsafeWindow.g_rgAssets[appid][contextid][assetInfo.assetid] = existingAsset;
+                    unsafeWindow.g_rgAssets[assetInfo.appid][assetInfo.contextid][assetInfo.assetid] = existingAsset;
                     marketListingsQueue.push({
                         listingid,
                         appid: assetInfo.appid,
