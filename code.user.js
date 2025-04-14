@@ -3756,16 +3756,15 @@
 
             // Load after the inventory is loaded.
             updateInventoryPrices();
+
+            $('#inventory_pagecontrols').observe(
+                'childlist',
+                '*',
+                () => {
+                    updateInventoryPrices();
+                }
+            );
         }
-
-        $('#inventory_pagecontrols').observe(
-            'childlist',
-            '*',
-            () => {
-                updateInventoryPrices();
-            }
-        );
-
 
         // This only works with a new trade offer.
         if (location.pathname !== '/tradeoffer/new/' && location.pathname !== '/tradeoffer/new') {
