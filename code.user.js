@@ -3593,10 +3593,16 @@
         // Gets the trade offer's inventory items from the active inventory.
         function getTradeOfferInventoryItems() {
             const arr = [];
+            const activeInventory = getActiveInventory();
+          
+            // We don't have an active inventory yet
+            if(!activeInventory) {
+              return arr;
+            }
 
-            for (const child in getActiveInventory().rgChildInventories) {
-                for (const key in getActiveInventory().rgChildInventories[child].rgInventory) {
-                    const value = getActiveInventory().rgChildInventories[child].rgInventory[key];
+            for (const child in activeInventory.rgChildInventories) {
+                for (const key in activeInventory.rgChildInventories[child].rgInventory) {
+                    const value = activeInventory.rgChildInventories[child].rgInventory[key];
                     if (typeof value === 'object') {
                         // Merges the description in the normal object, this is done to keep the layout consistent with the market page, which is also flattened.
                         Object.assign(value, value.description);
@@ -3608,8 +3614,8 @@
             }
 
             // Some inventories (e.g. BattleBlock Theater) do not have child inventories, they have just one.
-            for (const key in getActiveInventory().rgInventory) {
-                const value = getActiveInventory().rgInventory[key];
+            for (const key in activeInventory.rgInventory) {
+                const value = activeInventory.rgInventory[key];
                 if (typeof value === 'object') {
                     // Merges the description in the normal object, this is done to keep the layout consistent with the market page, which is also flattened.
                     Object.assign(value, value.description);
