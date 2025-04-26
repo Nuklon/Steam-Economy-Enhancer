@@ -8,6 +8,13 @@ body:
     description: A clear and concise description of what the bug is and what page it happens on. Provide a screenshot and console logs if applicable.
   validations:
     required: true
+    
+- type: input
+  attributes:
+    label: URL
+    description: The complete URL where the problem was found. I.e: https://steamcommunity.com/market/
+  validations:
+    required: true
 
 - type: input
   attributes:
