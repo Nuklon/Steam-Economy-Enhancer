@@ -510,7 +510,7 @@
                 appid: item.appid,
                 contextid: item.contextid,
                 assetid: item.assetid || item.id,
-                amount: item.amount,
+                amount: item.amount || 1,
                 price: price
             },
             responseType: 'json'
