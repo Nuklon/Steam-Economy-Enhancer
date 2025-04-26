@@ -3594,7 +3594,7 @@
         function getTradeOfferInventoryItems() {
             const arr = [];
             const activeInventory = getActiveInventory();
-          
+
             // We don't have an active inventory yet.
             if (!activeInventory) {
                 return arr;
@@ -3772,31 +3772,37 @@
             );
         }
 
-        // This only works with a new trade offer.
-        if (location.pathname !== '/tradeoffer/new/' && location.pathname !== '/tradeoffer/new') {
-            return;
+        const appendSelectPageButton = () => {
+          $('#inventory_displaycontrols').append(`<div class="trade_offer_buttons">
+              <a class="item_market_action_button item_market_action_button_green select_all">
+                  <span class="item_market_action_button_contents" style="text-transform:none">Select all from page</span>
+              </a>
+          </div>`);
+
+          $('.select_all').on('click', '*', () => {
+              $('.inventory_ctn:visible > .inventory_page:visible > .itemHolder:visible').delayedEach(250, (i, it) => {
+                  const item = it.rgItem;
+                  if (item.is_stackable) {
+                      return;
+                  }
+
+                  if (!item.tradable) {
+                      return;
+                  }
+
+                  unsafeWindow.MoveItemToTrade(it);
+              });
+          });
         }
 
-        $('#inventory_displaycontrols').append(`<div class="trade_offer_buttons">
-            <a class="item_market_action_button item_market_action_button_green select_all">
-                <span class="item_market_action_button_contents" style="text-transform:none">Select all from page</span>
-            </a>
-        </div>`);
-
-        $('.select_all').on('click', '*', () => {
-            $('.inventory_ctn:visible > .inventory_page:visible > .itemHolder:visible').delayedEach(250, (i, it) => {
-                const item = it.rgItem;
-                if (item.is_stackable) {
-                    return;
-                }
-
-                if (!item.tradable) {
-                    return;
-                }
-
-                unsafeWindow.MoveItemToTrade(it);
+        // On counter offers, we need to wait until 'Change offer' is pressed
+        if (location.pathname !== '/tradeoffer/new/' && location.pathname !== '/tradeoffer/new') {
+            $('.modify_trade_offer').one('click', '*', () => {
+              appendSelectPageButton();
             });
-        });
+        } else {
+            appendSelectPageButton();
+        }
     }
     //#endregion
 
