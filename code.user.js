@@ -3595,9 +3595,9 @@
             const arr = [];
             const activeInventory = getActiveInventory();
           
-            // We don't have an active inventory yet
+            // We don't have an active inventory yet.
             if (!activeInventory) {
-              return arr;
+                return arr;
             }
 
             for (const child in activeInventory.rgChildInventories) {
