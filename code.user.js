@@ -3596,7 +3596,7 @@
             const activeInventory = getActiveInventory();
           
             // We don't have an active inventory yet
-            if(!activeInventory) {
+            if (!activeInventory) {
               return arr;
             }
 
