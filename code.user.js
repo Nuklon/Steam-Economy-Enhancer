@@ -12,7 +12,7 @@
 // @match        https://steamcommunity.com/tradeoffer*
 // @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.14.1/jquery-ui.min.js
-// @require      https://cdnjs.cloudflare.com/ajax/libs/async/2.6.0/async.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/async/3.2.6/async.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/luxon/3.5.0/luxon.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/list.js/2.3.1/list.js
@@ -1358,9 +1358,9 @@
             1
         );
 
-        sellQueue.drain = function() {
+        sellQueue.drain(function() {
             onQueueDrain();
-        };
+        });
 
         function sellAllItems() {
             loadAllInventories().then(
@@ -1522,9 +1522,9 @@
             });
         }, 1);
 
-        scrapQueue.drain = function() {
+        scrapQueue.drain(function() {
             onQueueDrain();
-        };
+        });
 
         function scrapQueueWorker(item, callback) {
             const itemName = item.name || item.description.name;
@@ -1597,9 +1597,9 @@
             });
         }, 1);
 
-        boosterQueue.drain = function() {
+        boosterQueue.drain(function() {
             onQueueDrain();
-        };
+        });
 
         function boosterQueueWorker(item, callback) {
             const itemName = item.name || item.description.name;
@@ -2991,7 +2991,7 @@
             1
         );
 
-        marketListingsItemsQueue.drain = function() {
+        marketListingsItemsQueue.drain(function() {
             const myMarketListings = $('#tabContentsMyActiveMarketListingsRows');
             myMarketListings.checkboxes('range', true);
 
@@ -3026,7 +3026,7 @@
             myMarketListings.show();
 
             fillMarketListingsQueue();
-        };
+        });
 
 
         function fillMarketListingsQueue() {
