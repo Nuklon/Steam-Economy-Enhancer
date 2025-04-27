@@ -1358,7 +1358,7 @@
             1
         );
 
-        sellQueue.drain(function() {
+        sellQueue.drain(() => {
             onQueueDrain();
         });
 
@@ -1522,7 +1522,7 @@
             });
         }, 1);
 
-        scrapQueue.drain(function() {
+        scrapQueue.drain(() => {
             onQueueDrain();
         });
 
@@ -1597,7 +1597,7 @@
             });
         }, 1);
 
-        boosterQueue.drain(function() {
+        boosterQueue.drain(() => {
             onQueueDrain();
         });
 
@@ -2991,7 +2991,7 @@
             1
         );
 
-        marketListingsItemsQueue.drain(function() {
+        marketListingsItemsQueue.drain(() => {
             const myMarketListings = $('#tabContentsMyActiveMarketListingsRows');
             myMarketListings.checkboxes('range', true);
 
