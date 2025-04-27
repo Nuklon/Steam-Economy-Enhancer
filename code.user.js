@@ -3047,8 +3047,11 @@
                     $(this).children().last().addClass('market_listing_see');
                 }
 
-                addMarketPagination($('.market_listing_see', this).last());
-                sortMarketListings($(this), false, false, true);
+                const marketListing = $('.market_listing_see', this).last();
+                if (marketListing[0].childElementCount > 0) {
+                    addMarketPagination(marketListing);
+                    sortMarketListings($(this), false, false, true);
+                }
             });
 
             let totalPriceBuyer = 0;
@@ -3163,11 +3166,9 @@
             };
 
             try {
-                if (market_listing_see[0].childElementCount > 0) {
-                    const list = new List(market_listing_see.parent().get(0), options);
-                    list.on('searchComplete', updateMarketSelectAllButton);
-                    marketLists.push(list);
-                }
+                const list = new List(market_listing_see.parent().get(0), options);
+                list.on('searchComplete', updateMarketSelectAllButton);
+                marketLists.push(list);
             } catch (e) {
                 console.error(e);
             }
@@ -3236,8 +3237,11 @@
 
                     $(this).children().last().addClass('market_listing_see');
 
-                    addMarketPagination($('.market_listing_see', this).last());
-                    sortMarketListings($(this), false, false, true);
+                    const marketListing = $('.market_listing_see', this).last();
+                    if (marketListing[0].childElementCount > 0) {
+                        addMarketPagination(marketListing);
+                        sortMarketListings($(this), false, false, true);
+                    }
                 });
 
                 $('#tabContentsMyActiveMarketListingsRows > .market_listing_row').each(function() {
