@@ -12,7 +12,7 @@ body:
 - type: input
   attributes:
     label: URL
-    description: The complete URL where the problem was found. I.e: https://steamcommunity.com/market/
+    description: "The complete URL where the problem was found. I.e: https://steamcommunity.com/market/"
   validations:
     required: true
 
