@@ -2604,6 +2604,7 @@
             );
         }, 1);
 
+
         function marketListingsQueueWorker(listing, ignoreErrors, callback) {
             const asset = unsafeWindow.g_rgAssets[listing.appid][listing.contextid][listing.assetid];
 
@@ -3059,34 +3060,32 @@
             let totalAmount = 0;
 
             // Add the listings to the queue to be checked for the price.
-            for (let i = 0; i < marketLists.length; i++) {
-                for (let j = 0; j < marketLists[i].items.length; j++) {
-                    const listingid = replaceNonNumbers(marketLists[i].items[j].values().market_listing_item_name);
-                    const assetInfo = getAssetInfoFromListingId(listingid);
-
-                    if (assetInfo.appid === undefined) {
-                      logConsole(`Skipping listing (not sell order) ${listingid}`)
-                      continue;
-                    }
-                  
-                    totalAmount += assetInfo.amount
-
-                    if (!isNaN(assetInfo.priceBuyer)) {
-                        totalPriceBuyer += assetInfo.priceBuyer * assetInfo.amount;
-                    }
-                    if (!isNaN(assetInfo.priceSeller)) {
-                        totalPriceSeller += assetInfo.priceSeller * assetInfo.amount;
-                    }
-
-                    marketListingsQueue.push({
-                        listingid,
-                        appid: assetInfo.appid,
-                        contextid: assetInfo.contextid,
-                        assetid: assetInfo.assetid
-                    });
-                    increaseMarketProgressMax();
+            marketLists.flatMap(list => list.items).forEach(item => {
+                const listingid = replaceNonNumbers(item.values().market_listing_item_name);
+                const assetInfo = getAssetInfoFromListingId(listingid);
+                
+                if (assetInfo.appid === undefined) {
+                    logConsole(`Skipping listing (not sell order) ${listingid}`);
+                    return; // equivalent to continue in forEach
                 }
-            }
+                
+                totalAmount += assetInfo.amount;
+                
+                if (!isNaN(assetInfo.priceBuyer)) {
+                    totalPriceBuyer += assetInfo.priceBuyer * assetInfo.amount;
+                }
+                if (!isNaN(assetInfo.priceSeller)) {
+                    totalPriceSeller += assetInfo.priceSeller * assetInfo.amount;
+                }
+                
+                marketListingsQueue.push({
+                    listingid,
+                    appid: assetInfo.appid,
+                    contextid: assetInfo.contextid,
+                    assetid: assetInfo.assetid
+                });
+                increaseMarketProgressMax();
+            });
 
             $('#my_market_selllistings_number').append(`<span id="my_market_sellistings_total_amount"> [${totalAmount}]</span>`)
                 .append(`<span id="my_market_sellistings_total_price">, ${formatPrice(totalPriceBuyer)} ➤ ${formatPrice(totalPriceSeller)}</span>`);
