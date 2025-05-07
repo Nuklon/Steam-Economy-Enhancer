@@ -3064,7 +3064,13 @@
                     const listingid = replaceNonNumbers(marketLists[i].items[j].values().market_listing_item_name);
                     const assetInfo = getAssetInfoFromListingId(listingid);
 
+                    if (assetInfo.appid === undefined) {
+                      logConsole(`Skipping listing (not sell order) ${listingid}`)
+                      continue;
+                    }
+                  
                     totalAmount += assetInfo.amount
+
                     if (!isNaN(assetInfo.priceBuyer)) {
                         totalPriceBuyer += assetInfo.priceBuyer * assetInfo.amount;
                     }
