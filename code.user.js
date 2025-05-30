@@ -2405,7 +2405,19 @@
                 inventories.reduce(
                     (promise, inventory) => {
                         return promise.then(() => {
-                            return inventory.LoadCompleteInventory().done(() => { });
+                            // return inventory.LoadCompleteInventory().done(() => { });
+
+                            // Workaround, until Steam fixes the issue with LoadCompleteInventory.
+                            
+                            if (inventory.m_bFullyLoaded) {
+                                return Promise.resolve();
+                            }
+
+                            if (!inventory.m_promiseLoadCompleteInventory) {
+                                inventory.m_promiseLoadCompleteInventory = inventory.LoadUntilConditionMet(() => inventory.m_bFullyLoaded, 1000);
+                            }
+
+                            return inventory.m_promiseLoadCompleteInventory.done(() => { });
                         });
                     },
                     Promise.resolve()
