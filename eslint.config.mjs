@@ -23,7 +23,6 @@ export default [
       '@stylistic/padded-blocks': 'off',
       '@stylistic/quote-props': ['error', 'as-needed'],
       '@stylistic/quotes': ['error', 'single'],
-      '@stylistic/space-before-function-paren': ['error', 'never'],
       '@stylistic/spaced-comment': 'off',
       '@stylistic/template-curly-spacing': ['error', 'never'],
       curly: ['error', 'all'],
