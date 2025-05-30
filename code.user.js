@@ -2439,6 +2439,7 @@
                         Object.assign(value, value.description);
                         // Includes the id of the inventory item.
                         value['id'] = key;
+                        value['assetid'] = key;
                         arr.push(value);
                     }
                 }
@@ -2452,6 +2453,7 @@
                     Object.assign(value, value.description);
                     // Includes the id of the inventory item.
                     value['id'] = key;
+                    value['assetid'] = key;
                     arr.push(value);
                 }
             }
@@ -3609,6 +3611,7 @@
                         Object.assign(value, value.description);
                         // Includes the id of the inventory item.
                         value['id'] = key;
+                        value['assetid'] = key;
                         arr.push(value);
                     }
                 }
@@ -3622,6 +3625,7 @@
                     Object.assign(value, value.description);
                     // Includes the id of the inventory item.
                     value['id'] = key;
+                    value['assetid'] = key;
                     arr.push(value);
                 }
             }
