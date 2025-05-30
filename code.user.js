@@ -2414,7 +2414,7 @@
                             }
 
                             if (!inventory.m_promiseLoadCompleteInventory) {
-                                inventory.m_promiseLoadCompleteInventory = inventory.LoadUntilConditionMet(() => inventory.m_bFullyLoaded, 1000);
+                                inventory.m_promiseLoadCompleteInventory = inventory.LoadUntilConditionMet(() => inventory.m_bFullyLoaded, 2000);
                             }
 
                             return inventory.m_promiseLoadCompleteInventory.done(() => { });
