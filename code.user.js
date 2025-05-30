@@ -3301,7 +3301,7 @@
                 return;
             }
 
-            let isBuyOrder = list.list.querySelectorAll(".market_listing_buyorder_qty").length >= 1;
+            const isBuyOrder = list.list.querySelectorAll('.market_listing_buyorder_qty').length >= 1;
 
             if (isName) {
                 list.sort('', {
@@ -3324,8 +3324,8 @@
                     list.sort('market_listing_buyorder_qty', {
                         order: asc ? 'asc' : 'desc',
                         sortFunction: function (a, b) {
-                            const quantityA = a.elm.querySelector(".market_listing_buyorder_qty").innerText;
-                            const quantityB = b.elm.querySelector(".market_listing_buyorder_qty").innerText;
+                            const quantityA = a.elm.querySelector('.market_listing_buyorder_qty').innerText;
+                            const quantityB = b.elm.querySelector('.market_listing_buyorder_qty').innerText;
 
                             return quantityA - quantityB;    
                         }
@@ -3376,8 +3376,8 @@
                             return firstPrice - secondPrice;
                         }
                         else {
-                            const priceA = getPriceValueAsInt(a.elm.querySelector("div:nth-child(3) > span:nth-child(1) > span:nth-child(1)").innerText);
-                            const priceB = getPriceValueAsInt(b.elm.querySelector("div:nth-child(3) > span:nth-child(1) > span:nth-child(1)").innerText);
+                            const priceA = getPriceValueAsInt(a.elm.querySelector('div:nth-child(3) > span:nth-child(1) > span:nth-child(1)').innerText);
+                            const priceB = getPriceValueAsInt(b.elm.querySelector('div:nth-child(3) > span:nth-child(1) > span:nth-child(1)').innerText);
 
                             return priceA - priceB;
                         }
