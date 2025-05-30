@@ -1849,7 +1849,7 @@
                     if (err) {
                         logConsole(`Failed to get price history for ${itemName}`);
 
-                        if (err == ERROR_FAILED) {
+                        if (err != ERROR_SUCCESS) {
                             failed += 1;
                         }
                     }
@@ -1861,7 +1861,7 @@
                             if (err) {
                                 logConsole(`Failed to get orders histogram for ${itemName}`);
 
-                                if (err == ERROR_FAILED) {
+                                if (err != ERROR_SUCCESS) {
                                     failed += 1;
                                 }
                             }
@@ -2527,7 +2527,7 @@
                     if (err) {
                         logConsole(`Failed to get orders histogram for ${itemName}`);
 
-                        if (err == ERROR_FAILED) {
+                        if (err != ERROR_SUCCESS) {
                             failed += 1;
                         }
                     }
@@ -2683,7 +2683,7 @@
                     if (errorPriceHistory) {
                         logConsole(`Failed to get price history for ${game_name}`);
 
-                        if (errorPriceHistory == ERROR_FAILED) {
+                        if (errorPriceHistory != ERROR_SUCCESS) {
                             failed += 1;
                         }
                     }
@@ -2695,7 +2695,7 @@
                             if (errorHistogram) {
                                 logConsole(`Failed to get orders histogram for ${game_name}`);
 
-                                if (errorHistogram == ERROR_FAILED) {
+                                if (errorHistogram != ERROR_SUCCESS) {
                                     failed += 1;
                                 }
                             }
