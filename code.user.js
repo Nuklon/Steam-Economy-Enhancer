@@ -3330,8 +3330,7 @@
                             return quantityA - quantityB;    
                         }
                     });
-                }
-                else {
+                } else {
                     list.sort('market_listing_listed_date', {
                         order: asc ? 'asc' : 'desc',
                         sortFunction: function (a, b) {
@@ -3374,8 +3373,7 @@
                             const secondPrice = getPriceValueAsInt(listingPriceB);
 
                             return firstPrice - secondPrice;
-                        }
-                        else {
+                        } else {
                             const priceA = getPriceValueAsInt(a.elm.querySelector('div:nth-child(3) > span:nth-child(1) > span:nth-child(1)').innerText);
                             const priceB = getPriceValueAsInt(b.elm.querySelector('div:nth-child(3) > span:nth-child(1) > span:nth-child(1)').innerText);
 
