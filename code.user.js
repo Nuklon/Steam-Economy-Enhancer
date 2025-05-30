@@ -3029,7 +3029,6 @@
             fillMarketListingsQueue();
         });
 
-
         function fillMarketListingsQueue() {
             $('.market_home_listing_table').each(function(e) {
 
@@ -3065,8 +3064,8 @@
                 const assetInfo = getAssetInfoFromListingId(listingid);
                 
                 if (assetInfo.appid === undefined) {
-                    logConsole(`Skipping listing (not sell order) ${listingid}`);
-                    return; // equivalent to continue in forEach
+                    logConsole(`Skipping listing ${listingid} (no sell order)`);
+                    return;
                 }
                 
                 totalAmount += assetInfo.amount;
