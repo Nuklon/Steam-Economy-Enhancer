@@ -134,12 +134,28 @@
         setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
 
         $.ajax({
+            // 'url' - URL to send the request to, e.g. 'https://example.com/api/data'.
             url: url,
+
+            // 'type' - HTTP method to use, e.g. 'GET', 'POST', 'PUT', 'DELETE'.
             type: options.method,
+
+            // 'data' - data to be sent to the server, e.g. an object with parameters.
             data: options.data,
+
+            // 'dataType' - type of data expected from the server, e.g. 'json', 'html', 'text', 'xml'.
+            dataType: options.responseType,
+
+            // 'data' - parsed response data, if the request was successful.
+            // 'statusText' - one of 'success', 'notmodified', 'nocontent'.
+            // 'xhr' - XMLHttpRequest object with additional jQuery properties.
             success: function (data, statusText, xhr) {
                 setTimeout(() => callback(null, data), 0);
             },
+
+            // 'xhr' - XMLHttpRequest object with additional jQuery properties.
+            // 'statusText' - one of 'error' (http error), 'abort', 'timeout' or 'parsererror'.
+            // 'httpErrorText' - textual portion of the HTTP status, in context of HTTP/2 it may be empty string.
             error: (xhr, statusText, httpErrorText) => {
                 const error = new Error(`Request failed with status ${xhr.status || 0} (${statusText === 'error' ? 'http error' : statusText})`);
 
@@ -151,14 +167,16 @@
 
                 setTimeout(() => callback(error, null), 0);
             },
+
+            // 'xhr' - XMLHttpRequest object with additional jQuery properties.
+            // 'statusText' - one of 'success', 'notmodified', 'nocontent', 'error', 'timeout', 'abort', or 'parsererror'.
             complete: (xhr, statusText) => {
                 if (xhr.status === 429) {
                     lastRequest.limited = true;
 
                     setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
                 }
-            },
-            dataType: options.responseType,
+            }
         });
     };
 
