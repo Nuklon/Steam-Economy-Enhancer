@@ -109,73 +109,101 @@
         }
     }
 
+    request.queue = [];
+
+    request.stopped = false;
+
+    request.running = false;
+
     function request(url, options, callback) {
-        let delayBetweenRequests = 300;
-        let requestStorageHash = 'see:request:last';
+        callback = callback || function () {};
 
-        if (url.startsWith('https://steamcommunity.com/market/')) {
-            requestStorageHash = `${requestStorageHash}:steamcommunity.com/market`;
-            delayBetweenRequests = 1000;
-        }
+        // If the request was stopped, we don't want to send it to the server and continue other requests.
+        if (request.stopped) {
+            const error = new Error('Request was not sent to the server, something went wrong');
 
-        const lastRequest = JSON.parse(getLocalStorageItem(requestStorageHash) || JSON.stringify({ time: new Date(0), limited: false }));
-        const timeSinceLastRequest = Date.now() - new Date(lastRequest.time).getTime();
+            setTimeout(() => request.queue.shift()?.(), 1);
+            setTimeout(() => callback(error, null), 0);
 
-        delayBetweenRequests = lastRequest.limited ? 2.5 * 60 * 1000 : delayBetweenRequests;
-
-        if (timeSinceLastRequest < delayBetweenRequests) {
-            setTimeout(() => request(...arguments), delayBetweenRequests - timeSinceLastRequest);
             return;
         }
 
-        lastRequest.time = new Date();
-        lastRequest.limited = false;
+        // Add the request to the queue if it's already running or there are other requests in the queue.
+        if (request.running || request.queue.length !== 0) {
+            request.queue.push(() => request(...arguments));
 
-        setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+            return;
+        }
+
+        request.running = true;
 
         $.ajax({
-            // 'url' - URL to send the request to, e.g. 'https://example.com/api/data'.
             url: url,
 
-            // 'type' - HTTP method to use, e.g. 'GET', 'POST', 'PUT', 'DELETE'.
             type: options.method,
 
-            // 'data' - data to be sent to the server, e.g. an object with parameters.
             data: options.data,
 
-            // 'dataType' - type of data expected from the server, e.g. 'json', 'html', 'text', 'xml'.
             dataType: options.responseType,
 
-            // 'data' - parsed response data, if the request was successful.
-            // 'statusText' - one of 'success', 'notmodified', 'nocontent'.
-            // 'xhr' - XMLHttpRequest object with additional jQuery properties.
+            /**
+             *
+             * @param {*} data - parsed response data, if the request was successful.
+             * @param {string} statusText - one of `success`, `notmodified`, `nocontent`.
+             * @param {XMLHttpRequest} xhr - XMLHttpRequest object with additional jQuery properties.
+             */
             success: function (data, statusText, xhr) {
                 setTimeout(() => callback(null, data), 0);
             },
 
-            // 'xhr' - XMLHttpRequest object with additional jQuery properties.
-            // 'statusText' - one of 'error' (http error), 'abort', 'timeout' or 'parsererror'.
-            // 'httpErrorText' - textual portion of the HTTP status, in context of HTTP/2 it may be empty string.
+            /**
+             * 
+             * @param {XMLHttpRequest} xhr - XMLHttpRequest object with additional jQuery properties.
+             * @param {string} statusText - one of `error`, `abort`, `timeout` or `parsererror`.
+             * @param {string} httpErrorText - textual portion of the HTTP status, in context of HTTP/2 it may be empty string.
+             */
             error: (xhr, statusText, httpErrorText) => {
                 const error = new Error(`Request failed with status ${xhr.status || 0} (${statusText === 'error' ? 'http error' : statusText})`);
 
                 error.url = url;
                 error.method = options.method;
                 error.errorText = statusText || '';
-                error.statusCode = xhr.status;
+                error.statusCode = xhr.status || 0;
                 error.responseText = xhr.responseText || '';
 
                 setTimeout(() => callback(error, null), 0);
             },
 
-            // 'xhr' - XMLHttpRequest object with additional jQuery properties.
-            // 'statusText' - one of 'success', 'notmodified', 'nocontent', 'error', 'timeout', 'abort', or 'parsererror'.
+            /**
+             * @param {XMLHttpRequest} xhr - XMLHttpRequest object with additional jQuery properties.
+             * @param {string} statusText - one of `success`, `notmodified`, `nocontent`, `error`, `timeout`, `abort`, or `parsererror`.
+             */
             complete: (xhr, statusText) => {
-                if (xhr.status === 429) {
-                    lastRequest.limited = true;
+                let delay = 300; // Short delay to avoid hammering the server.
 
-                    setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+                // Slow down market requests to avoid hitting the rate limits.
+                if (/^https:\/\/steamcommunity\.com\/market(?!\/mylistings)(\/.*)?$/.test(url)) {
+                    delay = 1000;
                 }
+
+                // Better to wait for a bit longer if we hit an error.
+                if (xhr.status === 0 || xhr.status >= 400 || statusText === 'error') {
+                    delay = 5000;
+                }
+
+                // Probably something broken, better to stop here.
+                if ([400, 401, 403, 404].includes(xhr.status)) {
+                    request.stopped = true;
+                }
+
+                // Wait much longer if we hit the rate limit.
+                if (xhr.status === 429) {
+                    delay = 25 * 60 * 1000;
+                }
+
+                request.running = false;
+
+                setTimeout(() => request.queue.shift()?.(), delay);
             }
         });
     };
