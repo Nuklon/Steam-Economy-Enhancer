@@ -137,33 +137,28 @@
             url: url,
             type: options.method,
             data: options.data,
-            success: function (data, statusMessage, xhr) {
-                if (xhr.status === 429) {
-                    lastRequest.limited = true;
-                    setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
-                }
-
-                if (xhr.status >= 400) {
-                    const error = new Error('Http error');
-                    error.statusCode = xhr.status;
-
-                    callback(error, data);
-                } else {
-                    callback(null, data)
-                }
+            success: function (data, statusText, xhr) {
+                setTimeout(() => callback(null, data), 0);
             },
-            error: (xhr) => {
-                if (xhr.status === 429) {
-                    lastRequest.limited = true;
-                    setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
-                }
+            error: (xhr, statusText, httpErrorText) => {
+                const error = new Error(`Request failed with status ${xhr.status || 0} (${statusText === 'error' ? 'http error' : statusText})`);
 
-                const error = new Error('Request failed');
+                error.url = url;
+                error.method = options.method;
+                error.errorText = statusText || '';
                 error.statusCode = xhr.status;
+                error.responseText = xhr.responseText || '';
 
-                callback(error);
+                setTimeout(() => callback(error, null), 0);
             },
-            dataType: options.responseType
+            complete: (xhr, statusText) => {
+                if (xhr.status === 429) {
+                    lastRequest.limited = true;
+
+                    setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+                }
+            },
+            dataType: options.responseType,
         });
     };
 
