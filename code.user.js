@@ -2427,9 +2427,24 @@
             for (const child in getActiveInventory().m_rgChildInventories) {
                 items.push(getActiveInventory().m_rgChildInventories[child]);
             }
+
             items.push(getActiveInventory());
 
-            return loadInventories(items);
+            const promise = loadInventories(items);
+
+            if (location.pathname.endsWith('/inventory')) {
+                $('#inventory_items_spinner').remove();
+                
+                $('#inventory_sell_buttons').append(`
+                    <div id="inventory_items_spinner">${spinnerBlock}
+                        <div style="text-align:center">Loading inventory items</div>
+                    </div>`
+                );
+
+                promise.finally(() => $('#inventory_items_spinner').remove());
+            }
+
+            return promise;
         }
 
         // Gets the inventory items from the active inventory.
