@@ -198,7 +198,7 @@
 
                 // Wait much longer if we hit the rate limit.
                 if (xhr.status === 429) {
-                    delay = 25 * 60 * 1000;
+                    delay = 2.5 * 60 * 1000;
                 }
 
                 request.running = false;
