@@ -192,13 +192,8 @@
                 }
 
                 // Probably something broken, better to stop here.
-                if ([400, 401, 403, 404].includes(xhr.status)) {
+                if ([400, 401, 403, 404, 429].includes(xhr.status)) {
                     request.stopped = true;
-                }
-
-                // Wait much longer if we hit the rate limit.
-                if (xhr.status === 429) {
-                    delay = 2.5 * 60 * 1000;
                 }
 
                 const next = () => {
