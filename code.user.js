@@ -2399,30 +2399,25 @@
 
         // Loads the specified inventories.
         function loadInventories(inventories) {
-            return new Promise((resolve) => {
-                inventories.reduce(
-                    (promise, inventory) => {
-                        return promise.then(() => {
-                            // return inventory.LoadCompleteInventory().done(() => { });
+            return Promise.all(inventories.map((inventory) => {
+                return new Promise((resolve) => {
+                    // return inventory.LoadCompleteInventory().done(resolve);
 
-                            // Workaround, until Steam fixes the issue with LoadCompleteInventory.
-                            
-                            if (inventory.m_bFullyLoaded) {
-                                return Promise.resolve();
-                            }
+                    // Workaround, until Steam fixes the issue with LoadCompleteInventory.
 
-                            if (!inventory.m_promiseLoadCompleteInventory) {
-                                inventory.m_promiseLoadCompleteInventory = inventory.LoadUntilConditionMet(() => inventory.m_bFullyLoaded, 2000);
-                            }
+                    if (inventory.m_bFullyLoaded) {
+                        resolve();
 
-                            return inventory.m_promiseLoadCompleteInventory.done(() => { });
-                        });
-                    },
-                    Promise.resolve()
-                );
+                        return;
+                    }
 
-                resolve();
-            });
+                    if (!inventory.m_promiseLoadCompleteInventory) {
+                        inventory.m_promiseLoadCompleteInventory = inventory.LoadUntilConditionMet(() => inventory.m_bFullyLoaded, 2000);
+                    }
+
+                    return inventory.m_promiseLoadCompleteInventory.done(resolve);
+                });
+            }));
         }
 
         // Loads all inventories.
