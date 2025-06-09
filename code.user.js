@@ -111,9 +111,9 @@
 
     request.queue = [];
 
-    request.stopped = false;
+    request.pending = false;
 
-    request.running = false;
+    request.stopped = false;
 
     function request(url, options, callback) {
         callback = callback || function () {};
@@ -128,14 +128,14 @@
             return;
         }
 
-        // Add the request to the queue if it's already running or there are other requests in the queue.
-        if (request.running || request.queue.length !== 0) {
+        // Add the request to the queue if another one is processing.
+        if (request.pending || request.queue.length !== 0) {
             request.queue.push(() => request(...arguments));
 
             return;
         }
 
-        request.running = true;
+        request.pending = true;
 
         $.ajax({
             url: url,
@@ -201,9 +201,12 @@
                     delay = 2.5 * 60 * 1000;
                 }
 
-                request.running = false;
+                const next = () => {
+                    request.pending = false;
+                    request.queue.shift()?.();
+                }
 
-                setTimeout(() => request.queue.shift()?.(), delay);
+                setTimeout(next, delay);
             }
         });
     };
