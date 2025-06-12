@@ -3225,9 +3225,10 @@
 
                     $(this).children().last().wrap('<div class="market_listing_see"></div>');
                     const marketListing = $('.market_listing_see', this).last();
+                    const container = $('.market_listing_row', marketListing)?.parent();
 
-                    if (marketListing[0].childElementCount > 0) {
-                        addMarketListings(marketListing);
+                    if (marketListing[0]?.childElementCount > 0 && container != null && container.length > 0) {
+                        addMarketListings(container);
                         sortMarketListings($(this), false, false, true);
                     }
                 });
