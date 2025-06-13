@@ -192,7 +192,7 @@
                 }
 
                 // Probably something broken, better to stop here.
-                if ([400, 401, 403, 404, 429].includes(xhr.status)) {
+                if ([400, 401, 403, 404, 405, 429].includes(xhr.status)) {
                     request.stopped = true;
                 }
 
