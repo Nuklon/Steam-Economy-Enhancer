@@ -3061,40 +3061,76 @@
                 }
             });
 
-            let totalPriceBuyer = 0;
-            let totalPriceSeller = 0;
-            let totalAmount = 0;
+            let totalSellOrderPriceBuyer = 0;
+            let totalSellOrderPriceSeller = 0;
+            let totalSellOrderAmount = 0;
+
+            let totalBuyOrderPrice = 0;
+            let totalBuyOrderAmount = 0;
 
             // Add the listings to the queue to be checked for the price.
             marketLists.flatMap(list => list.items).forEach(item => {
-                const listingid = replaceNonNumbers(item.values().market_listing_item_name);
-                const assetInfo = getAssetInfoFromListingId(listingid);
+                const isBuyOrder = item.elm.id.startsWith('mbuyorder_') || item.elm.id.startsWith('mybuyorder_');
+                const isSellOrder = item.elm.id.startsWith('mylisting_');
 
-                if (assetInfo.appid === undefined) {
-                    logConsole(`Skipping listing ${listingid} (no sell order)`);
+                if (isSellOrder) {
+                    const listingid = replaceNonNumbers(item.values().market_listing_item_name);
+                    const assetInfo = getAssetInfoFromListingId(listingid);
+
+                    if (assetInfo.appid === undefined) {
+                        logConsole(`Skipping listing ${listingid} (appid not found)`);
+                        return;
+                    }
+
+                    totalSellOrderAmount += assetInfo.amount;
+
+                    if (!isNaN(assetInfo.priceBuyer)) {
+                        totalSellOrderPriceBuyer += assetInfo.priceBuyer * assetInfo.amount;
+                    }
+                    if (!isNaN(assetInfo.priceSeller)) {
+                        totalSellOrderPriceSeller += assetInfo.priceSeller * assetInfo.amount;
+                    }
+
+                    marketListingsQueue.push({
+                        listingid,
+                        appid: assetInfo.appid,
+                        contextid: assetInfo.contextid,
+                        assetid: assetInfo.assetid
+                    });
+
                     return;
                 }
 
-                totalAmount += assetInfo.amount;
+                if (isBuyOrder) {
+                    const listingid = replaceNonNumbers(item.values().market_listing_item_name);
+                    const assetInfo = getAssetInfoFromBuyOrderId(listingid);
 
-                if (!isNaN(assetInfo.priceBuyer)) {
-                    totalPriceBuyer += assetInfo.priceBuyer * assetInfo.amount;
-                }
-                if (!isNaN(assetInfo.priceSeller)) {
-                    totalPriceSeller += assetInfo.priceSeller * assetInfo.amount;
+                    if (assetInfo.amount === undefined) {
+                        logConsole(`Skipping listing ${listingid} (amount not found)`);
+                        return;
+                    }
+
+                    totalBuyOrderAmount += assetInfo.amount;
+
+                    if (!isNaN(assetInfo.price)) {
+                        totalBuyOrderPrice += assetInfo.price * assetInfo.amount;
+                    }
+
+                    return;
                 }
 
-                marketListingsQueue.push({
-                    listingid,
-                    appid: assetInfo.appid,
-                    contextid: assetInfo.contextid,
-                    assetid: assetInfo.assetid
-                });
-                increaseMarketProgressMax();
+                logConsole(`Skipping item ${item.elm.id} (not a buy or sell order)`);
             });
 
-            $('#my_market_selllistings_number').append(`<span id="my_market_sellistings_total_amount"> [${totalAmount}]</span>`)
-                .append(`<span id="my_market_sellistings_total_price">, ${formatPrice(totalPriceBuyer)} ➤ ${formatPrice(totalPriceSeller)}</span>`);
+            if (totalSellOrderAmount > 0 || totalBuyOrderAmount > 0) {
+                increaseMarketProgressMax();
+            }
+
+            $('#my_market_selllistings_number').append(`<span id="my_market_sell_listings_total_amount"> [${totalSellOrderAmount}]</span>`)
+                .append(`<span id="my_market_sell_listings_total_price">, ${formatPrice(totalSellOrderPriceBuyer)} ➤ ${formatPrice(totalSellOrderPriceSeller)}</span>`);
+
+            $('#my_market_buylistings_number').append(`<span id="my_market_buy_listings_total_amount"> [${totalBuyOrderAmount}]</span>`)
+                .append(`<span id="my_market_buy_listings_total_price">, ${formatPrice(totalBuyOrderPrice)}</span>`);
         }
 
 
@@ -3126,6 +3162,23 @@
                 priceBuyer,
                 priceSeller
             };
+        }
+
+        function getAssetInfoFromBuyOrderId(orderid) {
+            const listing = getListingFromLists(orderid);
+
+            if (listing == null) {
+                return {};
+            }
+
+            if (!listing.elm.id.startsWith('mbuyorder_') && !listing.elm.id.startsWith('mybuyorder_')) {
+                return {};
+            }
+
+            const amount = parseInt($('.market_listing_buyorder_qty', listing.elm).text().trim());
+            const price = getPriceValueAsInt($('.market_listing_price', listing.elm)[0].innerText);
+
+            return { amount, price };
         }
 
         // Adds market item listings.
