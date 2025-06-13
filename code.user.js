@@ -196,14 +196,12 @@
                     request.stopped = true;
                 }
 
-                const noise = getRandomInt(0, 100);
-
                 const next = () => {
                     request.pending = false;
                     request.queue.shift()?.();
                 }
 
-                setTimeout(next, delay + noise);
+                setTimeout(next, delay);
             }
         });
     };
