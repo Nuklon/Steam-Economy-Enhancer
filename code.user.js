@@ -182,7 +182,7 @@
                 let delay = 300; // Short delay to avoid hammering the server.
 
                 // Slow down market requests to avoid hitting the rate limits.
-                if (/^https:\/\/steamcommunity\.com\/market(?!\/mylistings)(\/.*)?$/.test(url)) {
+                if (url.startsWith('https://steamcommunity.com/market/')) {
                     delay = 1000;
                 }
 
