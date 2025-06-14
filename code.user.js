@@ -2454,7 +2454,15 @@
                         inventory.m_promiseLoadCompleteInventory = inventory.LoadUntilConditionMet(() => inventory.m_bFullyLoaded, 2000);
                     }
 
-                    return inventory.m_promiseLoadCompleteInventory.done(resolve);
+                    return inventory.m_promiseLoadCompleteInventory.done(() => {
+                        const parent = inventory.m_parentInventory;
+
+                        if (parent != null && Object.values(parent.m_rgChildInventories).every(child => child.m_bFullyLoaded)) {
+                            parent.m_bFullyLoaded = true;
+                        }
+                        
+                        resolve();
+                    });
                 });
             }));
         }
