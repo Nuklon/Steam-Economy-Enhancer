@@ -4,7 +4,7 @@
 // @namespace    https://github.com/Nuklon
 // @author       Nuklon
 // @license      MIT
-// @version      7.1.15
+// @version      7.1.16
 // @description  Enhances the Steam Inventory and Steam Market.
 // @match        https://steamcommunity.com/id/*/inventory*
 // @match        https://steamcommunity.com/profiles/*/inventory*
@@ -2421,7 +2421,7 @@
                         if (parent != null && Object.values(parent.m_rgChildInventories).every(child => child.m_bFullyLoaded)) {
                             parent.m_bFullyLoaded = true;
                         }
-                        
+
                         resolve();
                     });
                 });
@@ -3209,7 +3209,7 @@
                 ]
             };
 
-            try {                
+            try {
                 const list = new List(market_listing_see.parent().get(0), options);
                 list.on('searchComplete', updateMarketSelectAllButton);
                 marketLists.push(list);
@@ -3396,7 +3396,7 @@
                             const quantityA = a.elm.querySelector('.market_listing_buyorder_qty').innerText;
                             const quantityB = b.elm.querySelector('.market_listing_buyorder_qty').innerText;
 
-                            return quantityA - quantityB;    
+                            return quantityA - quantityB;
                         }
                     });
                 } else {
@@ -3455,7 +3455,7 @@
 
         function getListFromContainer(group) {
             for (let i = 0; i < marketLists.length; i++) {
-                if (group.attr('id') == $(marketLists[i].listContainer).attr('id')) {
+                if (group[0].contains(marketLists[i].listContainer)) {
                     return marketLists[i];
                 }
             }
