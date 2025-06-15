@@ -2666,7 +2666,17 @@
             const market_hash_name = getMarketHashName(asset);
             const appid = listing.appid;
 
-            const listingUI = $(getListingFromLists(listing.listingid).elm);
+            let listingUI = getListingFromLists(listing.listingid);
+
+            if (listingUI == null) {
+                logConsole(`Listing ${listing.listingid} not found in the lists, skipping...`);
+
+                callback(true, true);
+
+                return;
+            }
+
+            listingUI = $(listingUI.elm);
 
             const game_name = asset.type;
             const price = getPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text());
@@ -2907,6 +2917,24 @@
             }
         }
 
+        // Stop updating the market listings, while relisting overpriced items.
+        marketOverpricedQueue.saturated(() => {
+            if (!marketListingsQueue.paused) {
+                logConsole('Pausing market listings queue, while relisting overpriced items...');
+
+                marketListingsQueue.pause();
+            }
+        });
+
+        // Resume updating the market listings, when overpriced queue is empty.
+        marketOverpricedQueue.drain(() => {
+            if (marketListingsQueue.paused) {
+                logConsole('Resuming market listings queue, relisting overpriced items done.');
+
+                marketListingsQueue.resume();
+            }
+        });
+
         const marketRemoveQueue = async.queue(
             (listingid, next) => {
                 marketRemoveQueueWorker(
@@ -2963,6 +2991,24 @@
                 }
             );
         }
+
+        // Stop updating the market listings, while removing the listings.
+        marketRemoveQueue.saturated(() => {
+            if (!marketListingsQueue.paused) {
+                logConsole('Pausing market listings queue, while removing listings...');
+
+                marketListingsQueue.pause();
+            }
+        });
+
+        // Resume updating the market listings, when remove queue is empty.
+        marketRemoveQueue.drain(() => {
+            if (marketListingsQueue.paused) {
+                logConsole('Resuming market listings queue, removing listings done.');
+
+                marketListingsQueue.resume();
+            }
+        });
 
         const marketListingsItemsQueue = async.queue(
             (listing, next) => {
