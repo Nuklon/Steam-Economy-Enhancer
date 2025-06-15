@@ -2666,7 +2666,17 @@
             const market_hash_name = getMarketHashName(asset);
             const appid = listing.appid;
 
-            const listingUI = $(getListingFromLists(listing.listingid).elm);
+            let listingUI = getListingFromLists(listing.listingid);
+
+            if (listingUI == null) {
+                logConsole(`Listing ${listing.listingid} not found in the lists, skipping...`);
+
+                callback(true, true);
+
+                return;
+            }
+
+            listingUI = $(listingUI.elm);
 
             const game_name = asset.type;
             const price = getPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text());
