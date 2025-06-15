@@ -2907,6 +2907,24 @@
             }
         }
 
+        // Stop updating the market listings, while relisting overpriced items.
+        marketOverpricedQueue.saturated(() => {
+            if (!marketListingsQueue.paused) {
+                logConsole('Pausing market listings queue, while relisting overpriced items...');
+
+                marketListingsQueue.pause();
+            }
+        });
+
+        // Resume updating the market listings, when overpriced queue is empty.
+        marketOverpricedQueue.drain(() => {
+            if (marketListingsQueue.paused) {
+                logConsole('Resuming market listings queue, relisting overpriced items done.');
+
+                marketListingsQueue.resume();
+            }
+        });
+
         const marketRemoveQueue = async.queue(
             (listingid, next) => {
                 marketRemoveQueueWorker(
@@ -2963,6 +2981,24 @@
                 }
             );
         }
+
+        // Stop updating the market listings, while removing the listings.
+        marketRemoveQueue.saturated(() => {
+            if (!marketListingsQueue.paused) {
+                logConsole('Pausing market listings queue, while removing listings...');
+
+                marketListingsQueue.pause();
+            }
+        });
+
+        // Resume updating the market listings, when remove queue is empty.
+        marketRemoveQueue.drain(() => {
+            if (marketListingsQueue.paused) {
+                logConsole('Resuming market listings queue, removing listings done.');
+
+                marketListingsQueue.resume();
+            }
+        });
 
         const marketListingsItemsQueue = async.queue(
             (listing, next) => {
