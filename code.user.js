@@ -543,6 +543,7 @@
         const url = `${window.location.origin}/market/sellitem/`;
 
         const options = {
+            priority: true, // Prioritize this request above others
             method: 'POST',
             data: {
                 sessionid: readCookie('sessionid'),
@@ -566,6 +567,7 @@
             : `${window.location.origin}/market/removelisting/${item}`;
 
         const options = {
+            priority: true, // Prioritize this request above others
             method: 'POST',
             data: {
                 sessionid: readCookie('sessionid'),
