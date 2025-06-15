@@ -3130,7 +3130,7 @@
                 logConsole(`Skipping item ${item.elm.id} (not a buy or sell order)`);
             });
 
-            if (totalSellOrderAmount > 0 || totalBuyOrderAmount > 0) {
+            if (totalSellOrderAmount > 0) {
                 increaseMarketProgressMax();
             }
 
