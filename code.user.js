@@ -1359,7 +1359,7 @@
         });
 
         function sellAllItems() {
-            renderSpinner('Processing items');
+            renderSpinner('Loading inventory items');
 
             loadAllInventories().then(
                 () => {
@@ -1387,7 +1387,7 @@
         }
 
         function sellAllDuplicateItems() {
-            renderSpinner('Processing items');
+            renderSpinner('Loading inventory items');
 
             loadAllInventories().then(
                 () => {
@@ -1418,7 +1418,7 @@
         }
 
         function gemAllDuplicateItems() {
-            renderSpinner('Processing items');
+            renderSpinner('Loading inventory items');
 
             loadAllInventories().then(
                 () => {
@@ -1470,7 +1470,7 @@
         }
 
         function sellAllCards() {
-            renderSpinner('Processing items');
+            renderSpinner('Loading inventory items');
 
             loadAllInventories().then(
                 () => {
@@ -1498,7 +1498,7 @@
         }
 
         function sellAllCrates() {
-            renderSpinner('Processing items');
+            renderSpinner('Loading inventory items');
 
             loadAllInventories().then(
                 () => {
@@ -1657,7 +1657,7 @@
         function turnSelectedItemsIntoGems() {
             const ids = getSelectedItems();
 
-            renderSpinner('Processing items');
+            renderSpinner('Loading inventory items');
 
             loadAllInventories().then(() => {
                 removeSpinner();
@@ -1710,7 +1710,7 @@
         function unpackSelectedBoosterPacks() {
             const ids = getSelectedItems();
 
-            renderSpinner('Processing items');
+            renderSpinner('Loading inventory items');
 
             loadAllInventories().then(() => {
                 removeSpinner();
