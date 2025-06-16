@@ -1359,8 +1359,12 @@
         });
 
         function sellAllItems() {
+            renderSpinner('Processing items');
+
             loadAllInventories().then(
                 () => {
+                    removeSpinner();
+
                     const items = getInventoryItems();
                     const filteredItems = [];
 
@@ -1375,14 +1379,20 @@
                     sellItems(filteredItems);
                 },
                 () => {
+                    removeSpinner();
+
                     logDOM('Could not retrieve the inventory...');
                 }
             );
         }
 
         function sellAllDuplicateItems() {
+            renderSpinner('Processing items');
+
             loadAllInventories().then(
                 () => {
+                    removeSpinner();
+
                     const items = getInventoryItems();
                     const marketableItems = [];
                     let filteredItems = [];
@@ -1400,14 +1410,20 @@
                     sellItems(filteredItems);
                 },
                 () => {
+                    removeSpinner();
+
                     logDOM('Could not retrieve the inventory...');
                 }
             );
         }
 
         function gemAllDuplicateItems() {
+            renderSpinner('Processing items');
+
             loadAllInventories().then(
                 () => {
+                    removeSpinner();
+
                     const items = getInventoryItems();
                     let filteredItems = [];
                     let numberOfQueuedItems = 0;
@@ -1446,14 +1462,20 @@
                     }
                 },
                 () => {
+                    removeSpinner();
+
                     logDOM('Could not retrieve the inventory...');
                 }
             );
         }
 
         function sellAllCards() {
+            renderSpinner('Processing items');
+
             loadAllInventories().then(
                 () => {
+                    removeSpinner();
+
                     const items = getInventoryItems();
                     const filteredItems = [];
 
@@ -1468,14 +1490,20 @@
                     sellItems(filteredItems);
                 },
                 () => {
+                    removeSpinner();
+
                     logDOM('Could not retrieve the inventory...');
                 }
             );
         }
 
         function sellAllCrates() {
+            renderSpinner('Processing items');
+
             loadAllInventories().then(
                 () => {
+                    removeSpinner();
+
                     const items = getInventoryItems();
                     const filteredItems = [];
                     items.forEach((item) => {
@@ -1488,6 +1516,8 @@
                     sellItems(filteredItems);
                 },
                 () => {
+                    removeSpinner();
+
                     logDOM('Could not retrieve the inventory...');
                 }
             );
@@ -1627,7 +1657,11 @@
         function turnSelectedItemsIntoGems() {
             const ids = getSelectedItems();
 
+            renderSpinner('Processing items');
+
             loadAllInventories().then(() => {
+                removeSpinner();
+
                 const items = getInventoryItems();
 
                 let numberOfQueuedItems = 0;
@@ -1666,6 +1700,8 @@
                     renderSpinner(`Processing ${numberOfQueuedItems} items`);
                 }
             }, () => {
+                removeSpinner();
+
                 logDOM('Could not retrieve the inventory...');
             });
         }
@@ -1674,7 +1710,11 @@
         function unpackSelectedBoosterPacks() {
             const ids = getSelectedItems();
 
+            renderSpinner('Processing items');
+
             loadAllInventories().then(() => {
+                removeSpinner();
+
                 const items = getInventoryItems();
 
                 let numberOfQueuedItems = 0;
@@ -1713,6 +1753,8 @@
                     renderSpinner(`Processing ${numberOfQueuedItems} items`);
                 }
             }, () => {
+                removeSpinner();
+
                 logDOM('Could not retrieve the inventory...');
             });
         }
