@@ -1678,6 +1678,57 @@
             });
         }
 
+        // Unpacks all booster packs.
+        function unpackAllBoosterPacks() {
+            loadAllInventories()
+            .then(() => {
+                const items = getInventoryItems();
+
+                let numberOfQueuedItems = 0;
+
+                items.forEach((item) => {
+                    if (item.queued != null || item.owner_actions == null) {
+                        return;
+                    }
+
+                    let canOpenBooster = false;
+
+                    for (const owner_action in item.owner_actions) {
+                        if (item.owner_actions[owner_action].link != null && item.owner_actions[owner_action].link.includes('OpenBooster')) {
+                            canOpenBooster = true;
+                        }
+                    }
+
+                    if (!canOpenBooster) {
+                        return;
+                    }
+
+                    item.queued = true;
+                    boosterQueue.push(item);
+                    numberOfQueuedItems++;
+                });
+
+                if (numberOfQueuedItems === 0) {
+                    logDOM('No booster packs found in the inventory to unpack.');
+
+                    return;
+                }
+
+                totalNumberOfQueuedItems += numberOfQueuedItems;
+
+                $('#inventory_items_spinner').remove();
+
+                $('#inventory_sell_buttons').append(`
+                    <div id="inventory_items_spinner">${spinnerBlock}
+                        <div style="text-align:center">Processing ${numberOfQueuedItems} items</div>
+                    </div>
+                `);
+            })
+            .catch(() => {
+                logDOM('Could not retrieve the inventory...');
+            });
+        }
+
         // Unpacks the selected booster packs.
         function unpackSelectedBoosterPacks() {
             const ids = getSelectedItems();
@@ -1688,11 +1739,7 @@
                 let numberOfQueuedItems = 0;
                 items.forEach((item) => {
                     // Ignored queued items.
-                    if (item.queued != null) {
-                        return;
-                    }
-
-                    if (item.owner_actions == null) {
+                    if (item.queued != null || item.owner_actions == null) {
                         return;
                     }
 
@@ -2103,10 +2150,10 @@
             getInventorySelectedBoosterPackItems((items) => {
                 const selectedItems = items.length;
                 if (items.length == 0) {
-                    $('.unpack_booster_packs').hide();
+                    $('.unpack_selected_booster_packs').hide();
                 } else {
-                    $('.unpack_booster_packs').show();
-                    $('.unpack_booster_packs > span').
+                    $('.unpack_selected_booster_packs').show();
+                    $('.unpack_selected_booster_packs > span').
                         text(`Unpack ${selectedItems}${selectedItems == 1 ? ' Booster Pack' : ' Booster Packs'}`);
                 }
             });
@@ -2309,8 +2356,9 @@
                     <a class="btn_green_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>
                     <div class="see_inventory_buttons">
                         <a class="btn_darkblue_white_innerfade btn_medium_wide turn_into_gems" style="display:none"><span>Turn Selected Items Into Gems</span></a>
+                        <a class="btn_darkblue_white_innerfade btn_medium_wide unpack_all_booster_packs"><span>Unpack All Booster Packs</span></a>
+                        <a class="btn_darkblue_white_innerfade btn_medium_wide unpack_selected_booster_packs" style="display:none"><span>Unpack Selected Booster Packs</span></a>
                         <a class="btn_darkblue_white_innerfade btn_medium_wide gem_all_duplicates"><span>Turn All Duplicate Items Into Gems</span></a>
-                        <a class="btn_darkblue_white_innerfade btn_medium_wide unpack_booster_packs" style="display:none"><span>Unpack Selected Booster Packs</span></a>
                     </div>
                 `;
             } else if (TF2) {
@@ -2359,7 +2407,8 @@
                 $('.sell_all_cards').on('click', '*', sellAllCards);
                 $('.sell_all_crates').on('click', '*', sellAllCrates);
                 $('.turn_into_gems').on('click', '*', turnSelectedItemsIntoGems);
-                $('.unpack_booster_packs').on('click', '*', unpackSelectedBoosterPacks);
+                $('.unpack_all_booster_packs').on('click', '*', unpackAllBoosterPacks);
+                $('.unpack_selected_booster_packs').on('click', '*', unpackSelectedBoosterPacks);
 
             }
 
