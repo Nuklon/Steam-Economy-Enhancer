@@ -1687,11 +1687,7 @@
                 let numberOfQueuedItems = 0;
 
                 items.forEach((item) => {
-                    if (item.queued != null) {
-                        return;
-                    }
-
-                    if (item.owner_actions == null) {
+                    if (item.queued != null || item.owner_actions == null) {
                         return;
                     }
 
@@ -1743,11 +1739,7 @@
                 let numberOfQueuedItems = 0;
                 items.forEach((item) => {
                     // Ignored queued items.
-                    if (item.queued != null) {
-                        return;
-                    }
-
-                    if (item.owner_actions == null) {
+                    if (item.queued != null || item.owner_actions == null) {
                         return;
                     }
 
