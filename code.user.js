@@ -58,8 +58,6 @@
     let totalPriceWithoutFeesOnMarket = 0;
     let totalScrap = 0;
 
-    const spinnerBlock =
-        '<div class="spinner"><div class="rect1"></div>&nbsp;<div class="rect2"></div>&nbsp;<div class="rect3"></div>&nbsp;<div class="rect4"></div>&nbsp;<div class="rect5"></div>&nbsp;</div>';
     let numberOfFailedRequests = 0;
 
     const enableConsoleLog = false;
@@ -1274,7 +1272,7 @@
 
         function onQueueDrain() {
             if (itemQueue.length() == 0 && sellQueue.length() == 0 && scrapQueue.length() == 0 && boosterQueue.length() == 0) {
-                $('#inventory_items_spinner').remove();
+                removeSpinner();
             }
         }
 
@@ -1444,10 +1442,7 @@
                     if (numberOfQueuedItems > 0) {
                         totalNumberOfQueuedItems += numberOfQueuedItems;
 
-                        $('#inventory_items_spinner').remove();
-                        $('#inventory_sell_buttons').append(`<div id="inventory_items_spinner">${spinnerBlock
-                            }<div style="text-align:center">Processing ${numberOfQueuedItems} items</div>` +
-                            '</div>');
+                        renderSpinner(`Processing ${numberOfQueuedItems} items`);
                     }
                 },
                 () => {
@@ -1668,10 +1663,7 @@
                 if (numberOfQueuedItems > 0) {
                     totalNumberOfQueuedItems += numberOfQueuedItems;
 
-                    $('#inventory_items_spinner').remove();
-                    $('#inventory_sell_buttons').append(`<div id="inventory_items_spinner">${spinnerBlock
-                        }<div style="text-align:center">Processing ${numberOfQueuedItems} items</div>` +
-                        '</div>');
+                    renderSpinner(`Processing ${numberOfQueuedItems} items`);
                 }
             }, () => {
                 logDOM('Could not retrieve the inventory...');
@@ -1718,10 +1710,7 @@
                 if (numberOfQueuedItems > 0) {
                     totalNumberOfQueuedItems += numberOfQueuedItems;
 
-                    $('#inventory_items_spinner').remove();
-                    $('#inventory_sell_buttons').append(`<div id="inventory_items_spinner">${spinnerBlock
-                        }<div style="text-align:center">Processing ${numberOfQueuedItems} items</div>` +
-                        '</div>');
+                    renderSpinner(`Processing ${numberOfQueuedItems} items`);
                 }
             }, () => {
                 logDOM('Could not retrieve the inventory...');
@@ -1804,11 +1793,8 @@
 
             if (numberOfQueuedItems > 0) {
                 totalNumberOfQueuedItems += numberOfQueuedItems;
-
-                $('#inventory_items_spinner').remove();
-                $('#inventory_sell_buttons').append(`<div id="inventory_items_spinner">${spinnerBlock
-                    }<div style="text-align:center">Processing ${numberOfQueuedItems} items</div>` +
-                    '</div>');
+                
+                renderSpinner(`Processing ${numberOfQueuedItems} items`);
             }
         }
 
@@ -3038,7 +3024,8 @@
             addMarketCheckboxes();
 
             // Show the listings again, rendering is done.
-            $('#market_listings_spinner').remove();
+            removeSpinner();
+
             myMarketListings.show();
 
             fillMarketListingsQueue();
@@ -3262,9 +3249,7 @@
                 $('.market_pagesize_options').hide();
 
                 // Show the spinner so the user knows that something is going on.
-                $('.my_market_header').eq(0).append(`<div id="market_listings_spinner">${spinnerBlock
-                    }<div style="text-align:center">Loading market listings</div>` +
-                    '</div>');
+                renderSpinner('Loading market listings');
 
                 while (currentCount < totalCount) {
                     marketListingsItemsQueue.push(currentCount);
@@ -4072,6 +4057,63 @@
         style.type = 'text/css';
         style.innerHTML = css;
         head.appendChild(style);
+    }
+
+    function renderSpinner(text) {
+        const { container, spinnerid } = getSpinnerContext();
+
+        if (container == null || spinnerid == null) {
+            return;
+        }
+
+        text = (text || '').trim();
+
+        removeSpinner();
+
+        container.append(`
+        <div id="${spinnerid}">
+            <div class="spinner">
+                <div class="rect1"></div>
+                <div class="rect2"></div>
+                <div class="rect3"></div>
+                <div class="rect4"></div>
+                <div class="rect5"></div>
+            </div>
+            ${text ? `<div style="text-align:center">${text}</div>` : ''}
+        </div>
+    `);
+    }
+
+    function removeSpinner() {
+        const { container, spinnerid } = getSpinnerContext();
+
+        if (container == null || spinnerid == null) {
+            return;
+        }
+
+        $(`#${spinnerid}`, container).remove();
+    }
+
+    function getSpinnerContext() {
+        let container = null;
+        let spinnerid = null;
+
+        switch (currentPage) {
+            case PAGE_MARKET:
+                container = $('.my_market_header').eq(0);
+                spinnerid = 'market_listings_spinner';
+                break;
+            case PAGE_INVENTORY:
+                container = $('#inventory_sell_buttons');
+                spinnerid = 'inventory_items_spinner';
+                break;
+            default:
+                break;
+        }
+
+        container = container && container.length > 0 ? container : null;
+
+        return { container, spinnerid };
     }
 
     $.fn.delayedEach = function (timeout, callback, continuous) {
