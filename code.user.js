@@ -3333,7 +3333,7 @@
         function sortMarketListings(elem, isPrice, isDateOrQuantity, isName) {
             const list = getListFromContainer(elem);
             if (list == null) {
-                console.log('Invalid parameter, could not find a list matching elem.');
+                logConsole('Invalid parameter, could not find a list matching elem.');
                 return;
             }
 
