@@ -110,9 +110,7 @@
     }
 
     request.queue = [];
-
     request.pending = false;
-
     request.stopped = false;
 
     function request(url, options, callback) {
