@@ -3541,6 +3541,10 @@
                 const selectionGroup = $(this).parent().parent().parent().parent();
                 const marketList = getListFromContainer(selectionGroup);
 
+                if (marketList == null) {
+                    return;
+                }
+
                 const invert = $('.market_select_item:checked', selectionGroup).length == $('.market_select_item', selectionGroup).length;
 
                 for (let i = 0; i < marketList.matchingItems.length; i++) {
@@ -3553,6 +3557,10 @@
             $('.select_five_from_page').on('click', '*', function () {
                 const selectionGroup = $(this).parent().parent().parent().parent();
                 const marketList = getListFromContainer(selectionGroup);
+
+                if (marketList == null) {
+                    return;
+                }
 
                 let count = 0;
                 for (let i = 0; i < marketList.matchingItems.length; i++) {
@@ -3572,6 +3580,10 @@
                 const selectionGroup = $(this).parent().parent().parent().parent();
                 const marketList = getListFromContainer(selectionGroup);
 
+                if (marketList == null) {
+                    return;
+                }
+
                 let count = 0;
                 for (let i = 0; i < marketList.matchingItems.length; i++) {
                     if (count == 25) {
@@ -3589,6 +3601,10 @@
             $('.select_overpriced').on('click', '*', function () {
                 const selectionGroup = $(this).parent().parent().parent().parent();
                 const marketList = getListFromContainer(selectionGroup);
+
+                if (marketList == null) {
+                    return;
+                }
 
                 for (let i = 0; i < marketList.matchingItems.length; i++) {
                     if ($(marketList.matchingItems[i].elm).hasClass('overpriced')) {
@@ -3609,6 +3625,10 @@
                 const selectionGroup = $(this).parent().parent().parent().parent();
                 const marketList = getListFromContainer(selectionGroup);
 
+                if (marketList == null) {
+                    return;
+                }
+
                 for (let i = 0; i < marketList.matchingItems.length; i++) {
                     if ($('.market_select_item', $(marketList.matchingItems[i].elm)).prop('checked')) {
                         const listingid = replaceNonNumbers(marketList.matchingItems[i].values().market_listing_item_name);
@@ -3626,6 +3646,10 @@
                 const selectionGroup = $(this).parent().parent().parent().parent();
                 const marketList = getListFromContainer(selectionGroup);
 
+                if (marketList == null) {
+                    return;
+                }
+
                 for (let i = 0; i < marketList.matchingItems.length; i++) {
                     if ($(marketList.matchingItems[i].elm).hasClass('overpriced')) {
                         const listingid = replaceNonNumbers(marketList.matchingItems[i].values().market_listing_item_name);
@@ -3637,6 +3661,10 @@
             $('.relist_selected').on('click', '*', function () {
                 const selectionGroup = $(this).parent().parent().parent().parent();
                 const marketList = getListFromContainer(selectionGroup);
+
+                if (marketList == null) {
+                    return;
+                }
 
                 for (let i = 0; i < marketList.matchingItems.length; i++) {
                     if ($(marketList.matchingItems[i].elm) && $('.market_select_item', $(marketList.matchingItems[i].elm)).prop('checked')) {
