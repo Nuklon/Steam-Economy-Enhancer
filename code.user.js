@@ -200,6 +200,8 @@
 
                     if (request.errors >= 5) {
                         request.stopped = true;
+
+                        request.errors = 0;
                     }
                 }
 
