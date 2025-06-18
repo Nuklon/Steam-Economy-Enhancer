@@ -108,6 +108,7 @@
     }
 
     request.queue = [];
+    request.errors = 0;
     request.pending = false;
     request.stopped = false;
 
@@ -191,7 +192,14 @@
 
                 // Probably something broken, better to stop here.
                 if ([400, 401, 403, 404, 405, 429].includes(xhr.status)) {
-                    request.stopped = true;
+                    if (request.errors++ === 0) {
+                        setTimeout(() => request.errors = 0, 5 * 60 * 1000);
+                    }
+
+                    if (request.errors >= 5) {
+                        request.stopped = true;
+                        request.errors = 0;
+                    }
                 }
 
                 const next = () => {
