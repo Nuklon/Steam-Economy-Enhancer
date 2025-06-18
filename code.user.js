@@ -4061,30 +4061,28 @@
 
     function renderSpinner(text) {
         const { container, spinnerid } = getSpinnerContext();
-
         if (container == null || spinnerid == null) {
             return;
         }
 
         text = (text || '').trim();
-
         removeSpinner();
 
-        container.append(`<div id="${spinnerid}">
-            <div class="spinner">
-                <div class="rect1"></div>
-                <div class="rect2"></div>
-                <div class="rect3"></div>
-                <div class="rect4"></div>
-                <div class="rect5"></div>
-            </div>
-            ${text ? `<div style="text-align:center">${text}</div>` : ''}
-        </div>`);
+        container.append(`
+            <div id="${spinnerid}">
+                <div class="spinner">
+                    <div class="rect1"></div>
+                    <div class="rect2"></div>
+                    <div class="rect3"></div>
+                    <div class="rect4"></div>
+                    <div class="rect5"></div>
+                </div>
+                ${text ? `<div style="text-align:center">${text}</div>` : ''}
+            </div>`);
     }
 
     function removeSpinner() {
         const { container, spinnerid } = getSpinnerContext();
-
         if (container == null || spinnerid == null) {
             return;
         }
@@ -4110,7 +4108,6 @@
         }
 
         container = container && container.length > 0 ? container : null;
-
         return { container, spinnerid };
     }
 
