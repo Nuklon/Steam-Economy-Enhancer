@@ -107,61 +107,100 @@
         }
     }
 
+    request.queue = [];
+    request.pending = false;
+    request.stopped = false;
+
     function request(url, options, callback) {
-        let delayBetweenRequests = 300;
-        let requestStorageHash = 'see:request:last';
+        callback = callback || function () {};
 
-        if (url.startsWith('https://steamcommunity.com/market/')) {
-            requestStorageHash = `${requestStorageHash}:steamcommunity.com/market`;
-            delayBetweenRequests = 1000;
-        }
+        // If the request was stopped, we don't want to send it to the server and continue other requests.
+        if (request.stopped) {
+            const error = new Error('Request was not sent to the server, something went wrong');
 
-        const lastRequest = JSON.parse(getLocalStorageItem(requestStorageHash) || JSON.stringify({ time: new Date(0), limited: false }));
-        const timeSinceLastRequest = Date.now() - new Date(lastRequest.time).getTime();
+            setTimeout(() => request.queue.shift()?.(), 1);
+            setTimeout(() => callback(error, null), 0);
 
-        delayBetweenRequests = lastRequest.limited ? 2.5 * 60 * 1000 : delayBetweenRequests;
-
-        if (timeSinceLastRequest < delayBetweenRequests) {
-            setTimeout(() => request(...arguments), delayBetweenRequests - timeSinceLastRequest);
             return;
         }
 
-        lastRequest.time = new Date();
-        lastRequest.limited = false;
+        // Add the request to the queue if another one is processing.
+        if (request.pending) {
+            const args = Array.prototype.slice.call(arguments);
 
-        setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+            request.queue.push(() => request(...args));
+
+            return;
+        }
+
+        request.pending = true;
 
         $.ajax({
             url: url,
+
             type: options.method,
+
             data: options.data,
-            success: function (data, statusMessage, xhr) {
-                if (xhr.status === 429) {
-                    lastRequest.limited = true;
-                    setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
-                }
 
-                if (xhr.status >= 400) {
-                    const error = new Error('Http error');
-                    error.statusCode = xhr.status;
+            dataType: options.responseType,
 
-                    callback(error, data);
-                } else {
-                    callback(null, data)
-                }
+            /**
+             *
+             * @param {*} data - parsed response data, if the request was successful.
+             * @param {string} statusText - one of `success`, `notmodified`, `nocontent`.
+             * @param {XMLHttpRequest} xhr - XMLHttpRequest object with additional jQuery properties.
+             */
+            success: function (data, statusText, xhr) {
+                setTimeout(() => callback(null, data), 0);
             },
-            error: (xhr) => {
-                if (xhr.status === 429) {
-                    lastRequest.limited = true;
-                    setLocalStorageItem(requestStorageHash, JSON.stringify(lastRequest));
+
+            /**
+             * 
+             * @param {XMLHttpRequest} xhr - XMLHttpRequest object with additional jQuery properties.
+             * @param {string} statusText - one of `error`, `abort`, `timeout` or `parsererror`.
+             * @param {string} httpErrorText - textual portion of the HTTP status, in context of HTTP/2 it may be empty string.
+             */
+            error: (xhr, statusText, httpErrorText) => {
+                const error = new Error(`Request failed with status ${xhr.status || 0} (${statusText === 'error' ? 'http error' : statusText})`);
+
+                error.url = url;
+                error.method = options.method;
+                error.errorText = statusText || '';
+                error.statusCode = xhr.status || 0;
+                error.responseText = xhr.responseText || '';
+
+                setTimeout(() => callback(error, null), 0);
+            },
+
+            /**
+             * @param {XMLHttpRequest} xhr - XMLHttpRequest object with additional jQuery properties.
+             * @param {string} statusText - one of `success`, `notmodified`, `nocontent`, `error`, `timeout`, `abort`, or `parsererror`.
+             */
+            complete: (xhr, statusText) => {
+                let delay = 300; // Short delay to avoid hammering the server.
+
+                // Slow down market requests to avoid hitting the rate limits.
+                if (url.startsWith('https://steamcommunity.com/market/')) {
+                    delay = 1000;
                 }
 
-                const error = new Error('Request failed');
-                error.statusCode = xhr.status;
+                // Better to wait for a bit longer if we hit an error.
+                if (xhr.status === 0 || xhr.status >= 400 || statusText === 'error') {
+                    delay = 5000;
+                }
 
-                callback(error);
-            },
-            dataType: options.responseType
+                // Probably something broken, better to stop here.
+                if ([400, 401, 403, 404, 405, 429].includes(xhr.status)) {
+                    request.stopped = true;
+                }
+
+                const next = () => {
+                    request.pending = false;
+                    request.queue.shift()?.();
+                }
+
+                setTimeout(next, delay);
+            }
         });
     };
 
@@ -1706,6 +1745,57 @@
             });
         }
 
+        // Unpacks all booster packs.
+        function unpackAllBoosterPacks() {
+            loadAllInventories()
+            .then(() => {
+                const items = getInventoryItems();
+
+                let numberOfQueuedItems = 0;
+
+                items.forEach((item) => {
+                    if (item.queued != null || item.owner_actions == null) {
+                        return;
+                    }
+
+                    let canOpenBooster = false;
+
+                    for (const owner_action in item.owner_actions) {
+                        if (item.owner_actions[owner_action].link != null && item.owner_actions[owner_action].link.includes('OpenBooster')) {
+                            canOpenBooster = true;
+                        }
+                    }
+
+                    if (!canOpenBooster) {
+                        return;
+                    }
+
+                    item.queued = true;
+                    boosterQueue.push(item);
+                    numberOfQueuedItems++;
+                });
+
+                if (numberOfQueuedItems === 0) {
+                    logDOM('No booster packs found in the inventory to unpack.');
+
+                    return;
+                }
+
+                totalNumberOfQueuedItems += numberOfQueuedItems;
+
+                $('#inventory_items_spinner').remove();
+
+                $('#inventory_sell_buttons').append(`
+                    <div id="inventory_items_spinner">${spinnerBlock}
+                        <div style="text-align:center">Processing ${numberOfQueuedItems} items</div>
+                    </div>
+                `);
+            })
+            .catch(() => {
+                logDOM('Could not retrieve the inventory...');
+            });
+        }
+
         // Unpacks the selected booster packs.
         function unpackSelectedBoosterPacks() {
             const ids = getSelectedItems();
@@ -1720,11 +1810,7 @@
                 let numberOfQueuedItems = 0;
                 items.forEach((item) => {
                     // Ignored queued items.
-                    if (item.queued != null) {
-                        return;
-                    }
-
-                    if (item.owner_actions == null) {
+                    if (item.queued != null || item.owner_actions == null) {
                         return;
                     }
 
@@ -2131,10 +2217,10 @@
             getInventorySelectedBoosterPackItems((items) => {
                 const selectedItems = items.length;
                 if (items.length == 0) {
-                    $('.unpack_booster_packs').hide();
+                    $('.unpack_selected_booster_packs').hide();
                 } else {
-                    $('.unpack_booster_packs').show();
-                    $('.unpack_booster_packs > span').
+                    $('.unpack_selected_booster_packs').show();
+                    $('.unpack_selected_booster_packs > span').
                         text(`Unpack ${selectedItems}${selectedItems == 1 ? ' Booster Pack' : ' Booster Packs'}`);
                 }
             });
@@ -2337,8 +2423,9 @@
                     <a class="btn_green_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>
                     <div class="see_inventory_buttons">
                         <a class="btn_darkblue_white_innerfade btn_medium_wide turn_into_gems" style="display:none"><span>Turn Selected Items Into Gems</span></a>
+                        <a class="btn_darkblue_white_innerfade btn_medium_wide unpack_all_booster_packs"><span>Unpack All Booster Packs</span></a>
+                        <a class="btn_darkblue_white_innerfade btn_medium_wide unpack_selected_booster_packs" style="display:none"><span>Unpack Selected Booster Packs</span></a>
                         <a class="btn_darkblue_white_innerfade btn_medium_wide gem_all_duplicates"><span>Turn All Duplicate Items Into Gems</span></a>
-                        <a class="btn_darkblue_white_innerfade btn_medium_wide unpack_booster_packs" style="display:none"><span>Unpack Selected Booster Packs</span></a>
                     </div>
                 `;
             } else if (TF2) {
@@ -2387,7 +2474,8 @@
                 $('.sell_all_cards').on('click', '*', sellAllCards);
                 $('.sell_all_crates').on('click', '*', sellAllCrates);
                 $('.turn_into_gems').on('click', '*', turnSelectedItemsIntoGems);
-                $('.unpack_booster_packs').on('click', '*', unpackSelectedBoosterPacks);
+                $('.unpack_all_booster_packs').on('click', '*', unpackAllBoosterPacks);
+                $('.unpack_selected_booster_packs').on('click', '*', unpackSelectedBoosterPacks);
 
             }
 
@@ -4103,32 +4191,28 @@
 
     function renderSpinner(text) {
         const { container, spinnerid } = getSpinnerContext();
-
         if (container == null || spinnerid == null) {
             return;
         }
 
         text = (text || '').trim();
-
         removeSpinner();
 
         container.append(`
-        <div id="${spinnerid}">
-            <div class="spinner">
-                <div class="rect1"></div>
-                <div class="rect2"></div>
-                <div class="rect3"></div>
-                <div class="rect4"></div>
-                <div class="rect5"></div>
-            </div>
-            ${text ? `<div style="text-align:center">${text}</div>` : ''}
-        </div>
-    `);
+            <div id="${spinnerid}">
+                <div class="spinner">
+                    <div class="rect1"></div>
+                    <div class="rect2"></div>
+                    <div class="rect3"></div>
+                    <div class="rect4"></div>
+                    <div class="rect5"></div>
+                </div>
+                ${text ? `<div style="text-align:center">${text}</div>` : ''}
+            </div>`);
     }
 
     function removeSpinner() {
         const { container, spinnerid } = getSpinnerContext();
-
         if (container == null || spinnerid == null) {
             return;
         }
@@ -4154,7 +4238,6 @@
         }
 
         container = container && container.length > 0 ? container : null;
-
         return { container, spinnerid };
     }
 
