@@ -2824,8 +2824,7 @@
         );
 
         function marketOverpricedQueueWorker(item, ignoreErrors, callback) {
-            let listingUI = getListingFromLists(item.listing);
-
+            let listingUI = getListingFromLists(item.listing)
             if (listingUI == null) {
                 logConsole(`Listing ${item.listing} not found in the lists, skipping.`);
 
