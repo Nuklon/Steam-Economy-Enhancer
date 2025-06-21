@@ -2667,7 +2667,6 @@
             const appid = listing.appid;
 
             let listingUI = getListingFromLists(listing.listingid);
-
             if (listingUI == null) {
                 logConsole(`Listing ${listing.listingid} not found in the lists, skipping.`);
 
