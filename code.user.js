@@ -1716,7 +1716,11 @@
 
         // Unpacks all booster packs.
         function unpackAllBoosterPacks() {
+            renderSpinner('Loading inventory items');
+
             loadAllInventories().then(() => {
+                removeSpinner();
+
                 const items = getInventoryItems();
 
                 let numberOfQueuedItems = 0;
@@ -1751,13 +1755,7 @@
 
                 totalNumberOfQueuedItems += numberOfQueuedItems;
 
-                $('#inventory_items_spinner').remove();
-
-                $('#inventory_sell_buttons').append(`
-                    <div id="inventory_items_spinner">${spinnerBlock}
-                        <div style="text-align:center">Processing ${numberOfQueuedItems} items</div>
-                    </div>
-                `);
+                renderSpinner(`Processing ${numberOfQueuedItems} items`);
             });
         }
 
