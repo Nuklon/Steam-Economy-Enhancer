@@ -2730,12 +2730,21 @@
             const market_hash_name = getMarketHashName(asset);
             const appid = listing.appid;
 
-            const listingUI = $(getListingFromLists(listing.listingid).elm);
+            let listingUI = getListingFromLists(listing.listingid);
+            if (listingUI == null) {
+                logConsole(`Listing ${listing.listingid} not found in the lists, skipping.`);
+
+                callback(true, true);
+
+                return;
+            }
+
+            listingUI = $(listingUI.elm);
 
             const game_name = asset.type;
             const price = getPriceValueAsInt($('.market_listing_price > span:nth-child(1) > span:nth-child(1)', listingUI).text());
 
-            if (price <= getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE) * 100) {
+            if (price <= getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE) * 100 || listingUI.hasClass('removing')) {
                 $('.market_listing_my_price', listingUI).last().css('background', COLOR_PRICE_NOT_CHECKED);
                 $('.market_listing_my_price', listingUI).last().prop('title', 'The price is not checked.');
                 listingUI.addClass('not_checked');
@@ -2879,7 +2888,16 @@
         );
 
         function marketOverpricedQueueWorker(item, ignoreErrors, callback) {
-            const listingUI = getListingFromLists(item.listing).elm;
+            let listingUI = getListingFromLists(item.listing)
+            if (listingUI == null) {
+                logConsole(`Listing ${item.listing} not found in the lists, skipping.`);
+
+                callback(true);
+
+                return;
+            }
+
+            listingUI = listingUI.elm;
 
             market.removeListing(
                 item.listing, false,
@@ -3695,6 +3713,10 @@
                 for (let i = 0; i < marketList.matchingItems.length; i++) {
                     if ($('.market_select_item', $(marketList.matchingItems[i].elm)).prop('checked')) {
                         const listingid = replaceNonNumbers(marketList.matchingItems[i].values().market_listing_item_name);
+
+                        const listingUI = $(getListingFromLists(listingid).elm);
+                        listingUI.addClass('removing');
+                       
                         marketRemoveQueue.push(listingid);
                         increaseMarketProgressMax();
                     }
