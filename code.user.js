@@ -3632,7 +3632,7 @@
                         const listingid = replaceNonNumbers(marketList.matchingItems[i].values().market_listing_item_name);
 
                         const listingUI = $(getListingFromLists(listingid).elm);
-                        listingUI.addClass('not_checked');
+                        listingUI.addClass('removing');
                        
                         marketRemoveQueue.push(listingid);
                         increaseMarketProgressMax();
