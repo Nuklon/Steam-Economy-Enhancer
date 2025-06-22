@@ -1408,166 +1408,131 @@
         function sellAllItems() {
             renderSpinner('Loading inventory items');
 
-            loadAllInventories().then(
-                () => {
-                    removeSpinner();
+            loadAllInventories().then(() => {
+                removeSpinner();
 
-                    const items = getInventoryItems();
-                    const filteredItems = [];
+                const items = getInventoryItems();
+                const filteredItems = [];
 
-                    items.forEach((item) => {
-                        if (!item.marketable) {
-                            return;
-                        }
+                items.forEach((item) => {
+                    if (!item.marketable) {
+                        return;
+                    }
 
-                        filteredItems.push(item);
-                    });
+                    filteredItems.push(item);
+                });
 
-                    sellItems(filteredItems);
-                },
-                () => {
-                    removeSpinner();
-
-                    logDOM('Could not retrieve the inventory...');
-                }
-            );
+                sellItems(filteredItems);
+            });
         }
 
         function sellAllDuplicateItems() {
             renderSpinner('Loading inventory items');
 
-            loadAllInventories().then(
-                () => {
-                    removeSpinner();
+            loadAllInventories().then(() => {
+                removeSpinner();
 
-                    const items = getInventoryItems();
-                    const marketableItems = [];
-                    let filteredItems = [];
+                const items = getInventoryItems();
+                const marketableItems = [];
+                let filteredItems = [];
 
-                    items.forEach((item) => {
-                        if (!item.marketable) {
-                            return;
-                        }
+                items.forEach((item) => {
+                    if (!item.marketable) {
+                        return;
+                    }
 
-                        marketableItems.push(item);
-                    });
+                    marketableItems.push(item);
+                });
 
-                    filteredItems = marketableItems.filter((e, i) => marketableItems.map((m) => m.classid).indexOf(e.classid) !== i);
+                filteredItems = marketableItems.filter((e, i) => marketableItems.map((m) => m.classid).indexOf(e.classid) !== i);
 
-                    sellItems(filteredItems);
-                },
-                () => {
-                    removeSpinner();
-
-                    logDOM('Could not retrieve the inventory...');
-                }
-            );
+                sellItems(filteredItems);
+            });
         }
 
         function gemAllDuplicateItems() {
             renderSpinner('Loading inventory items');
 
-            loadAllInventories().then(
-                () => {
-                    removeSpinner();
+            loadAllInventories().then(() => {
+                removeSpinner();
 
-                    const items = getInventoryItems();
-                    let filteredItems = [];
-                    let numberOfQueuedItems = 0;
+                const items = getInventoryItems();
+                let filteredItems = [];
+                let numberOfQueuedItems = 0;
 
-                    filteredItems = items.filter((e, i) => items.map((m) => m.classid).indexOf(e.classid) !== i);
+                filteredItems = items.filter((e, i) => items.map((m) => m.classid).indexOf(e.classid) !== i);
 
-                    filteredItems.forEach((item) => {
-                        if (item.queued != null) {
-                            return;
-                        }
-
-                        if (item.owner_actions == null) {
-                            return;
-                        }
-
-                        let canTurnIntoGems = false;
-                        for (const owner_action in item.owner_actions) {
-                            if (item.owner_actions[owner_action].link != null && item.owner_actions[owner_action].link.includes('GetGooValue')) {
-                                canTurnIntoGems = true;
-                            }
-                        }
-
-                        if (!canTurnIntoGems) {
-                            return;
-                        }
-
-                        item.queued = true;
-                        scrapQueue.push(item);
-                        numberOfQueuedItems++;
-                    });
-
-                    if (numberOfQueuedItems > 0) {
-                        totalNumberOfQueuedItems += numberOfQueuedItems;
-
-                        renderSpinner(`Processing ${numberOfQueuedItems} items`);
+                filteredItems.forEach((item) => {
+                    if (item.queued != null) {
+                        return;
                     }
-                },
-                () => {
-                    removeSpinner();
 
-                    logDOM('Could not retrieve the inventory...');
+                    if (item.owner_actions == null) {
+                        return;
+                    }
+
+                    let canTurnIntoGems = false;
+                    for (const owner_action in item.owner_actions) {
+                        if (item.owner_actions[owner_action].link != null && item.owner_actions[owner_action].link.includes('GetGooValue')) {
+                            canTurnIntoGems = true;
+                        }
+                    }
+
+                    if (!canTurnIntoGems) {
+                        return;
+                    }
+
+                    item.queued = true;
+                    scrapQueue.push(item);
+                    numberOfQueuedItems++;
+                });
+
+                if (numberOfQueuedItems > 0) {
+                    totalNumberOfQueuedItems += numberOfQueuedItems;
+
+                    renderSpinner(`Processing ${numberOfQueuedItems} items`);
                 }
-            );
+            });
         }
 
         function sellAllCards() {
             renderSpinner('Loading inventory items');
 
-            loadAllInventories().then(
-                () => {
-                    removeSpinner();
+            loadAllInventories().then(() => {
+                removeSpinner();
 
-                    const items = getInventoryItems();
-                    const filteredItems = [];
+                const items = getInventoryItems();
+                const filteredItems = [];
 
-                    items.forEach((item) => {
-                        if (!getIsTradingCard(item) || !item.marketable) {
-                            return;
-                        }
+                items.forEach((item) => {
+                    if (!getIsTradingCard(item) || !item.marketable) {
+                        return;
+                    }
 
-                        filteredItems.push(item);
-                    });
+                    filteredItems.push(item);
+                });
 
-                    sellItems(filteredItems);
-                },
-                () => {
-                    removeSpinner();
-
-                    logDOM('Could not retrieve the inventory...');
-                }
-            );
+                sellItems(filteredItems);
+            });
         }
 
         function sellAllCrates() {
             renderSpinner('Loading inventory items');
 
-            loadAllInventories().then(
-                () => {
-                    removeSpinner();
+            loadAllInventories().then(() => {
+                removeSpinner();
 
-                    const items = getInventoryItems();
-                    const filteredItems = [];
-                    items.forEach((item) => {
-                        if (!getIsCrate(item) || !item.marketable) {
-                            return;
-                        }
-                        filteredItems.push(item);
-                    });
+                const items = getInventoryItems();
+                const filteredItems = [];
+                items.forEach((item) => {
+                    if (!getIsCrate(item) || !item.marketable) {
+                        return;
+                    }
+                    filteredItems.push(item);
+                });
 
-                    sellItems(filteredItems);
-                },
-                () => {
-                    removeSpinner();
-
-                    logDOM('Could not retrieve the inventory...');
-                }
-            );
+                sellItems(filteredItems);
+            });
         }
 
         const scrapQueue = async.queue((item, next) => {
@@ -1746,10 +1711,6 @@
 
                     renderSpinner(`Processing ${numberOfQueuedItems} items`);
                 }
-            }, () => {
-                removeSpinner();
-
-                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -1757,8 +1718,7 @@
         function unpackAllBoosterPacks() {
             renderSpinner('Loading inventory items');
 
-            loadAllInventories()
-            .then(() => {
+            loadAllInventories().then(() => {
                 removeSpinner();
 
                 const items = getInventoryItems();
@@ -1796,11 +1756,6 @@
                 totalNumberOfQueuedItems += numberOfQueuedItems;
 
                 renderSpinner(`Processing ${numberOfQueuedItems} items`);
-            })
-            .catch(() => {
-                removeSpinner();
-
-                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -1846,10 +1801,6 @@
 
                     renderSpinner(`Processing ${numberOfQueuedItems} items`);
                 }
-            }, () => {
-                removeSpinner();
-
-                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -2117,8 +2068,6 @@
                 });
 
                 callback(filteredItems);
-            }, () => {
-                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -2149,8 +2098,6 @@
                 });
 
                 callback(filteredItems);
-            }, () => {
-                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -2181,8 +2128,6 @@
                 });
 
                 callback(filteredItems);
-            }, () => {
-                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -2496,29 +2441,24 @@
                 }
             );
 
-            loadAllInventories().then(
-                () => {
-                    const updateInventoryPrices = function () {
-                        if (getSettingWithDefault(SETTING_INVENTORY_PRICE_LABELS) == 1) {
-                            setInventoryPrices(getInventoryItems());
-                        }
-                    };
+            loadAllInventories().then(() => {
+                const updateInventoryPrices = function () {
+                    if (getSettingWithDefault(SETTING_INVENTORY_PRICE_LABELS) == 1) {
+                        setInventoryPrices(getInventoryItems());
+                    }
+                };
 
-                    // Load after the inventory is loaded.
-                    updateInventoryPrices();
+                // Load after the inventory is loaded.
+                updateInventoryPrices();
 
-                    $('#inventory_pagecontrols').observe(
-                        'childlist',
-                        '*',
-                        () => {
-                            updateInventoryPrices();
-                        }
-                    );
-                },
-                () => {
-                    logDOM('Could not retrieve the inventory...');
-                }
-            );
+                $('#inventory_pagecontrols').observe(
+                    'childlist',
+                    '*',
+                    () => {
+                        updateInventoryPrices();
+                    }
+                );
+            });
         }
 
         // Loads the specified inventories.
