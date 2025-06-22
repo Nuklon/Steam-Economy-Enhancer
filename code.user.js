@@ -1424,11 +1424,6 @@
                     });
 
                     sellItems(filteredItems);
-                },
-                () => {
-                    removeSpinner();
-
-                    logDOM('Could not retrieve the inventory...');
                 }
             );
         }
@@ -1455,11 +1450,6 @@
                     filteredItems = marketableItems.filter((e, i) => marketableItems.map((m) => m.classid).indexOf(e.classid) !== i);
 
                     sellItems(filteredItems);
-                },
-                () => {
-                    removeSpinner();
-
-                    logDOM('Could not retrieve the inventory...');
                 }
             );
         }
@@ -1507,11 +1497,6 @@
 
                         renderSpinner(`Processing ${numberOfQueuedItems} items`);
                     }
-                },
-                () => {
-                    removeSpinner();
-
-                    logDOM('Could not retrieve the inventory...');
                 }
             );
         }
@@ -1535,11 +1520,6 @@
                     });
 
                     sellItems(filteredItems);
-                },
-                () => {
-                    removeSpinner();
-
-                    logDOM('Could not retrieve the inventory...');
                 }
             );
         }
@@ -1561,11 +1541,6 @@
                     });
 
                     sellItems(filteredItems);
-                },
-                () => {
-                    removeSpinner();
-
-                    logDOM('Could not retrieve the inventory...');
                 }
             );
         }
@@ -1746,10 +1721,6 @@
 
                     renderSpinner(`Processing ${numberOfQueuedItems} items`);
                 }
-            }, () => {
-                removeSpinner();
-
-                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -1798,9 +1769,6 @@
                         <div style="text-align:center">Processing ${numberOfQueuedItems} items</div>
                     </div>
                 `);
-            })
-            .catch(() => {
-                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -1846,10 +1814,6 @@
 
                     renderSpinner(`Processing ${numberOfQueuedItems} items`);
                 }
-            }, () => {
-                removeSpinner();
-
-                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -2117,8 +2081,6 @@
                 });
 
                 callback(filteredItems);
-            }, () => {
-                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -2149,8 +2111,6 @@
                 });
 
                 callback(filteredItems);
-            }, () => {
-                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -2181,8 +2141,6 @@
                 });
 
                 callback(filteredItems);
-            }, () => {
-                logDOM('Could not retrieve the inventory...');
             });
         }
 
@@ -2514,11 +2472,7 @@
                             updateInventoryPrices();
                         }
                     );
-                },
-                () => {
-                    logDOM('Could not retrieve the inventory...');
-                }
-            );
+                });
         }
 
         // Loads the specified inventories.
