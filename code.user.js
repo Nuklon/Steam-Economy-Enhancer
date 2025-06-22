@@ -3404,8 +3404,8 @@
             let asc = true;
 
             // (Re)set the asc/desc arrows.
-            const arrow_down = '🡻';
-            const arrow_up = '🡹';
+            const arrow_down = '▼';
+            const arrow_up = '▲';
 
             $('.market_listing_table_header > span', elem).each(function () {
                 if ($(this).hasClass('market_listing_edit_buttons')) {
