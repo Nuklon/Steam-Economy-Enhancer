@@ -1,5 +1,7 @@
 # <img src="assets/icon.svg" width="32" align="center"> Steam Economy Enhancer
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 A free userscript to enhance your Steam Inventory, Steam Market and Steam Tradeoffers.
 
 It adds the following features to the Steam Market:

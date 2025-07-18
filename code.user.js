@@ -6,6 +6,7 @@
 // @license      MIT
 // @version      7.1.17
 // @description  Enhances the Steam Inventory and Steam Market.
+// @description:zh-CN  增强Steam库存和Steam市场功能。
 // @match        https://steamcommunity.com/id/*/inventory*
 // @match        https://steamcommunity.com/profiles/*/inventory*
 // @match        https://steamcommunity.com/market*
@@ -96,6 +97,164 @@
             : 'US';
 
     const currencyCode = unsafeWindow.GetCurrencyCode(currencyId);
+    
+    // 语言本地化设置
+    const SETTING_LANGUAGE = 'SETTING_LANGUAGE';
+    
+    // 支持的语言
+    const LANGUAGES = {
+        'en': 'English',
+        'zh-CN': '简体中文'
+    };
+    
+    // 获取当前语言设置，默认为英文
+    const getCurrentLanguage = () => {
+        return getSettingWithDefault(SETTING_LANGUAGE) || 'en';
+    };
+    
+         // 翻译文本
+     const translations = {
+         'en': {
+             // 设置
+             'settings_title': 'Steam Economy Enhancer',
+             'calculate_prices_as': 'Calculate prices as the:',
+             'max_avg_lowest': 'Maximum of the average history and lowest sell listing',
+             'lowest_sell': 'Lowest sell listing',
+             'highest_buy_lowest_sell': 'Highest current buy order or lowest sell listing',
+             'hours_avg_price': 'Hours to use for the average history calculated price:',
+             'value_add_calculated': 'The value to add to the calculated price (minimum and maximum are respected):',
+             'use_second_lowest': 'Use the second lowest sell listing when the lowest sell listing has a low quantity:',
+             'dont_check_listings_below': 'Don\'t check market listings with prices of and below:',
+             'dont_list_below': 'Don\'t list market listings with prices of and below:',
+             'show_price_labels_inventory': 'Show price labels in inventory:',
+             'show_price_labels_tradeoffer': 'Show price labels in trade offers:',
+             'show_quick_sell': 'Show quick sell info and buttons:',
+             'min_and_max_normal': 'Minimum and maximum price for normal cards:',
+             'min_and_max_foil': 'Minimum and maximum price for foil cards:',
+             'min_and_max_other': 'Minimum and maximum price for other items:',
+             'auto_relist': 'Automatically relist overpriced market listings (slow on large inventories):',
+             'language': 'Language:',
+             'minimum': 'Minimum',
+             'maximum': 'Maximum',
+             
+             // 按钮
+             'sell_all_items': 'Sell All Items',
+             'sell_all_duplicates': 'Sell All Duplicate Items',
+             'sell_selected_items': 'Sell Selected Items',
+             'sell_manually': 'Sell Manually',
+             'sell_all_cards': 'Sell All Cards',
+             'turn_selected_gems': 'Turn Selected Items Into Gems',
+             'unpack_all_boosters': 'Unpack All Booster Packs',
+             'unpack_selected_boosters': 'Unpack Selected Booster Packs',
+             'gem_all_duplicates': 'Turn All Duplicate Items Into Gems',
+             'sell_all_crates': 'Sell All Crates',
+             'reload_inventory': 'Reload Inventory',
+             'select_all_page': 'Select all from page',
+             'view_market': 'View in Community Market',
+             'view_cards_market': 'View trading cards in Community Market',
+             'sell_button': 'Sell',
+             
+             // 日志和提示
+             'not_listed_ignore': 'is not listed due to ignoring price settings.',
+             'listed_for': 'listed for',
+             'you_will_receive': 'you will receive',
+             'retrying_listing': 'retrying listing because:',
+             'not_added_market': 'not added to market',
+             'because': 'because:',
+             'not_turned_gems': 'not turned into gems due to missing gems value.',
+             'not_turned_gems_error': 'not turned into gems due to unknown error.',
+             'turned_into_gems': 'turned into',
+             'gems': 'gems.',
+             'not_unpacked': 'not unpacked.',
+             'unpacked': 'unpacked.',
+             'no_boosters': 'No booster packs found in the inventory to unpack.',
+             'these_items_cannot': 'These items cannot be added to the market...',
+             'total_listed_for': 'Total listed for',
+             'total_receive': 'you will receive',
+             'total_scrap': 'Total scrap',
+             'price_not_checked': 'The price is not checked.',
+             'processing_items': 'Processing',
+             'items': 'items',
+             'loading_inventory': 'Loading inventory items',
+             
+             // 市场
+             'sell': 'Sell',
+             'buy': 'Buy'
+         },
+         'zh-CN': {
+             // 设置
+             'settings_title': 'Steam经济增强器',
+             'calculate_prices_as': '价格计算方式:',
+             'max_avg_lowest': '历史平均价格和最低售价的最大值',
+             'lowest_sell': '最低售价',
+             'highest_buy_lowest_sell': '最高求购价或最低售价',
+             'hours_avg_price': '计算历史平均价格的小时数:',
+             'value_add_calculated': '添加到计算价格的值(遵循最小和最大限制):',
+             'use_second_lowest': '当最低售价数量较少时使用第二低的售价:',
+             'dont_check_listings_below': '不检查价格低于或等于:',
+             'dont_list_below': '不上架价格低于或等于:',
+             'show_price_labels_inventory': '在库存中显示价格标签:',
+             'show_price_labels_tradeoffer': '在交易报价中显示价格标签:',
+             'show_quick_sell': '显示快速出售信息和按钮:',
+             'min_and_max_normal': '普通卡牌的最低和最高价格:',
+             'min_and_max_foil': '闪亮卡牌的最低和最高价格:',
+             'min_and_max_other': '其他物品的最低和最高价格:',
+             'auto_relist': '自动重新上架定价过高的物品(大型库存会很慢):',
+             'language': '语言:',
+             'minimum': '最低价',
+             'maximum': '最高价',
+             
+             // 按钮
+             'sell_all_items': '出售所有物品',
+             'sell_all_duplicates': '出售所有重复物品',
+             'sell_selected_items': '出售选中物品',
+             'sell_manually': '手动出售',
+             'sell_all_cards': '出售所有卡牌',
+             'turn_selected_gems': '将选中物品分解为宝石',
+             'unpack_all_boosters': '拆开所有补充包',
+             'unpack_selected_boosters': '拆开选中补充包',
+             'gem_all_duplicates': '将所有重复物品分解为宝石',
+             'sell_all_crates': '出售所有箱子',
+             'reload_inventory': '重新加载库存',
+             'select_all_page': '选择当前页面所有物品',
+             'view_market': '在社区市场查看',
+             'view_cards_market': '在社区市场查看交易卡牌',
+             'sell_button': '出售',
+             
+             // 日志和提示
+             'not_listed_ignore': '由于价格设置被忽略而未上架。',
+             'listed_for': '已上架，售价',
+             'you_will_receive': '您将收到',
+             'retrying_listing': '重试上架，原因:',
+             'not_added_market': '未添加到市场',
+             'because': '原因:',
+             'not_turned_gems': '未能分解为宝石，缺少宝石价值。',
+             'not_turned_gems_error': '未能分解为宝石，发生未知错误。',
+             'turned_into_gems': '已分解为',
+             'gems': '宝石。',
+             'not_unpacked': '未能拆开。',
+             'unpacked': '已拆开。',
+             'no_boosters': '库存中没有找到可拆开的补充包。',
+             'these_items_cannot': '这些物品无法添加到市场...',
+             'total_listed_for': '总计上架金额',
+             'total_receive': '您将收到',
+             'total_scrap': '总计分解',
+             'price_not_checked': '价格未检查。',
+             'processing_items': '处理中',
+             'items': '个物品',
+             'loading_inventory': '正在加载库存物品',
+             
+             // 市场
+             'sell': '出售',
+             'buy': '购买'
+         }
+    };
+    
+    // 获取翻译文本
+    const t = (key) => {
+        const lang = getCurrentLanguage();
+        return translations[lang][key] || translations['en'][key] || key;
+    };
 
     function SteamMarket(appContext, inventoryUrl, walletInfo) {
         this.appContext = appContext;
@@ -1332,10 +1491,10 @@
             totals.innerHTML = '';
 
             if (totalPriceWithFeesOnMarket > 0) {
-                totals.innerHTML += `<div><strong>Total listed for ${formatPrice(totalPriceWithFeesOnMarket)}, you will receive ${formatPrice(totalPriceWithoutFeesOnMarket)}.</strong></div>`;
+                totals.innerHTML += `<div><strong>${t('total_listed_for')} ${formatPrice(totalPriceWithFeesOnMarket)}, ${t('total_receive')} ${formatPrice(totalPriceWithoutFeesOnMarket)}.</strong></div>`;
             }
             if (totalScrap > 0) {
-                totals.innerHTML += `<div><strong>Total scrap ${totalScrap}.</strong></div>`;
+                totals.innerHTML += `<div><strong>${t('total_scrap')} ${totalScrap}.</strong></div>`;
             }
         }
 
@@ -1350,7 +1509,7 @@
                 const padLeft = `${padLeftZero(`${totalNumberOfProcessedQueueItems}`, digits)} / ${totalNumberOfQueuedItems}`;
 
                 if (getSettingWithDefault(SETTING_PRICE_MIN_LIST_PRICE) * 100 >= market.getPriceIncludingFees(task.sellPrice)) {
-                    logDOM(`${padLeft} - ${itemNameWithAmount} is not listed due to ignoring price settings.`);
+                    logDOM(`${padLeft} - ${itemNameWithAmount} ${t('not_listed_ignore')}`);
                     $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_PRICE_NOT_CHECKED);
                     next();
                     return;
@@ -1366,7 +1525,7 @@
                         const callback = () => setTimeout(() => next(), getRandomInt(1000, 1500));
 
                         if (success) {
-                            logDOM(`${padLeft} - ${itemNameWithAmount} listed for ${formatPrice(market.getPriceIncludingFees(task.sellPrice) * task.item.amount)}, you will receive ${formatPrice(task.sellPrice * task.item.amount)}.`);
+                            logDOM(`${padLeft} - ${itemNameWithAmount} ${t('listed_for')} ${formatPrice(market.getPriceIncludingFees(task.sellPrice) * task.item.amount)}, ${t('you_will_receive')} ${formatPrice(task.sellPrice * task.item.amount)}.`);
                             $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_SUCCESS);
 
                             totalPriceWithoutFeesOnMarket += task.sellPrice * task.item.amount;
@@ -1379,7 +1538,7 @@
                         }
 
                         if (message && isRetryMessage(message)) {
-                            logDOM(`${padLeft} - ${itemNameWithAmount} retrying listing because: ${message.charAt(0).toLowerCase()}${message.slice(1)}`);
+                            logDOM(`${padLeft} - ${itemNameWithAmount} ${t('retrying_listing')} ${message.charAt(0).toLowerCase()}${message.slice(1)}`);
 
                             totalNumberOfProcessedQueueItems--;
                             sellQueue.unshift(task);
@@ -1391,7 +1550,7 @@
                             return;
                         }
 
-                        logDOM(`${padLeft} - ${itemNameWithAmount} not added to market${message ? ` because:  ${message.charAt(0).toLowerCase()}${message.slice(1)}` : '.'}`);
+                        logDOM(`${padLeft} - ${itemNameWithAmount} ${t('not_added_market')}${message ? ` ${t('because')}  ${message.charAt(0).toLowerCase()}${message.slice(1)}` : '.'}`);
                         $(`#${task.item.appid}_${task.item.contextid}_${itemId}`).css('background', COLOR_ERROR);
 
                         callback();
@@ -1406,7 +1565,7 @@
         });
 
         function sellAllItems() {
-            renderSpinner('Loading inventory items');
+            renderSpinner(t('loading_inventory'));
 
             loadAllInventories().then(() => {
                 removeSpinner();
@@ -1427,7 +1586,7 @@
         }
 
         function sellAllDuplicateItems() {
-            renderSpinner('Loading inventory items');
+            renderSpinner(t('loading_inventory'));
 
             loadAllInventories().then(() => {
                 removeSpinner();
@@ -1451,7 +1610,7 @@
         }
 
         function gemAllDuplicateItems() {
-            renderSpinner('Loading inventory items');
+            renderSpinner(t('loading_inventory'));
 
             loadAllInventories().then(() => {
                 removeSpinner();
@@ -1490,13 +1649,13 @@
                 if (numberOfQueuedItems > 0) {
                     totalNumberOfQueuedItems += numberOfQueuedItems;
 
-                    renderSpinner(`Processing ${numberOfQueuedItems} items`);
+                    renderSpinner(`${t('processing_items')} ${numberOfQueuedItems} ${t('items')}`);
                 }
             });
         }
 
         function sellAllCards() {
-            renderSpinner('Loading inventory items');
+            renderSpinner(t('loading_inventory'));
 
             loadAllInventories().then(() => {
                 removeSpinner();
@@ -1517,7 +1676,7 @@
         }
 
         function sellAllCrates() {
-            renderSpinner('Loading inventory items');
+            renderSpinner(t('loading_inventory'));
 
             loadAllInventories().then(() => {
                 removeSpinner();
@@ -1575,7 +1734,7 @@
 
                     if (err != ERROR_SUCCESS) {
                         logConsole(`Failed to get gems value for ${itemName}`);
-                        logDOM(`${padLeft} - ${itemName} not turned into gems due to missing gems value.`);
+                        logDOM(`${padLeft} - ${itemName} ${t('not_turned_gems')}`);
 
                         $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_ERROR);
                         return callback(false);
@@ -1588,7 +1747,7 @@
                         (err) => {
                             if (err != ERROR_SUCCESS) {
                                 logConsole(`Failed to turn item into gems for ${itemName}`);
-                                logDOM(`${padLeft} - ${itemName} not turned into gems due to unknown error.`);
+                                logDOM(`${padLeft} - ${itemName} ${t('not_turned_gems_error')}`);
 
                                 $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_ERROR);
                                 return callback(false);
@@ -1597,7 +1756,7 @@
                             logConsole('============================');
                             logConsole(itemName);
                             logConsole(`Turned into ${goo.goo_value} gems`);
-                            logDOM(`${padLeft} - ${itemName} turned into ${item.goo_value_expected} gems.`);
+                            logDOM(`${padLeft} - ${itemName} ${t('turned_into_gems')} ${item.goo_value_expected} ${t('gems')}`);
                             $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_SUCCESS);
 
                             totalScrap += item.goo_value_expected;
@@ -1650,13 +1809,13 @@
 
                     if (err != ERROR_SUCCESS) {
                         logConsole(`Failed to unpack booster pack ${itemName}`);
-                        logDOM(`${padLeft} - ${itemName} not unpacked.`);
+                        logDOM(`${padLeft} - ${itemName} ${t('not_unpacked')}`);
 
                         $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_ERROR);
                         return callback(false);
                     }
 
-                    logDOM(`${padLeft} - ${itemName} unpacked.`);
+                    logDOM(`${padLeft} - ${itemName} ${t('unpacked')}`);
                     $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_SUCCESS);
 
                     callback(true);
@@ -1669,7 +1828,7 @@
         function turnSelectedItemsIntoGems() {
             const ids = getSelectedItems();
 
-            renderSpinner('Loading inventory items');
+            renderSpinner(t('loading_inventory'));
 
             loadAllInventories().then(() => {
                 removeSpinner();
@@ -1709,14 +1868,14 @@
                 if (numberOfQueuedItems > 0) {
                     totalNumberOfQueuedItems += numberOfQueuedItems;
 
-                    renderSpinner(`Processing ${numberOfQueuedItems} items`);
+                    renderSpinner(`${t('processing_items')} ${numberOfQueuedItems} ${t('items')}`);
                 }
             });
         }
 
         // Unpacks all booster packs.
         function unpackAllBoosterPacks() {
-            renderSpinner('Loading inventory items');
+            renderSpinner(t('loading_inventory'));
 
             loadAllInventories().then(() => {
                 removeSpinner();
@@ -1748,14 +1907,14 @@
                 });
 
                 if (numberOfQueuedItems === 0) {
-                    logDOM('No booster packs found in the inventory to unpack.');
+                    logDOM(t('no_boosters'));
 
                     return;
                 }
 
                 totalNumberOfQueuedItems += numberOfQueuedItems;
 
-                renderSpinner(`Processing ${numberOfQueuedItems} items`);
+                renderSpinner(`${t('processing_items')} ${numberOfQueuedItems} ${t('items')}`);
             });
         }
 
@@ -1763,7 +1922,7 @@
         function unpackSelectedBoosterPacks() {
             const ids = getSelectedItems();
 
-            renderSpinner('Loading inventory items');
+            renderSpinner(t('loading_inventory'));
 
             loadAllInventories().then(() => {
                 removeSpinner();
@@ -1799,7 +1958,7 @@
                 if (numberOfQueuedItems > 0) {
                     totalNumberOfQueuedItems += numberOfQueuedItems;
 
-                    renderSpinner(`Processing ${numberOfQueuedItems} items`);
+                    renderSpinner(`${t('processing_items')} ${numberOfQueuedItems} ${t('items')}`);
                 }
             });
         }
@@ -1859,7 +2018,7 @@
 
         function sellItems(items) {
             if (items.length == 0) {
-                logDOM('These items cannot be added to the market...');
+                logDOM(t('these_items_cannot'));
 
                 return;
             }
@@ -1881,7 +2040,7 @@
             if (numberOfQueuedItems > 0) {
                 totalNumberOfQueuedItems += numberOfQueuedItems;
                 
-                renderSpinner(`Processing ${numberOfQueuedItems} items`);
+                renderSpinner(`${t('processing_items')} ${numberOfQueuedItems} ${t('items')}`);
             }
         }
 
@@ -2142,11 +2301,11 @@
                     $('.sell_selected').show();
                     if (canSellSelectedItemsManually(items)) {
                         $('.sell_manual').show();
-                        $('.sell_manual > span').text(`Sell ${selectedItems}${selectedItems == 1 ? ' Item Manual' : ' Items Manual'}`);
+                        $('.sell_manual > span').text(`${t('sell_manually')} (${selectedItems})`);
                     } else {
                         $('.sell_manual').hide();
                     }
-                    $('.sell_selected > span').text(`Sell ${selectedItems}${selectedItems == 1 ? ' Item' : ' Items'}`);
+                    $('.sell_selected > span').text(`${t('sell_selected_items')} (${selectedItems})`);
                 }
             });
         }
@@ -2159,8 +2318,7 @@
                     $('.turn_into_gems').hide();
                 } else {
                     $('.turn_into_gems').show();
-                    $('.turn_into_gems > span').
-                        text(`Turn ${selectedItems}${selectedItems == 1 ? ' Item Into Gems' : ' Items Into Gems'}`);
+                    $('.turn_into_gems > span').text(`${t('turn_selected_gems')} (${selectedItems})`);
                 }
             });
         }
@@ -2173,8 +2331,7 @@
                     $('.unpack_selected_booster_packs').hide();
                 } else {
                     $('.unpack_selected_booster_packs').show();
-                    $('.unpack_selected_booster_packs > span').
-                        text(`Unpack ${selectedItems}${selectedItems == 1 ? ' Booster Pack' : ' Booster Packs'}`);
+                    $('.unpack_selected_booster_packs > span').text(`${t('unpack_selected_boosters')} (${selectedItems})`);
                 }
             });
         }
@@ -2228,7 +2385,7 @@
             const ownerActions = $(`#${item_info_id}_item_owner_actions`);
 
             // Move market link to a button
-            ownerActions.append(`<a class="btn_small btn_grey_white_innerfade" href="/market/listings/${appid}/${encodeURIComponent(market_hash_name)}"><span>View in Community Market</span></a>`);
+            ownerActions.append(`<a class="btn_small btn_grey_white_innerfade" href="/market/listings/${appid}/${encodeURIComponent(market_hash_name)}"><span>${t('view_market')}</span></a>`);
             $(`#${item_info_id}_item_market_actions > div:nth-child(1) > div:nth-child(1)`).hide();
 
             // ownerActions is hidden on other games' inventories, we need to show it to have a "Market" button visible
@@ -2237,7 +2394,7 @@
             const isBoosterPack = selectedItem.name.toLowerCase().endsWith('booster pack');
             if (isBoosterPack) {
                 const tradingCardsUrl = `/market/search?q=&category_753_Game%5B%5D=tag_app_${selectedItem.market_fee_app}&category_753_item_class%5B%5D=tag_item_class_2&appid=753`;
-                ownerActions.append(`<br/> <a class="btn_small btn_grey_white_innerfade" href="${tradingCardsUrl}"><span>View trading cards in Community Market</span></a>`);
+                ownerActions.append(`<br/> <a class="btn_small btn_grey_white_innerfade" href="${tradingCardsUrl}"><span>${t('view_cards_market')}</span></a>`);
             }
 
             if (getSettingWithDefault(SETTING_QUICK_SELL_BUTTONS) != 1) {
@@ -2265,11 +2422,11 @@
 
                     const groupMain = $(`<div id="listings_group">
                         <div>
-                            <div id="listings_sell">Sell</div>
+                            <div id="listings_sell">${t('sell')}</div>
                             ${histogram.sell_order_table}
                         </div>
                         <div>
-                            <div id="listings_buy">Buy</div>
+                            <div id="listings_buy">${t('buy')}</div>
                             ${histogram.buy_order_table}
                         </div>
                     </div>`);
@@ -2309,7 +2466,7 @@
                         <input id="quick_sell_input" style="background-color: black;color: white;border: transparent;max-width:65px;text-align:center;" type="number" value="${histogram.lowest_sell_order / 100}" step="0.01" />&nbsp;
                         <a class="item_market_action_button item_market_action_button_green quick_sell_custom">
                             <span class="item_market_action_button_edge item_market_action_button_left"></span>
-                            <span class="item_market_action_button_contents">➜ Sell</span>
+                            <span class="item_market_action_button_contents">➜ ${t('sell_button')}</span>
                             <span class="item_market_action_button_edge item_market_action_button_right"></span>
                             <span class="item_market_action_button_preload"></span>
                         </a>
@@ -2365,30 +2522,30 @@
             const TF2 = appId == 440;
 
             let buttonsHtml = `
-                <a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>Sell All Items</span></a>
-                <a class="btn_green_white_innerfade btn_medium_wide sell_all_duplicates"><span>Sell All Duplicate Items</span></a>
-                <a class="btn_green_white_innerfade btn_medium_wide sell_selected" style="display:none"><span>Sell Selected Items</span></a>
-                <a class="btn_green_white_innerfade btn_medium_wide sell_manual" style="display:none"><span>Sell Manually</span></a>
+                <a class="btn_green_white_innerfade btn_medium_wide sell_all"><span>${t('sell_all_items')}</span></a>
+                <a class="btn_green_white_innerfade btn_medium_wide sell_all_duplicates"><span>${t('sell_all_duplicates')}</span></a>
+                <a class="btn_green_white_innerfade btn_medium_wide sell_selected" style="display:none"><span>${t('sell_selected_items')}</span></a>
+                <a class="btn_green_white_innerfade btn_medium_wide sell_manual" style="display:none"><span>${t('sell_manually')}</span></a>
             `;
 
             if (showMiscOptions) {
                 buttonsHtml += `
-                    <a class="btn_green_white_innerfade btn_medium_wide sell_all_cards"><span>Sell All Cards</span></a>
+                    <a class="btn_green_white_innerfade btn_medium_wide sell_all_cards"><span>${t('sell_all_cards')}</span></a>
                     <div class="see_inventory_buttons">
-                        <a class="btn_darkblue_white_innerfade btn_medium_wide turn_into_gems" style="display:none"><span>Turn Selected Items Into Gems</span></a>
-                        <a class="btn_darkblue_white_innerfade btn_medium_wide unpack_all_booster_packs"><span>Unpack All Booster Packs</span></a>
-                        <a class="btn_darkblue_white_innerfade btn_medium_wide unpack_selected_booster_packs" style="display:none"><span>Unpack Selected Booster Packs</span></a>
-                        <a class="btn_darkblue_white_innerfade btn_medium_wide gem_all_duplicates"><span>Turn All Duplicate Items Into Gems</span></a>
+                        <a class="btn_darkblue_white_innerfade btn_medium_wide turn_into_gems" style="display:none"><span>${t('turn_selected_gems')}</span></a>
+                        <a class="btn_darkblue_white_innerfade btn_medium_wide unpack_all_booster_packs"><span>${t('unpack_all_boosters')}</span></a>
+                        <a class="btn_darkblue_white_innerfade btn_medium_wide unpack_selected_booster_packs" style="display:none"><span>${t('unpack_selected_boosters')}</span></a>
+                        <a class="btn_darkblue_white_innerfade btn_medium_wide gem_all_duplicates"><span>${t('gem_all_duplicates')}</span></a>
                     </div>
                 `;
             } else if (TF2) {
-                buttonsHtml += '<a class="btn_green_white_innerfade btn_medium_wide sell_all_crates"><span>Sell All Crates</span></a>';
+                buttonsHtml += `<a class="btn_green_white_innerfade btn_medium_wide sell_all_crates"><span>${t('sell_all_crates')}</span></a>`;
             }
 
             const sellButtons = $(`<div id="inventory_sell_buttons" class="see_inventory_buttons">${buttonsHtml}</div>`);
 
             const reloadButton =
-                $('<a id="inventory_reload_button" class="btn_darkblue_white_innerfade btn_medium_wide reload_inventory" style="margin-right:12px"><span>Reload Inventory</span></a>');
+                $(`<a id="inventory_reload_button" class="btn_darkblue_white_innerfade btn_medium_wide reload_inventory" style="margin-right:12px"><span>${t('reload_inventory')}</span></a>`);
 
             const logo = $('#inventory_logos')[0];
             logo.style.height = 'auto';
@@ -2746,7 +2903,7 @@
 
             if (price <= getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE) * 100 || listingUI.hasClass('removing')) {
                 $('.market_listing_my_price', listingUI).last().css('background', COLOR_PRICE_NOT_CHECKED);
-                $('.market_listing_my_price', listingUI).last().prop('title', 'The price is not checked.');
+                $('.market_listing_my_price', listingUI).last().prop('title', t('price_not_checked'));
                 listingUI.addClass('not_checked');
 
                 return callback(true, true);
@@ -3957,7 +4114,7 @@
         const appendSelectPageButton = () => {
             $('#inventory_displaycontrols').append(`<div class="trade_offer_buttons">
               <a class="item_market_action_button item_market_action_button_green select_all">
-                  <span class="item_market_action_button_contents" style="text-transform:none">Select all from page</span>
+                  <span class="item_market_action_button_contents" style="text-transform:none">${t('select_all_page')}</span>
               </a>
           </div>`);
 
@@ -3990,75 +4147,98 @@
 
     //#region Settings
     function openSettings() {
+        // 生成语言选择器HTML
+        let languageOptionsHtml = '';
+        for (const [langCode, langName] of Object.entries(LANGUAGES)) {
+            const selected = getCurrentLanguage() === langCode ? 'selected="selected"' : '';
+            languageOptionsHtml += `<option value="${langCode}" ${selected}>${langName}</option>`;
+        }
+        
         const price_options = $(`<div id="see_settings_modal">
+            <div style="margin-bottom:12px;">
+                ${t('language')}&nbsp;
+                <select id="${SETTING_LANGUAGE}">
+                    ${languageOptionsHtml}
+                </select>
+            </div>
             <div>
-                Calculate prices as the:&nbsp;
+                ${t('calculate_prices_as')}&nbsp;
                 <select id="${SETTING_PRICE_ALGORITHM}">
-                    <option value="1"${getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : ''}>Maximum of the average history and lowest sell listing</option>
-                    <option value="2" ${getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : ''}>Lowest sell listing</option>
-                    <option value="3" ${getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 3 ? 'selected="selected"' : ''}>Highest current buy order or lowest sell listing</option>
+                    <option value="1"${getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 1 ? 'selected="selected"' : ''}>${t('max_avg_lowest')}</option>
+                    <option value="2" ${getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 2 ? 'selected="selected"' : ''}>${t('lowest_sell')}</option>
+                    <option value="3" ${getSettingWithDefault(SETTING_PRICE_ALGORITHM) == 3 ? 'selected="selected"' : ''}>${t('highest_buy_lowest_sell')}</option>
                 </select>
             </div>
             <div style="margin-top:6px;">
-                Hours to use for the average history calculated price:&nbsp;
+                ${t('hours_avg_price')}&nbsp;
                 <input type="number" min="0" step="2" id="${SETTING_PRICE_HISTORY_HOURS}" value=${getSettingWithDefault(SETTING_PRICE_HISTORY_HOURS)}>
             </div>
             <div style="margin-top:6px;">
-                The value to add to the calculated price (minimum and maximum are respected):&nbsp;
+                ${t('value_add_calculated')}&nbsp;
                 <input type="number" step="0.01" id="${SETTING_PRICE_OFFSET}" value=${getSettingWithDefault(SETTING_PRICE_OFFSET)}>
             </div>
             <div style="margin-top:6px">
-                Use the second lowest sell listing when the lowest sell listing has a low quantity:&nbsp;
+                ${t('use_second_lowest')}&nbsp;
                 <input type="checkbox" id="${SETTING_PRICE_IGNORE_LOWEST_Q}" ${getSettingWithDefault(SETTING_PRICE_IGNORE_LOWEST_Q) == 1 ? 'checked' : ''}>
             </div>
             <div style="margin-top:6px;">
-                Don't check market listings with prices of and below:&nbsp;
+                ${t('dont_check_listings_below')}&nbsp;
                 <input type="number" step="0.01" id="${SETTING_PRICE_MIN_CHECK_PRICE}" value=${getSettingWithDefault(SETTING_PRICE_MIN_CHECK_PRICE)}>
             </div>
             <div style="margin-top:6px;">
-                Don't list market listings with prices of and below:&nbsp;
+                ${t('dont_list_below')}&nbsp;
                 <input type="number" step="0.01" id="${SETTING_PRICE_MIN_LIST_PRICE}" value=${getSettingWithDefault(SETTING_PRICE_MIN_LIST_PRICE)}>
             </div>
             <div style="margin-top:24px">
-                Show price labels in inventory:&nbsp;
+                ${t('show_price_labels_inventory')}&nbsp;
                 <input type="checkbox" id="${SETTING_INVENTORY_PRICE_LABELS}" ${getSettingWithDefault(SETTING_INVENTORY_PRICE_LABELS) == 1 ? 'checked' : ''}>
             </div>
             <div style="margin-top:6px">
-                Show price labels in trade offers:&nbsp;
+                ${t('show_price_labels_tradeoffer')}&nbsp;
                 <input type="checkbox" id="${SETTING_TRADEOFFER_PRICE_LABELS}" ${getSettingWithDefault(SETTING_TRADEOFFER_PRICE_LABELS) == 1 ? 'checked' : ''}>
             </div>
             <div style="margin-top:6px">
-                Show quick sell info and buttons:&nbsp;
+                ${t('show_quick_sell')}&nbsp;
                 <input type="checkbox" id="${SETTING_QUICK_SELL_BUTTONS}" ${getSettingWithDefault(SETTING_QUICK_SELL_BUTTONS) == 1 ? 'checked' : ''}>
             </div>
             <div style="margin-top:24px;">
-                Minimum:&nbsp;
-                <input type="number" step="0.01" id="${SETTING_MIN_NORMAL_PRICE}" value=${getSettingWithDefault(SETTING_MIN_NORMAL_PRICE)}>
-                &nbsp;and maximum:&nbsp;
-                <input type="number" step="0.01" id="${SETTING_MAX_NORMAL_PRICE}" value=${getSettingWithDefault(SETTING_MAX_NORMAL_PRICE)}>
-                &nbsp;price for normal cards
+                ${t('min_and_max_normal')}
+                <div>
+                    ${t('minimum')}:&nbsp;
+                    <input type="number" step="0.01" id="${SETTING_MIN_NORMAL_PRICE}" value=${getSettingWithDefault(SETTING_MIN_NORMAL_PRICE)}>
+                    &nbsp;${t('maximum')}:&nbsp;
+                    <input type="number" step="0.01" id="${SETTING_MAX_NORMAL_PRICE}" value=${getSettingWithDefault(SETTING_MAX_NORMAL_PRICE)}>
+                </div>
             </div>
             <div style="margin-top:6px;">
-                Minimum:&nbsp;
-                <input type="number" step="0.01" id="${SETTING_MIN_FOIL_PRICE}" value=${getSettingWithDefault(SETTING_MIN_FOIL_PRICE)}>
-                &nbsp;and maximum:&nbsp;
-                <input type="number" step="0.01" id="${SETTING_MAX_FOIL_PRICE}" value=${getSettingWithDefault(SETTING_MAX_FOIL_PRICE)}>
-                &nbsp;price for foil cards
+                ${t('min_and_max_foil')}
+                <div>
+                    ${t('minimum')}:&nbsp;
+                    <input type="number" step="0.01" id="${SETTING_MIN_FOIL_PRICE}" value=${getSettingWithDefault(SETTING_MIN_FOIL_PRICE)}>
+                    &nbsp;${t('maximum')}:&nbsp;
+                    <input type="number" step="0.01" id="${SETTING_MAX_FOIL_PRICE}" value=${getSettingWithDefault(SETTING_MAX_FOIL_PRICE)}>
+                </div>
             </div>
             <div style="margin-top:6px;">
-                Minimum:&nbsp;
-                <input type="number" step="0.01" id="${SETTING_MIN_MISC_PRICE}" value=${getSettingWithDefault(SETTING_MIN_MISC_PRICE)}>
-                &nbsp;and maximum:&nbsp;
-                <input type="number" step="0.01" id="${SETTING_MAX_MISC_PRICE}" value=${getSettingWithDefault(SETTING_MAX_MISC_PRICE)}>
-                &nbsp;price for other items
+                ${t('min_and_max_other')}
+                <div>
+                    ${t('minimum')}:&nbsp;
+                    <input type="number" step="0.01" id="${SETTING_MIN_MISC_PRICE}" value=${getSettingWithDefault(SETTING_MIN_MISC_PRICE)}>
+                    &nbsp;${t('maximum')}:&nbsp;
+                    <input type="number" step="0.01" id="${SETTING_MAX_MISC_PRICE}" value=${getSettingWithDefault(SETTING_MAX_MISC_PRICE)}>
+                </div>
             </div>
             <div style="margin-top:6px;">
-                Automatically relist overpriced market listings (slow on large inventories):&nbsp;
+                ${t('auto_relist')}&nbsp;
                 <input id="${SETTING_RELIST_AUTOMATICALLY}" class="market_relist_auto" type="checkbox" ${getSettingWithDefault(SETTING_RELIST_AUTOMATICALLY) == 1 ? 'checked' : ''}>
             </div>
         </div>`);
 
-        unsafeWindow.ShowConfirmDialog('Steam Economy Enhancer', price_options).done(() => {
+        unsafeWindow.ShowConfirmDialog(t('settings_title'), price_options).done(() => {
+            // 保存语言设置
+            setSetting(SETTING_LANGUAGE, $(`#${SETTING_LANGUAGE}`, price_options).val());
+            
+            // 保存其他设置
             setSetting(SETTING_MIN_NORMAL_PRICE, $(`#${SETTING_MIN_NORMAL_PRICE}`, price_options).val());
             setSetting(SETTING_MAX_NORMAL_PRICE, $(`#${SETTING_MAX_NORMAL_PRICE}`, price_options).val());
             setSetting(SETTING_MIN_FOIL_PRICE, $(`#${SETTING_MIN_FOIL_PRICE}`, price_options).val());
