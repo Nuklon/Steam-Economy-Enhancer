@@ -2449,47 +2449,15 @@
             });
         }
 
-        // Loads the specified inventories.
-        function loadInventories(inventories) {
-            return Promise.all(inventories.map((inventory) => {
-                return new Promise((resolve) => {
-                    // return inventory.LoadCompleteInventory().done(resolve);
-
-                    // Workaround, until Steam fixes the issue with LoadCompleteInventory.
-
-                    if (inventory.m_bFullyLoaded) {
-                        resolve();
-
-                        return;
-                    }
-
-                    if (!inventory.m_promiseLoadCompleteInventory) {
-                        inventory.m_promiseLoadCompleteInventory = inventory.LoadUntilConditionMet(() => inventory.m_bFullyLoaded, 2000);
-                    }
-
-                    return inventory.m_promiseLoadCompleteInventory.done(() => {
-                        const parent = inventory.m_parentInventory;
-
-                        if (parent != null && Object.values(parent.m_rgChildInventories).every(child => child.m_bFullyLoaded)) {
-                            parent.m_bFullyLoaded = true;
-                        }
-
-                        resolve();
-                    });
-                });
-            }));
-        }
-
         // Loads all inventories.
-        function loadAllInventories() {
-            const items = [];
+        async function loadAllInventories() {
+            const main = getActiveInventory();
 
-            for (const child in getActiveInventory().m_rgChildInventories) {
-                items.push(getActiveInventory().m_rgChildInventories[child]);
+            const childs = Object.values(main.m_rgChildInventories);
+
+            for (const inventory of [...childs, main]) {
+                await new Promise((resolve) => inventory.LoadCompleteInventory().done(resolve));
             }
-            items.push(getActiveInventory());
-
-            return loadInventories(items);
         }
 
         // Gets the inventory items from the active inventory.
