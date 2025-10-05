@@ -847,7 +847,7 @@
 
     // Get the item name id from a market item.
     SteamMarket.prototype.getCurrentMarketItemNameId = function (appid, market_name, callback) {
-        const url = `${window.location.origin}/market/listings/${appid}/${escapeURI(market_name)}`;
+        const url = `${window.location.origin}/market/listings/${appid}/${encodeURIComponent(market_name)}`;
 
         const options = { method: 'GET' };
 
@@ -1018,18 +1018,6 @@
         return feeInfo.amount;
     };
     //#endregion
-
-    // Cannot use encodeURI / encodeURIComponent, Steam only escapes certain characters.
-    function escapeURI(name) {
-        let previousName = '';
-        while (previousName != name) {
-            previousName = name;
-            name = name.replace('?', '%3F').
-                replace('#', '%23').
-                replace('	', '%09');
-        }
-        return name;
-    }
 
     //#region Steam Market / Inventory helpers
     function getMarketHashName(item) {
