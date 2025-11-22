@@ -4,7 +4,7 @@
 // @namespace    https://github.com/Nuklon
 // @author       Nuklon
 // @license      MIT
-// @version      7.1.18
+// @version      7.1.19
 // @description  Enhances the Steam Inventory and Steam Market.
 // @match        https://steamcommunity.com/id/*/inventory*
 // @match        https://steamcommunity.com/profiles/*/inventory*
@@ -113,7 +113,7 @@
     request.stopped = false;
 
     function request(url, options, callback) {
-        callback = callback || function () {};
+        callback = callback || function () { };
 
         // If the request was stopped, we don't want to send it to the server and continue other requests.
         if (request.stopped) {
@@ -1868,7 +1868,7 @@
 
             if (numberOfQueuedItems > 0) {
                 totalNumberOfQueuedItems += numberOfQueuedItems;
-                
+
                 renderSpinner(`Processing ${numberOfQueuedItems} items`);
             }
         }
@@ -1961,12 +1961,9 @@
             let previousSelection = -1; // To store the index of the previous selection.
             updateInventoryUI(isOwnInventory);
 
-            $('.games_list_tabs').on(
-                'click',
-                '*',
-                () => {
-                    updateInventoryUI(isOwnInventory);
-                }
+            $('.games_list_tabs').on('click', '*', () => {
+                updateInventoryUI(isOwnInventory);
+            }
             );
 
             // Ignore selection on other user's inventories.
@@ -2173,7 +2170,11 @@
             updateOpenBoosterPacksButton();
         }
 
-        function updateInventorySelection(selectedItem) {
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function updateInventorySelection(selectedItem) {
             const item_info = $(`#iteminfo${unsafeWindow.iActiveSelectView}`);
 
             if (!item_info.length) {
@@ -2182,6 +2183,14 @@
 
             if (item_info.html().indexOf('checkout/sendgift/') > -1) { // Gifts have no market information.
                 return;
+            }
+
+            var timeDelayed = 0;
+
+            // Wait until item_info is loaded.
+            while (timeDelayed < 2500 && item_info.find('a[href^="https://steamcommunity.com/market/listings/"]').length == 0) {
+                await delay(100);
+                timeDelayed += 100;
             }
 
             // Use a 'hard' item id instead of relying on the selected item_info (sometimes Steam temporarily changes the correct item (?)).
@@ -2196,10 +2205,6 @@
                 return;
             }
 
-            // Starting at prices are already retrieved in the table.
-            //$('#' + item_info_id + '_item_market_actions > div:nth-child(1) > div:nth-child(2)')
-            //    .remove(); // Starting at: x,xx.
-
             const market_hash_name = getMarketHashName(selectedItem);
             if (market_hash_name == null) {
                 return;
@@ -2213,19 +2218,19 @@
                 }
             };
 
-            const ownerActions = $(`#${item_info_id}_item_owner_actions`);
+            const marketLink = `https://steamcommunity.com/market/listings/${appid}/${encodeURIComponent(market_hash_name)}`;
 
-            // Move market link to a button
-            ownerActions.append(`<a class="btn_small btn_grey_white_innerfade" href="/market/listings/${appid}/${encodeURIComponent(market_hash_name)}"><span>View in Community Market</span></a>`);
-            $(`#${item_info_id}_item_market_actions > div:nth-child(1) > div:nth-child(1)`).hide();
+            const baseLink = $(`a[href^="${marketLink}"]`, item_info);
+            const ownerActions = baseLink.parent().parent();
+            baseLink.hide();
 
-            // ownerActions is hidden on other games' inventories, we need to show it to have a "Market" button visible
-            ownerActions.show();
+            // Add market link to a button
+            ownerActions.append(`<div style='display:flex'><a class="btn_small btn_grey_white_innerfade" href="${marketLink}"><span>View in Community Market</span></a></div>`);
 
             const isBoosterPack = selectedItem.name.toLowerCase().endsWith('booster pack');
             if (isBoosterPack) {
                 const tradingCardsUrl = `/market/search?q=&category_753_Game%5B%5D=tag_app_${selectedItem.market_fee_app}&category_753_item_class%5B%5D=tag_item_class_2&appid=753`;
-                ownerActions.append(`<br/> <a class="btn_small btn_grey_white_innerfade" href="${tradingCardsUrl}"><span>View trading cards in Community Market</span></a>`);
+                ownerActions.append(`<div style='display:flex'><a class="btn_small btn_grey_white_innerfade" href="${tradingCardsUrl}"><span>View trading cards in Community Market</span></a></div>`);
             }
 
             if (getSettingWithDefault(SETTING_QUICK_SELL_BUTTONS) != 1) {
@@ -2262,7 +2267,7 @@
                         </div>
                     </div>`);
 
-                    $(`#${item_info_id}_item_market_actions > div`).after(groupMain);
+                    baseLink.parent().next().append(groupMain);
 
                     // Generate quick sell buttons.
                     let prices = [];
@@ -2281,7 +2286,7 @@
 
                     prices = prices.filter((v, i) => prices.indexOf(v) === i).sort((a, b) => a - b);
 
-                    let buttons = ' ';
+                    let buttons = '<div id="price_buttons">';
                     prices.forEach((e) => {
                         buttons += `<a class="item_market_action_button item_market_action_button_green quick_sell" id="quick_sell${e}">
                             <span class="item_market_action_button_edge item_market_action_button_left"></span>
@@ -2290,10 +2295,11 @@
                             <span class="item_market_action_button_preload"></span>
                         </a>`;
                     });
+                    buttons += '</div>';
 
-                    $(`#${item_info_id}_item_market_actions`, item_info).append(buttons);
+                    ownerActions.append(buttons);
 
-                    $(`#${item_info_id}_item_market_actions`, item_info).append(`<div style="display:flex">
+                    ownerActions.append(`<div id="sell_button" style="display:flex">
                         <input id="quick_sell_input" style="background-color: black;color: white;border: transparent;max-width:65px;text-align:center;" type="number" value="${histogram.lowest_sell_order / 100}" step="0.01" />&nbsp;
                         <a class="item_market_action_button item_market_action_button_green quick_sell_custom">
                             <span class="item_market_action_button_edge item_market_action_button_left"></span>
@@ -3672,7 +3678,7 @@
 
                         const listingUI = $(getListingFromLists(listingid).elm);
                         listingUI.addClass('removing');
-                       
+
                         marketRemoveQueue.push(listingid);
                         increaseMarketProgressMax();
                     }
