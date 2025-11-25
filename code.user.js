@@ -1817,7 +1817,9 @@
             if (item.description && item.description.commodity !== undefined) {
                 return item.description.commodity === 1 || item.description.commodity === '1';
             }
-            // Default to commodity if property is not found (backward compatibility)
+            // Default to commodity if property is not found (for backward compatibility)
+            // This is safer because the multisell page can handle both commodity and non-commodity items
+            logConsole(`Could not determine commodity status for item, defaulting to commodity: ${item.name || item.market_hash_name || 'unknown'}`);
             return true;
         }
 
