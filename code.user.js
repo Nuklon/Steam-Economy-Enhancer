@@ -1819,6 +1819,10 @@
                 // https://steamcommunity.com/market/multisell?appid=730&contextid=2&items[]=Falchion%20Case&qty[]=100
                 // Group items by contextid since the multisell URL only supports one contextid per request
 
+                if (items.length === 0) {
+                    return;
+                }
+
                 const appid = items[0].appid;
 
                 // Group items by contextid
