@@ -1,10 +1,10 @@
 // ==UserScript==
-// @name         Steam Economy Enhancer
+// @name         Steam Economy Enhancer-mod
 // @icon         data:image/svg+xml,%0A%3Csvg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2" clip-rule="evenodd" viewBox="0 0 267 267"%3E%3Ccircle cx="133.3" cy="133.3" r="133.3" fill="%2326566c"/%3E%3Cpath fill="%23ebebeb" fill-rule="nonzero" d="m50 133 83-83 84 83-84 84-83-84Zm83 62 62-61-62-62v123Z"/%3E%3C/svg%3E
 // @namespace    https://github.com/Nuklon
-// @author       Nuklon
+// @author       Nuklon, Siriussee
 // @license      MIT
-// @version      7.1.20
+// @version      7.1.21
 // @description  Enhances the Steam Inventory and Steam Market.
 // @match        https://steamcommunity.com/id/*/inventory*
 // @match        https://steamcommunity.com/profiles/*/inventory*
