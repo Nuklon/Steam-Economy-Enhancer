@@ -1802,15 +1802,9 @@
             // We have to construct an URL like this
             // https://steamcommunity.com/market/multisell?appid=730&contextid=2&items[]=Falchion%20Case&qty[]=100
             // Note: Items with different contextids will be grouped and sold in separate dialogs
-            let hasInvalidItem = false;
-
-            items.forEach((item) => {
-                if (item.commodity == false) {
-                    hasInvalidItem = true;
-                }
-            });
-
-            return !hasInvalidItem;
+            // Note: Non-commodity items are also supported - they will show individual sell dialogs
+            // The function now accepts any marketable items (both commodity and non-commodity)
+            return items.length > 0;
         }
 
         function sellSelectedItemsManually() {
