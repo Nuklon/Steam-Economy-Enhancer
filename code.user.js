@@ -1802,74 +1802,184 @@
             // We have to construct an URL like this
             // https://steamcommunity.com/market/multisell?appid=730&contextid=2&items[]=Falchion%20Case&qty[]=100
             // Note: Items with different contextids will be grouped and sold in separate dialogs
-            // Note: Non-commodity items are also supported - they will show individual sell dialogs
+            // Note: Non-commodity items are sold using regular sell requests with a user-entered price
             // The function now accepts any marketable items (both commodity and non-commodity)
             return items.length > 0;
         }
 
+        // Helper to check if an item is a commodity
+        function isCommodity(item) {
+            // Check if the item has the commodity property set to 1
+            // The property can be on the item directly or in the description
+            if (item.commodity !== undefined) {
+                return item.commodity === 1 || item.commodity === '1';
+            }
+            if (item.description && item.description.commodity !== undefined) {
+                return item.description.commodity === 1 || item.description.commodity === '1';
+            }
+            // Default to commodity if property is not found (backward compatibility)
+            return true;
+        }
+
+        // Sell non-commodity items using regular sell requests with user-entered price
+        function sellNonCommodityItemsManually(nonCommodityItems, onComplete) {
+            const priceDialog = $(`<div id="see_manual_price_dialog">
+                <div style="margin-bottom:12px;">
+                    <strong>${nonCommodityItems.length} non-commodity item(s) selected</strong>
+                </div>
+                <div>
+                    Enter the price you want to receive (before fees):&nbsp;
+                    <input type="number" step="0.01" min="0.03" id="manual_sell_price" value="0.03" style="background-color: black; color: white; border: transparent; padding: 4px 8px; width: 100px;">
+                    &nbsp;${currencyCode}
+                </div>
+                <div style="margin-top:8px; color: #767676; font-size: 12px;">
+                    The buyer will pay: <span id="manual_sell_price_with_fees">-</span>
+                </div>
+            </div>`);
+
+            // Update the price with fees when the input changes
+            const updatePriceWithFees = () => {
+                const priceValue = parseFloat($('#manual_sell_price', priceDialog).val()) || 0;
+                const priceInCents = Math.round(priceValue * 100);
+                const priceWithFees = market.getPriceIncludingFees(priceInCents);
+                $('#manual_sell_price_with_fees', priceDialog).text(formatPrice(priceWithFees));
+            };
+
+            $('#manual_sell_price', priceDialog).on('input', updatePriceWithFees);
+            updatePriceWithFees();
+
+            unsafeWindow.ShowConfirmDialog('Sell Non-Commodity Items', priceDialog).done(() => {
+                const priceValue = parseFloat($('#manual_sell_price', priceDialog).val()) || 0;
+                const sellPriceBeforeFees = Math.round(priceValue * 100);
+
+                if (sellPriceBeforeFees < 1) {
+                    logDOM('Price must be at least 0.01');
+                    if (onComplete) {
+                        onComplete();
+                    }
+                    return;
+                }
+
+                // Add items to the sell queue with the user-entered price
+                nonCommodityItems.forEach((item) => {
+                    totalNumberOfQueuedItems++;
+                    sellQueue.push({
+                        item: item,
+                        sellPrice: sellPriceBeforeFees
+                    });
+
+                    const itemId = item.assetid || item.id;
+                    $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_PENDING);
+                });
+
+                renderSpinner(`Processing ${nonCommodityItems.length} non-commodity items`);
+
+                if (onComplete) {
+                    onComplete();
+                }
+            }).fail(() => {
+                // Dialog was cancelled
+                if (onComplete) {
+                    onComplete();
+                }
+            });
+        }
+
+        // Sell commodity items using the multisell page
+        function sellCommodityItemsManually(commodityItems, onComplete) {
+            if (commodityItems.length === 0) {
+                if (onComplete) {
+                    onComplete();
+                }
+                return;
+            }
+
+            const appid = commodityItems[0].appid;
+
+            // Group items by contextid
+            const itemsByContextId = {};
+            commodityItems.forEach((item) => {
+                if (!itemsByContextId[item.contextid]) {
+                    itemsByContextId[item.contextid] = [];
+                }
+                itemsByContextId[item.contextid].push(item);
+            });
+
+            const contextIds = Object.keys(itemsByContextId);
+
+            // Process each contextid group
+            const openDialogForContextId = (index) => {
+                if (index >= contextIds.length) {
+                    if (onComplete) {
+                        onComplete();
+                    }
+                    return;
+                }
+
+                const contextid = contextIds[index];
+                const contextItems = itemsByContextId[contextid];
+
+                const itemsWithQty = {};
+                contextItems.forEach((item) => {
+                    itemsWithQty[item.market_hash_name] = itemsWithQty[item.market_hash_name] + 1 || 1;
+                });
+
+                let itemsString = '';
+                for (const itemName in itemsWithQty) {
+                    itemsString += `&items[]=${encodeURIComponent(itemName)}&qty[]=${itemsWithQty[itemName]}`;
+                }
+
+                const baseUrl = `${window.location.origin}/market/multisell`;
+                const redirectUrl = `${baseUrl}?appid=${appid}&contextid=${contextid}${itemsString}`;
+
+                const dialogTitle = contextIds.length > 1
+                    ? `Steam Economy Enhancer (${index + 1}/${contextIds.length})`
+                    : 'Steam Economy Enhancer';
+
+                const dialog = unsafeWindow.ShowDialog(dialogTitle, `<iframe frameBorder="0" height="650" width="900" src="${redirectUrl}"></iframe>`);
+                dialog.OnDismiss(() => {
+                    contextItems.forEach((item) => {
+                        const itemId = item.assetid || item.id;
+                        $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_PENDING);
+                    });
+
+                    // Open the next dialog for the next contextid group
+                    openDialogForContextId(index + 1);
+                });
+            };
+
+            // Start with the first contextid group
+            openDialogForContextId(0);
+        }
+
         function sellSelectedItemsManually() {
             getInventorySelectedMarketableItems((items) => {
-                // We have to construct an URL like this
-                // https://steamcommunity.com/market/multisell?appid=730&contextid=2&items[]=Falchion%20Case&qty[]=100
-                // Group items by contextid since the multisell URL only supports one contextid per request
-
                 if (items.length === 0) {
                     return;
                 }
 
-                const appid = items[0].appid;
+                // Separate commodity and non-commodity items
+                const commodityItems = [];
+                const nonCommodityItems = [];
 
-                // Group items by contextid
-                const itemsByContextId = {};
                 items.forEach((item) => {
-                    if (!itemsByContextId[item.contextid]) {
-                        itemsByContextId[item.contextid] = [];
+                    if (isCommodity(item)) {
+                        commodityItems.push(item);
+                    } else {
+                        nonCommodityItems.push(item);
                     }
-                    itemsByContextId[item.contextid].push(item);
                 });
 
-                const contextIds = Object.keys(itemsByContextId);
-
-                // Process each contextid group
-                const openDialogForContextId = (index) => {
-                    if (index >= contextIds.length) {
-                        return;
-                    }
-
-                    const contextid = contextIds[index];
-                    const contextItems = itemsByContextId[contextid];
-
-                    const itemsWithQty = {};
-                    contextItems.forEach((item) => {
-                        itemsWithQty[item.market_hash_name] = itemsWithQty[item.market_hash_name] + 1 || 1;
+                // Process non-commodity items first (if any), then commodity items
+                if (nonCommodityItems.length > 0) {
+                    sellNonCommodityItemsManually(nonCommodityItems, () => {
+                        if (commodityItems.length > 0) {
+                            sellCommodityItemsManually(commodityItems, null);
+                        }
                     });
-
-                    let itemsString = '';
-                    for (const itemName in itemsWithQty) {
-                        itemsString += `&items[]=${encodeURIComponent(itemName)}&qty[]=${itemsWithQty[itemName]}`;
-                    }
-
-                    const baseUrl = `${window.location.origin}/market/multisell`;
-                    const redirectUrl = `${baseUrl}?appid=${appid}&contextid=${contextid}${itemsString}`;
-
-                    const dialogTitle = contextIds.length > 1
-                        ? `Steam Economy Enhancer (${index + 1}/${contextIds.length})`
-                        : 'Steam Economy Enhancer';
-
-                    const dialog = unsafeWindow.ShowDialog(dialogTitle, `<iframe frameBorder="0" height="650" width="900" src="${redirectUrl}"></iframe>`);
-                    dialog.OnDismiss(() => {
-                        contextItems.forEach((item) => {
-                            const itemId = item.assetid || item.id;
-                            $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_PENDING);
-                        });
-
-                        // Open the next dialog for the next contextid group
-                        openDialogForContextId(index + 1);
-                    });
-                };
-
-                // Start with the first contextid group
-                openDialogForContextId(0);
+                } else if (commodityItems.length > 0) {
+                    sellCommodityItemsManually(commodityItems, null);
+                }
             });
         }
 
