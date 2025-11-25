@@ -1801,11 +1801,11 @@
         function canSellSelectedItemsManually(items) {
             // We have to construct an URL like this
             // https://steamcommunity.com/market/multisell?appid=730&contextid=2&items[]=Falchion%20Case&qty[]=100
-            const contextid = items[0].contextid;
+            // Note: Items with different contextids will be grouped and sold in separate dialogs
             let hasInvalidItem = false;
 
             items.forEach((item) => {
-                if (item.contextid != contextid || item.commodity == false) {
+                if (item.commodity == false) {
                     hasInvalidItem = true;
                 }
             });
@@ -1817,31 +1817,65 @@
             getInventorySelectedMarketableItems((items) => {
                 // We have to construct an URL like this
                 // https://steamcommunity.com/market/multisell?appid=730&contextid=2&items[]=Falchion%20Case&qty[]=100
+                // Group items by contextid since the multisell URL only supports one contextid per request
 
-                const appid = items[0].appid;
-                const contextid = items[0].contextid;
-
-                const itemsWithQty = {};
-
-                items.forEach((item) => {
-                    itemsWithQty[item.market_hash_name] = itemsWithQty[item.market_hash_name] + 1 || 1;
-                });
-
-                let itemsString = '';
-                for (const itemName in itemsWithQty) {
-                    itemsString += `&items[]=${encodeURIComponent(itemName)}&qty[]=${itemsWithQty[itemName]}`;
+                if (items.length === 0) {
+                    return;
                 }
 
-                const baseUrl = `${window.location.origin}/market/multisell`;
-                const redirectUrl = `${baseUrl}?appid=${appid}&contextid=${contextid}${itemsString}`;
+                const appid = items[0].appid;
 
-                const dialog = unsafeWindow.ShowDialog('Steam Economy Enhancer', `<iframe frameBorder="0" height="650" width="900" src="${redirectUrl}"></iframe>`);
-                dialog.OnDismiss(() => {
-                    items.forEach((item) => {
-                        const itemId = item.assetid || item.id;
-                        $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_PENDING);
-                    });
+                // Group items by contextid
+                const itemsByContextId = {};
+                items.forEach((item) => {
+                    if (!itemsByContextId[item.contextid]) {
+                        itemsByContextId[item.contextid] = [];
+                    }
+                    itemsByContextId[item.contextid].push(item);
                 });
+
+                const contextIds = Object.keys(itemsByContextId);
+
+                // Process each contextid group
+                const openDialogForContextId = (index) => {
+                    if (index >= contextIds.length) {
+                        return;
+                    }
+
+                    const contextid = contextIds[index];
+                    const contextItems = itemsByContextId[contextid];
+
+                    const itemsWithQty = {};
+                    contextItems.forEach((item) => {
+                        itemsWithQty[item.market_hash_name] = itemsWithQty[item.market_hash_name] + 1 || 1;
+                    });
+
+                    let itemsString = '';
+                    for (const itemName in itemsWithQty) {
+                        itemsString += `&items[]=${encodeURIComponent(itemName)}&qty[]=${itemsWithQty[itemName]}`;
+                    }
+
+                    const baseUrl = `${window.location.origin}/market/multisell`;
+                    const redirectUrl = `${baseUrl}?appid=${appid}&contextid=${contextid}${itemsString}`;
+
+                    const dialogTitle = contextIds.length > 1
+                        ? `Steam Economy Enhancer (${index + 1}/${contextIds.length})`
+                        : 'Steam Economy Enhancer';
+
+                    const dialog = unsafeWindow.ShowDialog(dialogTitle, `<iframe frameBorder="0" height="650" width="900" src="${redirectUrl}"></iframe>`);
+                    dialog.OnDismiss(() => {
+                        contextItems.forEach((item) => {
+                            const itemId = item.assetid || item.id;
+                            $(`#${item.appid}_${item.contextid}_${itemId}`).css('background', COLOR_PENDING);
+                        });
+
+                        // Open the next dialog for the next contextid group
+                        openDialogForContextId(index + 1);
+                    });
+                };
+
+                // Start with the first contextid group
+                openDialogForContextId(0);
             });
         }
 
