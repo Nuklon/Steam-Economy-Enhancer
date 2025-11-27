@@ -946,7 +946,6 @@
                         language: 'english',
                         currency: currencyId,
                         item_nameid: item_nameid,
-                        two_factor: 0
                     }
                 };
 
