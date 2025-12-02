@@ -2212,7 +2212,7 @@
             const isBoosterPack = selectedItem.name.toLowerCase().endsWith('booster pack');
             if (isBoosterPack) {
                 const tradingCardsUrl = `/market/search?q=&category_753_Game%5B%5D=tag_app_${selectedItem.market_fee_app}&category_753_item_class%5B%5D=tag_item_class_2&appid=753`;
-                const communityHeader = $(`h1`, item_info).next().find('span').eq(0);
+                const communityHeader = $('h1', item_info).next().find('span').eq(0);
                 communityHeader.replaceWith(`<a href="${tradingCardsUrl}"><span>${communityHeader.text()}</span></a>`);
             }
 
