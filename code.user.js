@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Steam Economy Enhancer MOD
+// @name         Steam Economy Enhancer
 // @icon         data:image/svg+xml,%0A%3Csvg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2" clip-rule="evenodd" viewBox="0 0 267 267"%3E%3Ccircle cx="133.3" cy="133.3" r="133.3" fill="%2326566c"/%3E%3Cpath fill="%23ebebeb" fill-rule="nonzero" d="m50 133 83-83 84 83-84 84-83-84Zm83 62 62-61-62-62v123Z"/%3E%3C/svg%3E
-// @namespace    https://github.com/Siriussee
-// @author       Nuklon, Siriussee
+// @namespace    https://github.com/Nuklon
+// @author       Nuklon
 // @license      MIT
 // @version      7.1.22
 // @description  Enhances the Steam Inventory and Steam Market.
@@ -19,11 +19,11 @@
 // @require      https://raw.githubusercontent.com/kapetan/jquery-observe/ca67b735bb3ae8d678d1843384ebbe7c02466c61/jquery-observe.js
 // @require      https://raw.githubusercontent.com/rmariuzzo/checkboxes.js/91bec667e9172ceb063df1ecb7505e8ed0bae9ba/src/jquery.checkboxes.js
 // @grant        unsafeWindow
-// @homepageURL  https://github.com/Siriussee/Steam-Economy-Enhancer
-// @homepage     https://github.com/Siriussee/Steam-Economy-Enhancer
-// @supportURL   https://github.com/Siriussee/Steam-Economy-Enhancer/issues
-// @downloadURL  https://raw.githubusercontent.com/Siriussee/Steam-Economy-Enhancer/master/code.user.js
-// @updateURL    https://raw.githubusercontent.com/Siriussee/Steam-Economy-Enhancer/master/code.user.js
+// @homepageURL  https://github.com/Nuklon/Steam-Economy-Enhancer
+// @homepage     https://github.com/Nuklon/Steam-Economy-Enhancer
+// @supportURL   https://github.com/Nuklon/Steam-Economy-Enhancer/issues
+// @downloadURL  https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
+// @updateURL    https://raw.githubusercontent.com/Nuklon/Steam-Economy-Enhancer/master/code.user.js
 // ==/UserScript==
 
 /* disable some eslint rules until the code is cleaned up */
