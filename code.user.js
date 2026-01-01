@@ -4,7 +4,7 @@
 // @namespace    https://github.com/Nuklon
 // @author       Nuklon
 // @license      MIT
-// @version      7.1.22
+// @version      7.1.23
 // @description  Enhances the Steam Inventory and Steam Market.
 // @match        https://steamcommunity.com/id/*/inventory*
 // @match        https://steamcommunity.com/profiles/*/inventory*
@@ -96,6 +96,27 @@
             : 'US';
 
     const currencyCode = unsafeWindow.GetCurrencyCode(currencyId);
+
+    // Currencies affected by the December 2025 Steam Market rule changes.
+    // These currencies use round instead of floor.
+    // Reference: https://steamcommunity.com/groups/community_market/discussions/0/682988196226679356
+    // Alternative approach: Check currency code instead of ID for better reliability
+    const CURRENCY_CODES_TO_ROUND = [
+        'JPY',  // Japanese Yen (unit: 1)
+        'IDR',  // Indonesian Rupiah (unit: 1)
+        'UAH',  // Ukrainian Hryvnia (unit: 1)
+        'CLP',  // Chilean Peso (unit: 1)
+        'COP',  // Colombian Peso (unit: 1)
+        'TWD',  // New Taiwan Dollar (unit: 1)
+        'KZT',  // Kazakhstani Tenge (unit: 1)
+        'CRC',  // Costa Rican Colón (unit: 5)
+        'UYU',  // Uruguayan Peso (unit: 1)
+        'KRW',  // South Korean Won (unit: 10)
+        'VND',  // Vietnamese Dong (unit: 500)
+    ];
+
+    // Check if the current currency uses round for fees.
+    const useRound = CURRENCY_CODES_TO_ROUND.includes(currencyCode);
 
     function SteamMarket(appContext, inventoryUrl, walletInfo) {
         this.appContext = appContext;
@@ -1227,6 +1248,10 @@
     }
 
     // Strangely named function, it actually works out the fees and buyer price for a seller price
+    // Updated for December 2025 Steam Market rule changes:
+    // - 12 specific currencies now use round instead of floor for fees
+    // - Global minimum fee increased to $0.01 for both Steam fee and publisher fee
+    // Reference: https://steamcommunity.com/groups/community_market/discussions/0/682988196226679356/
     function CalculateAmountToSendForDesiredReceivedAmount(receivedAmount, publisherFee, walletInfo) {
         if (walletInfo == null || !walletInfo['wallet_fee']) {
             return {
@@ -1234,13 +1259,33 @@
             };
         }
 
+        // Select the appropriate rounding function based on currency.
+        const roundFee = useRound ? Math.round : Math.floor;
+
+        // December 2025 change: Both Steam fee and publisher fee now have a minimum of $0.01.
+        // The wallet_fee_minimum from Steam represents $0.01 in the user's local currency.
+        // Previously, publisher fee minimum was hardcoded to 1 (the smallest currency unit),
+        // but now it should also be at least $0.01 equivalent in local currency.
+        const minFee = walletInfo['wallet_fee_minimum'] || 1;
+
         publisherFee = publisherFee == null ? 0 : publisherFee;
-        const nSteamFee = parseInt(Math.floor(Math.max(
-            receivedAmount * parseFloat(walletInfo['wallet_fee_percent']),
-            walletInfo['wallet_fee_minimum']
-        ) +
-            parseInt(walletInfo['wallet_fee_base'])));
-        const nPublisherFee = parseInt(Math.floor(publisherFee > 0 ? Math.max(receivedAmount * publisherFee, 1) : 0));
+
+        // IMPORTANT: Apply rounding/flooring BEFORE comparing with minimum fee.
+        // Correct order per Steam's December 2025 rule changes:
+        // 1. Calculate percentage fee (e.g., 0.05 * receivedAmount)
+        // 2. Add base fee (usually 0)
+        // 3. Apply round/floor based on currency
+        // 4. Compare with minimum fee and take maximum
+        const nSteamFee = Math.max(
+            parseInt(roundFee(receivedAmount * parseFloat(walletInfo['wallet_fee_percent']) + parseInt(walletInfo['wallet_fee_base']))),
+            minFee
+        );
+
+        // Publisher fee: same logic, round/floor first, then compare with minFee
+        const nPublisherFee = publisherFee > 0 ? Math.max(
+            parseInt(roundFee(receivedAmount * publisherFee)),
+            minFee
+        ) : 0;
         const nAmountToSend = receivedAmount + nSteamFee + nPublisherFee;
         return {
             steam_fee: nSteamFee,
