@@ -98,10 +98,10 @@
     const currencyCode = unsafeWindow.GetCurrencyCode(currencyId);
 
     // Currencies affected by the December 2025 Steam Market rule changes.
-    // These currencies use half-up rounding for fees instead of floor rounding.
+    // These currencies use round instead of floor.
     // Reference: https://steamcommunity.com/groups/community_market/discussions/0/682988196226679356
     // Alternative approach: Check currency code instead of ID for better reliability
-    const CURRENCY_CODES_WITH_HALF_UP_ROUNDING = [
+    const CURRENCY_CODES_TO_ROUND = [
         'JPY',  // Japanese Yen (unit: 1)
         'IDR',  // Indonesian Rupiah (unit: 1)
         'UAH',  // Ukrainian Hryvnia (unit: 1)
@@ -115,8 +115,8 @@
         'VND',  // Vietnamese Dong (unit: 500)
     ];
 
-    // Check if the current currency uses half-up rounding for fees.
-    const useHalfUpRounding = CURRENCY_CODES_WITH_HALF_UP_ROUNDING.includes(currencyCode);
+    // Check if the current currency uses round for fees.
+    const useRound = CURRENCY_CODES_TO_ROUND.includes(currencyCode);
 
     function SteamMarket(appContext, inventoryUrl, walletInfo) {
         this.appContext = appContext;
@@ -1249,7 +1249,7 @@
 
     // Strangely named function, it actually works out the fees and buyer price for a seller price
     // Updated for December 2025 Steam Market rule changes:
-    // - 12 specific currencies now use half-up rounding instead of floor rounding for fees
+    // - 12 specific currencies now use round instead of floor for fees
     // - Global minimum fee increased to $0.01 for both Steam fee and publisher fee
     // Reference: https://steamcommunity.com/groups/community_market/discussions/0/682988196226679356/
     function CalculateAmountToSendForDesiredReceivedAmount(receivedAmount, publisherFee, walletInfo) {
@@ -1260,7 +1260,7 @@
         }
 
         // Select the appropriate rounding function based on currency.
-        const roundFee = useHalfUpRounding ? Math.round : Math.floor;
+        const roundFee = useRound ? Math.round : Math.floor;
 
         // December 2025 change: Both Steam fee and publisher fee now have a minimum of $0.01.
         // The wallet_fee_minimum from Steam represents $0.01 in the user's local currency.
