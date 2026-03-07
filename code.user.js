@@ -4,7 +4,7 @@
 // @namespace    https://github.com/Nuklon
 // @author       Nuklon
 // @license      MIT
-// @version      7.1.23
+// @version      7.2.0
 // @description  Enhances the Steam Inventory and Steam Market.
 // @match        https://steamcommunity.com/id/*/inventory*
 // @match        https://steamcommunity.com/profiles/*/inventory*
@@ -2300,7 +2300,7 @@
                         </div>
                     </div>`);
 
-                    baseLink.parent().next().append(groupMain);
+                    baseLink.next().append(groupMain);
 
                     // Generate quick sell buttons.
                     let prices = [];
