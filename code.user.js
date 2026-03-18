@@ -3759,7 +3759,44 @@
             $('#see_settings').on('click', '*', () => openSettings());
 
             processMarketListings();
+            initializeMarketHistoryUI();
         }
+    }
+
+    // Initialize the market history UI.
+    function initializeMarketHistoryUI() {
+        // Use jquery-observe (already included in SEE) to listen for AJAX DOM updates
+        $('#tabContentsMyMarketHistory').observe('childlist subtree', function () {
+            const controlsDiv = $('#tabContentsMyMarketHistory_controls');
+
+            // Ensure the controls exist and we haven't already injected our jumper
+            if (controlsDiv.length > 0 && $('#custom_page_jumper').length === 0) {
+                const jumperContainer = $('<span id="custom_page_jumper"></span>');
+                const input = $('<input type="number" min="1" placeholder="Page" />');
+                const btn = $('<span class="btn_green_white_innerfade btn_small" style="cursor: pointer;"><span>Jump</span></span>');
+
+                jumperContainer.append(input).append(btn);
+                controlsDiv.append(jumperContainer);
+
+                btn.on('click', function () {
+                    const targetPage = parseInt(input.val());
+                    if (isNaN(targetPage) || targetPage < 1) {
+                        return; // Fail silently
+                    }
+                    const targetIndex = targetPage - 1;
+
+                    if (typeof unsafeWindow.g_oMyHistory !== 'undefined') {
+                        unsafeWindow.g_oMyHistory.GoToPage(targetIndex);
+                    }
+                });
+
+                input.on('keypress', function (e) {
+                    if (e.which === 13) { // Enter key
+                        btn.click();
+                    }
+                });
+            }
+        });
     }
     //#endregion
 
@@ -4122,6 +4159,9 @@
         #see_settings_modal select, #see_settings_modal input[type="number"] { background-color: black; color: white; border: transparent; padding: 4px 8px; }
         #see_settings_modal input[type="number"] { width: 100px; }
         #see_settings_modal input[type="checkbox"] { width: 16px; height: 16px; vertical-align: middle; accent-color: #000; }
+
+        #custom_page_jumper { margin-left: 15px; display: inline-block; }
+        #custom_page_jumper > input { width: 60px; margin-right: 8px; background-color: #1b2838; color: #fff; border: 1px solid #4582a5; padding: 2px 5px; }
     `);
 
     $(document).ready(() => {
