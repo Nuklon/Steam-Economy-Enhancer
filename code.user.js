@@ -3766,7 +3766,7 @@
     // Initialize the market history UI.
     function initializeMarketHistoryUI() {
         // Use jquery-observe (already included in SEE) to listen for AJAX DOM updates
-        $('#tabContentsMyMarketHistory').observe('childlist subtree', function () {
+        $('#tabContentsMyMarketHistory').observe('childlist subtree', () => {
             const controlsDiv = $('#tabContentsMyMarketHistory_controls');
 
             // Ensure the controls exist and we haven't already injected our jumper
@@ -3778,7 +3778,7 @@
                 jumperContainer.append(input).append(btn);
                 controlsDiv.append(jumperContainer);
 
-                btn.on('click', function () {
+                btn.on('click', () => {
                     const targetPage = parseInt(input.val());
                     if (isNaN(targetPage) || targetPage < 1) {
                         return; // Fail silently
@@ -3790,7 +3790,7 @@
                     }
                 });
 
-                input.on('keypress', function (e) {
+                input.on('keypress', (e) => {
                     if (e.which === 13) { // Enter key
                         btn.click();
                     }
