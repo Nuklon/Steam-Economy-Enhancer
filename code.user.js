@@ -3770,13 +3770,13 @@
             const controlsDiv = $('#tabContentsMyMarketHistory_controls');
 
             // Ensure the controls exist and we haven't already injected our jumper
-            if (controlsDiv.length > 0 && $('#custom_page_jumper').length === 0) {
-                const jumperContainer = $('<span id="custom_page_jumper"></span>');
+            if (controlsDiv.length > 0 && $('#see_page_jump').length === 0) {
+                const jumpContainer = $('<span id="see_page_jump"></span>');
                 const input = $('<input type="number" min="1" placeholder="Page" />');
                 const btn = $('<span class="btn_green_white_innerfade btn_small" style="cursor: pointer;"><span>Jump</span></span>');
 
-                jumperContainer.append(input).append(btn);
-                controlsDiv.append(jumperContainer);
+                jumpContainer.append(input).append(btn);
+                controlsDiv.append(jumpContainer);
 
                 btn.on('click', () => {
                     const targetPage = parseInt(input.val());
@@ -4160,8 +4160,8 @@
         #see_settings_modal input[type="number"] { width: 100px; }
         #see_settings_modal input[type="checkbox"] { width: 16px; height: 16px; vertical-align: middle; accent-color: #000; }
 
-        #custom_page_jumper { margin-left: 15px; display: inline-block; }
-        #custom_page_jumper > input { width: 60px; margin-right: 8px; background-color: #1b2838; color: #fff; border: 1px solid #4582a5; padding: 2px 5px; }
+        #see_page_jump { margin-left: 15px; display: inline-block; }
+        #see_page_jump > input { width: 60px; margin-right: 8px; background-color: #1b2838; color: #fff; border: 1px solid #4582a5; padding: 2px 5px; }
     `);
 
     $(document).ready(() => {
