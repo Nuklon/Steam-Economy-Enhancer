@@ -2254,7 +2254,7 @@
                         `<tr><td align="right">${formatPrice(Math.round(price * 100))}</td><td align="right">${qty}</td></tr>`
                     ).join('');
 
-                    const const buyRows = (orderbook.buy_order_graph || []).slice(0, 10).map(([price, qty]) =>
+                    const buyRows = (orderbook.buy_order_graph || []).slice(0, 10).map(([price, qty]) =>
                         `<tr><td align="right">${formatPrice(Math.round(price * 100))}</td><td align="right">${qty}</td></tr>`
                     ).join('');
 
