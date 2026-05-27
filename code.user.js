@@ -2447,9 +2447,8 @@
                 // Load after the inventory is loaded.
                 updateInventoryPrices();
 
-                $('#inventory_pagecontrols').observe(
+                $('#pagecontrol_cur').observe(
                     'childlist',
-                    '*',
                     () => {
                         updateInventoryPrices();
                     }
@@ -3946,9 +3945,8 @@
             // Load after the inventory is loaded.
             updateInventoryPrices();
 
-            $('#inventory_pagecontrols').observe(
+            $('#pagecontrol_cur').observe(
                 'childlist',
-                '*',
                 () => {
                     updateInventoryPrices();
                 }
