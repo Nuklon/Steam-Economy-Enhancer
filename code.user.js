@@ -2250,11 +2250,11 @@
                         return;
                     }
 
-                    const sellRows = (orderbook.sell_order_graph || []).map(([price, qty]) =>
+                    const sellRows = (orderbook.sell_order_graph || []).slice(0, 10).map(([price, qty]) =>
                         `<tr><td align="right">${formatPrice(Math.round(price * 100))}</td><td align="right">${qty}</td></tr>`
                     ).join('');
 
-                    const buyRows = (orderbook.buy_order_graph || []).map(([price, qty]) =>
+                    const const buyRows = (orderbook.buy_order_graph || []).slice(0, 10).map(([price, qty]) =>
                         `<tr><td align="right">${formatPrice(Math.round(price * 100))}</td><td align="right">${qty}</td></tr>`
                     ).join('');
 
