@@ -935,7 +935,7 @@
                     return;
                 }
 
-                const orderbook = buildOrderBook(data);
+                const orderbook = buildOrderBook(data?.data);
                 if (orderbook == null) {
                     callback(ERROR_DATA, null);
                     return;
