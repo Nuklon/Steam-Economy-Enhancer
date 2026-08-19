@@ -926,15 +926,20 @@
             responseType: 'json'
         };
 
-        request(
-            url,
-            options,
-            (error, data) => {
-                if (error) {
-                    callback(ERROR_FAILED, null);
-                    return;
+        // Steam can return the full Market HTML page instead of JSON when
+        // authenticated cookies are sent to this otherwise public endpoint.
+        fetch(`${url}?${new URLSearchParams(options.data)}`, {
+            credentials: 'omit',
+            headers: { Accept: 'application/json' }
+        }).
+            then((response) => {
+                if (!response.ok) {
+                    throw new Error(`Order book request failed with status ${response.status}`);
                 }
 
+                return response.json();
+            }).
+            then((data) => {
                 const orderbook = buildOrderBook(data?.data);
                 if (orderbook == null) {
                     callback(ERROR_DATA, null);
@@ -946,8 +951,8 @@
                 storageSession.setItem(storage_hash, orderbook);
 
                 callback(ERROR_SUCCESS, orderbook, false);
-            }
-        );
+            }).
+            catch(() => callback(ERROR_FAILED, null));
     };
 
     // Calculate the price before fees (seller price) from the buyer price
@@ -2215,7 +2220,8 @@
                 }
             };
 
-            const isBoosterPack = selectedItem.name.toLowerCase().endsWith('booster pack');
+            const selectedItemName = selectedItem.name || selectedItem.description?.name || '';
+            const isBoosterPack = selectedItemName.toLowerCase().endsWith('booster pack');
             if (isBoosterPack) {
                 const tradingCardsUrl = `/market/search?q=&category_753_Game%5B%5D=tag_app_${selectedItem.market_fee_app}&category_753_item_class%5B%5D=tag_item_class_2&appid=753`;
                 const communityHeader = $('h1', item_info).next().find('span').eq(0);
